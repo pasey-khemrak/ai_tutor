@@ -8,7 +8,7 @@ class BrandIntroPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final logoSize = (size.shortestSide * .42).clamp(152.0, 178.0);
+    final logoSize = (size.shortestSide * .54).clamp(190.0, 230.0);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 30, 28, 94),

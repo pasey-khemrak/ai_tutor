@@ -15,7 +15,7 @@ class SetupFlowScreen extends StatefulWidget {
 class _SetupFlowScreenState extends State<SetupFlowScreen> {
   int _step = 0;
   int _grade = 10;
-  String _subject = 'math';
+  String _lesson = 'math';
 
   void _continue() {
     if (_step == 0) {
@@ -34,20 +34,20 @@ class _SetupFlowScreenState extends State<SetupFlowScreen> {
       body: _SetupBackground(
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 34, 28, 28),
+            padding: const EdgeInsets.fromLTRB(32, 44, 32, 28),
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 240),
               child: _step == 0
-                  ? _GradeStep(
+                  ? _ChooseGradeStep(
                       key: const ValueKey('grade'),
                       selectedGrade: _grade,
                       onSelect: (value) => setState(() => _grade = value),
                       onContinue: _continue,
                     )
-                  : _SubjectStep(
-                      key: const ValueKey('subject'),
-                      selectedSubject: _subject,
-                      onSelect: (value) => setState(() => _subject = value),
+                  : _ChooseLessonStep(
+                      key: const ValueKey('lesson'),
+                      selectedLesson: _lesson,
+                      onSelect: (value) => setState(() => _lesson = value),
                       onContinue: _continue,
                     ),
             ),
@@ -58,8 +58,8 @@ class _SetupFlowScreenState extends State<SetupFlowScreen> {
   }
 }
 
-class _GradeStep extends StatelessWidget {
-  const _GradeStep({
+class _ChooseGradeStep extends StatelessWidget {
+  const _ChooseGradeStep({
     super.key,
     required this.selectedGrade,
     required this.onSelect,
@@ -78,13 +78,13 @@ class _GradeStep extends StatelessWidget {
       child: Column(
         children: [
           for (final grade in const [10, 11, 12]) ...[
-            _OptionCard(
+            _SetupOptionCard(
               selected: selectedGrade == grade,
               leading: Text(
                 '$grade',
                 style: const TextStyle(
                   color: Colors.black,
-                  fontSize: 18,
+                  fontSize: 22,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -99,23 +99,23 @@ class _GradeStep extends StatelessWidget {
             ),
             const SizedBox(height: 14),
           ],
-          const SizedBox(height: 10),
-          _ContinueButton(onPressed: onContinue),
+          const SizedBox(height: 54),
+          _SetupContinueButton(onPressed: onContinue),
         ],
       ),
     );
   }
 }
 
-class _SubjectStep extends StatelessWidget {
-  const _SubjectStep({
+class _ChooseLessonStep extends StatelessWidget {
+  const _ChooseLessonStep({
     super.key,
-    required this.selectedSubject,
+    required this.selectedLesson,
     required this.onSelect,
     required this.onContinue,
   });
 
-  final String selectedSubject;
+  final String selectedLesson;
   final ValueChanged<String> onSelect;
   final VoidCallback onContinue;
 
@@ -126,31 +126,39 @@ class _SubjectStep extends StatelessWidget {
       subtitle: 'ជ្រើសមុខវិជ្ជាដែលអ្នកចង់រៀន',
       child: Column(
         children: [
-          _OptionCard(
-            selected: selectedSubject == 'math',
-            leading: const Icon(Icons.functions_rounded, color: Colors.black),
+          _SetupOptionCard(
+            selected: selectedLesson == 'math',
+            leading: const Icon(
+              Icons.functions_rounded,
+              color: Colors.black,
+              size: 28,
+            ),
             activeColor: AppColors.blue,
             title: 'គណិតវិទ្យា',
             subtitle: 'អនុគមន៍ សមីការ ត្រីកោណមាត្រ និងលំហាត់ថ្នាក់ទី 12',
             onTap: () => onSelect('math'),
           ),
           const SizedBox(height: 14),
-          _OptionCard(
-            selected: selectedSubject == 'physics',
-            leading: const Icon(Icons.science_rounded, color: Colors.black),
+          _SetupOptionCard(
+            selected: selectedLesson == 'physics',
+            leading: const Icon(
+              Icons.science_rounded,
+              color: Colors.black,
+              size: 28,
+            ),
             activeColor: AppColors.cyan,
             title: 'រូបវិទ្យា',
             subtitle: 'មេកានិច អគ្គិសនី រលក និងលំហាត់គណនា',
             onTap: () => onSelect('physics'),
           ),
           const SizedBox(height: 14),
-          _OptionCard(
-            selected: selectedSubject == 'english',
+          _SetupOptionCard(
+            selected: selectedLesson == 'english',
             leading: const Text(
               'ENG',
               style: TextStyle(
                 color: Colors.black,
-                fontSize: 12,
+                fontSize: 15,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -159,8 +167,8 @@ class _SubjectStep extends StatelessWidget {
             subtitle: 'Vocabulary, Grammar and any General Lesson',
             onTap: () => onSelect('english'),
           ),
-          const SizedBox(height: 24),
-          _ContinueButton(onPressed: onContinue),
+          const SizedBox(height: 54),
+          _SetupContinueButton(onPressed: onContinue),
         ],
       ),
     );
@@ -181,67 +189,41 @@ class _SetupContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      key: key,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         const _CapMark(),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         Text(
           title,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 24,
+            fontSize: 30,
             height: 1.1,
             fontWeight: FontWeight.w900,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
           subtitle,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Color(0xFF8793C3),
-            fontSize: 13,
+            fontSize: 14,
+            height: 1.35,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 34),
+        const SizedBox(height: 30),
         child,
       ],
     );
   }
 }
 
-class _CapMark extends StatelessWidget {
-  const _CapMark();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 98,
-        height: 98,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: const Color(0xFF071026).withValues(alpha: .68),
-          border: Border.all(color: AppColors.blue.withValues(alpha: .8)),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.blue.withValues(alpha: .18),
-              blurRadius: 22,
-            ),
-          ],
-        ),
-        child: Icon(Icons.school_outlined, color: AppColors.cyan, size: 54),
-      ),
-    );
-  }
-}
-
-class _OptionCard extends StatelessWidget {
-  const _OptionCard({
+class _SetupOptionCard extends StatelessWidget {
+  const _SetupOptionCard({
     required this.selected,
     required this.leading,
     required this.activeColor,
@@ -263,20 +245,24 @@ class _OptionCard extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 62,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        height: 74,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: .8),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? activeColor : activeColor.withValues(alpha: .72),
-          ),
+          border: Border.all(color: activeColor, width: 1.8),
+          boxShadow: [
+            BoxShadow(
+              color: activeColor.withValues(alpha: .12),
+              blurRadius: 10,
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
-              width: 39,
-              height: 39,
+              width: 48,
+              height: 48,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: activeColor,
@@ -284,7 +270,7 @@ class _OptionCard extends StatelessWidget {
               ),
               child: leading,
             ),
-            const SizedBox(width: 13),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -296,18 +282,18 @@ class _OptionCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
+                      fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF8793C3),
-                      fontSize: 9.5,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -320,7 +306,7 @@ class _OptionCard extends StatelessWidget {
               color: selected
                   ? activeColor
                   : activeColor.withValues(alpha: .85),
-              size: 19,
+              size: 24,
             ),
           ],
         ),
@@ -329,27 +315,37 @@ class _OptionCard extends StatelessWidget {
   }
 }
 
-class _ContinueButton extends StatelessWidget {
-  const _ContinueButton({required this.onPressed});
+class _SetupContinueButton extends StatelessWidget {
+  const _SetupContinueButton({required this.onPressed});
 
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
-      child: FilledButton(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.blue,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        child: const Text(
-          'Continue',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
+      width: double.infinity,
+      height: 54,
+      child: GestureDetector(
+        onTap: onPressed,
+        behavior: HitTestBehavior.opaque,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [AppColors.blue, Color(0xFF7647FF)],
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Center(
+            child: Text(
+              'Continue',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
         ),
       ),
@@ -400,6 +396,36 @@ class _SetupBackground extends StatelessWidget {
           ),
           child,
         ],
+      ),
+    );
+  }
+}
+
+class _CapMark extends StatelessWidget {
+  const _CapMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 128,
+        height: 128,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: const Color(0xFF071026).withValues(alpha: .68),
+          border: Border.all(color: AppColors.blue.withValues(alpha: .8)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.blue.withValues(alpha: .18),
+              blurRadius: 22,
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.school_outlined,
+          color: AppColors.cyan,
+          size: 72,
+        ),
       ),
     );
   }
