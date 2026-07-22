@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
-import 'tutor_shell.dart';
+import '../screens/auth/auth_screen.dart';
 
 class AiTutorApp extends StatelessWidget {
   const AiTutorApp({super.key});
@@ -20,7 +20,7 @@ class AiTutorApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
       ),
-      home: const TutorShell(),
+      home: const AuthScreen(),
     );
   }
 }

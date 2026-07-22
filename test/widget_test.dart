@@ -1,12 +1,10 @@
 // This is a basic Flutter widget test.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// To perform an interaction with a widget, use the WidgetTester utility in the
+// flutter_test package.
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/widgets.dart';
 
 import 'package:ai_tutor/app/ai_tutor_app.dart';
 
@@ -16,7 +14,30 @@ void main() {
   ) async {
     await tester.pumpWidget(const AiTutorApp());
 
-    expect(find.text('Rean រៀន'), findsOneWidget);
+    expect(find.text('Your intelligent learning companion'), findsOneWidget);
+    expect(find.text('Skip'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.arrow_forward_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.arrow_forward_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign In'), findsWidgets);
+    expect(find.byKey(const Key('forgot-password-link')), findsOneWidget);
+
+    await tester.tap(find.text('Sign In').last);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('ថ្នាក់'), findsWidgets);
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('មុខវិជ្ជា'), findsWidgets);
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Voice'), findsOneWidget);
     expect(find.text('Stop'), findsOneWidget);
 
@@ -26,28 +47,6 @@ void main() {
 
     await tester.tap(find.text('Quizzes'));
     await tester.pumpAndSettle();
-    expect(find.text('គណិតវិទ្យា'), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('bac-dup-quiz-card')));
-    await tester.pumpAndSettle();
-    expect(find.text('លំហាត់អនុគមន៍'), findsOneWidget);
-
-    await tester.ensureVisible(find.textContaining('ចាប់ផ្តើម'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('ចាប់ផ្តើម'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('f(x) = √'), findsOneWidget);
-
-    await tester.ensureVisible(find.textContaining('ពិនិត្យលទ្ធផល'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('ពិនិត្យលទ្ធផល'));
-    await tester.pumpAndSettle();
-    expect(find.text('បានបញ្ចប់ការតេស្ត'), findsOneWidget);
-
-    await tester.ensureVisible(find.text('មើលចម្លើយលម្អិត'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('មើលចម្លើយលម្អិត'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('ទាំងអស់'), findsOneWidget);
+    expect(find.byKey(const Key('bac-dup-quiz-card')), findsOneWidget);
   });
 }

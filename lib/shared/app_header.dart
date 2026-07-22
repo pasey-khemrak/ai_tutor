@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/app_colors.dart';
 import 'rean_avatar.dart';
 
@@ -20,13 +21,21 @@ class AppHeader extends StatelessWidget {
         children: [
           const ReanAvatar(),
           const SizedBox(width: 12),
-          const Text(
-            'Rean រៀន',
-            style: TextStyle(
-              color: AppColors.cyan,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              letterSpacing: .2,
+          RichText(
+            text: const TextSpan(
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                height: 1,
+              ),
+              children: [
+                TextSpan(text: 'Rean-'),
+                TextSpan(
+                  text: '\u179A\u17C0\u1793',
+                  style: TextStyle(color: AppColors.blue),
+                ),
+              ],
             ),
           ),
           const Spacer(),
