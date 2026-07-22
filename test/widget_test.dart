@@ -22,7 +22,9 @@ void main() {
 
     await tester.tap(find.text('Tutor'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Find the equation line'), findsOneWidget);
+    expect(find.textContaining('Find the equation of the line'), findsOneWidget);
+    expect(find.text('Step 1: Find the Slope'), findsOneWidget);
+    expect(find.text('Next Step'), findsOneWidget);
 
     await tester.tap(find.text('Quizzes'));
     await tester.pumpAndSettle();
@@ -30,7 +32,23 @@ void main() {
 
     await tester.tap(find.byKey(const Key('bac-dup-quiz-card')));
     await tester.pumpAndSettle();
-    expect(find.text('លំហាត់អនុគមន៍'), findsOneWidget);
+    expect(find.text('បាក់ឌុប'), findsOneWidget);
+    expect(find.text('ត្រឡប់ទៅជម្រើស'), findsOneWidget);
+
+    await tester.tap(find.text('ត្រឡប់ទៅជម្រើស'));
+    await tester.pumpAndSettle();
+    expect(find.text('គណិតវិទ្យា'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('semester-quiz-card')));
+    await tester.tap(find.byKey(const Key('semester-quiz-card')));
+    await tester.pumpAndSettle();
+    expect(find.text('ប្រចាំឆមាស'), findsOneWidget);
+
+    await tester.tap(find.text('ត្រឡប់ទៅជម្រើស'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('bac-dup-quiz-card')));
+    await tester.pumpAndSettle();
+    expect(find.text('បាក់ឌុប'), findsOneWidget);
 
     await tester.ensureVisible(find.textContaining('ចាប់ផ្តើម'));
     await tester.pumpAndSettle();
@@ -49,5 +67,15 @@ void main() {
     await tester.tap(find.text('មើលចម្លើយលម្អិត'));
     await tester.pumpAndSettle();
     expect(find.textContaining('ទាំងអស់'), findsOneWidget);
+
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Profile'), findsOneWidget);
+    expect(find.text('Khemrak Pasey'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Logout from Rean'), findsOneWidget);
   });
 }

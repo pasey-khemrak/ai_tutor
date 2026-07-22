@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../screens/placeholder/placeholder_screen.dart';
+import '../screens/profile/profile_screen.dart';
 import '../screens/quizzes/quizzes_screen.dart';
 import '../screens/tutor/tutor_screen.dart';
 import '../screens/voice/voice_screen.dart';
@@ -16,13 +17,15 @@ class TutorShell extends StatefulWidget {
 class _TutorShellState extends State<TutorShell> {
   int _selectedIndex = 2;
 
-  static const _screens = <Widget>[
-    PlaceholderScreen(label: 'Dashboard'),
-    TutorScreen(),
-    VoiceScreen(),
-    QuizzesScreen(),
-    PlaceholderScreen(label: 'Profile'),
-  ];
+  Widget _buildScreen() {
+    return switch (_selectedIndex) {
+      0 => const PlaceholderScreen(label: 'Dashboard'),
+      1 => const TutorScreen(),
+      2 => const VoiceScreen(),
+      3 => const QuizzesScreen(),
+      _ => ProfileScreen(onBack: () => setState(() => _selectedIndex = 0)),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,13 +33,13 @@ class _TutorShellState extends State<TutorShell> {
       body: SafeArea(
         child: Column(
           children: [
-            const AppHeader(),
+            if (_selectedIndex != 4) const AppHeader(),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
                 child: KeyedSubtree(
                   key: ValueKey(_selectedIndex),
-                  child: _screens[_selectedIndex],
+                  child: _buildScreen(),
                 ),
               ),
             ),

@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../core/app_colors.dart';
+import '../../features/quizzes/quiz_catalog.dart';
 
 class QuizIntroScreen extends StatelessWidget {
-  const QuizIntroScreen({super.key, required this.onStart});
+  const QuizIntroScreen({
+    super.key,
+    required this.quiz,
+    required this.onStart,
+    required this.onBack,
+  });
 
+  final QuizCatalogItem quiz;
   final VoidCallback onStart;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -13,6 +21,22 @@ class QuizIntroScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              key: const Key('quiz-intro-back-button'),
+              onPressed: onBack,
+              icon: const Icon(Icons.chevron_left_rounded),
+              label: const Text('ត្រឡប់ទៅជម្រើស'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.text,
+                side: BorderSide(color: AppColors.line),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
           Center(
             child: Container(
@@ -57,49 +81,49 @@ class QuizIntroScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 28),
-          const Text(
-            'លំហាត់អនុគមន៍',
+          Text(
+            quiz.title,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.text,
               fontSize: 28,
               fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'គណិតវិទ្យាថ្នាក់ទី១២',
+          Text(
+            quiz.subtitle.replaceAll('\n', ' • '),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.muted,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 36),
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: QuizInfoTile(
                   icon: Icons.assignment_outlined,
                   label: 'សំណួរ',
-                  value: '20',
+                  value: '${quiz.questionCount}',
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: QuizInfoTile(
                   icon: Icons.timer_outlined,
                   label: 'រយៈពេល',
-                  value: '30 min',
+                  value: quiz.durationLabel,
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: QuizInfoTile(
                   icon: Icons.auto_awesome_outlined,
                   label: 'កម្រិត',
-                  value: 'មធ្យម',
+                  value: quiz.level,
                 ),
               ),
             ],
@@ -193,9 +217,9 @@ class QuizGuidelinesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const rules = [
-      'ត្រូវអានសំណួរឱ្យច្បាស់មុនជ្រើសរើសចម្លើយ។',
-      'ពិន្ទុនឹងត្រូវបូកដោយស្វ័យប្រវត្តិនៅពេលបញ្ចប់។',
-      'ក្រោយប្រឡង អ្នកអាចមើលការពន្យល់ពី AI បាន។',
+      'គ្រប់សំណួរទាំងអស់មានចម្លើយត្រឹមត្រូវតែ១ប៉ុណ្ណោះ',
+      'ការផ្លាស់ប្ដូរចុះឡើងរវាងសំណួរនានាត្រូវបានអនុញ្ញាតក្នុងអំឡុងពេលប្រឡង/អនុវត្ត។',
+      'ត្រូវប្រាកដថាអ្នកបានដាក់បញ្ជូនចម្លើយមុនពេលកំណត់',
     ];
 
     return Container(
@@ -209,7 +233,7 @@ class QuizGuidelinesCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'សេចក្ដីណែនាំខ្លីៗ',
+            'សេចក្ដីណែនាំក្នុងការប្រលង',
             style: TextStyle(
               color: AppColors.text,
               fontSize: 15,

@@ -6,10 +6,12 @@ class QuizQuestionScreen extends StatelessWidget {
     super.key,
     required this.onNext,
     required this.onResults,
+    required this.onBack,
   });
 
   final VoidCallback onNext;
   final VoidCallback onResults;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +43,7 @@ class QuizQuestionScreen extends StatelessWidget {
             ),
           ),
         ),
-        QuizQuestionFooter(onNext: onNext),
+        QuizQuestionFooter(onNext: onNext, onBack: onBack),
       ],
     );
   }
@@ -213,9 +215,14 @@ class QuizChoice extends StatelessWidget {
 }
 
 class QuizQuestionFooter extends StatelessWidget {
-  const QuizQuestionFooter({super.key, required this.onNext});
+  const QuizQuestionFooter({
+    super.key,
+    required this.onNext,
+    required this.onBack,
+  });
 
   final VoidCallback onNext;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -228,7 +235,7 @@ class QuizQuestionFooter extends StatelessWidget {
       child: Row(
         children: [
           TextButton.icon(
-            onPressed: () {},
+            onPressed: onBack,
             icon: const Icon(Icons.chevron_left_rounded),
             label: const Text('មុន'),
             style: TextButton.styleFrom(foregroundColor: AppColors.muted),

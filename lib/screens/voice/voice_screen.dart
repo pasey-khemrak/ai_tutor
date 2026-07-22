@@ -68,7 +68,7 @@ class VoiceCard extends StatelessWidget {
               const VoiceOrb(),
               const SizedBox(height: 34),
               Text(
-                '"ខ្ញុំកំពុងស្តាប់,\nSeypa."',
+                '"ខ្ញុំកំពុងស្តាប់អ្នក,\nSeypa."',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppColors.text,
