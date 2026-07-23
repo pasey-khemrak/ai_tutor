@@ -36,7 +36,7 @@ class ReanLogoMark extends StatelessWidget {
               : null,
         ),
         child: Padding(
-          padding: EdgeInsets.all(size * .08),
+          padding: EdgeInsets.all(size * .04),
           child: Image.asset(
             'assets/images/ai_tutor_logo.png',
             fit: BoxFit.contain,

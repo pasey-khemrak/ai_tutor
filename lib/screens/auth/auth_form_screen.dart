@@ -86,7 +86,7 @@ class _AuthFormScreenState extends State<AuthFormScreen> {
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 220),
                         child: _isSignUp
-                            ? _SignUpFields(key: const ValueKey('signup'))
+                            ? const _SignUpFields(key: ValueKey('signup'))
                             : _SignInFields(
                                 key: const ValueKey('signin'),
                                 onForgotPassword: _openForgotPassword,
@@ -163,11 +163,11 @@ class _AuthTitle extends StatelessWidget {
       );
     }
 
-    return Column(
+    return const Column(
       children: [
-        const ReanBrandName(prefix: 'Join '),
-        const SizedBox(height: 12),
-        const Text(
+        ReanBrandName(prefix: 'Join '),
+        SizedBox(height: 12),
+        Text(
           'Create your free account and start learning',
           textAlign: TextAlign.center,
           style: TextStyle(
