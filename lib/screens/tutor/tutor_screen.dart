@@ -11,7 +11,10 @@ class TutorScreen extends StatefulWidget {
 }
 
 class _TutorScreenState extends State<TutorScreen> {
+  static const _studentName = 'Khemrak';
+
   int _step = 0;
+  bool _hasStartedChat = false;
   bool _showExtraHelp = false;
 
   static const _steps = [
@@ -61,6 +64,22 @@ class _TutorScreenState extends State<TutorScreen> {
     setState(() => _showExtraHelp = !_showExtraHelp);
   }
 
+  void _startChat() {
+    setState(() {
+      _hasStartedChat = true;
+      _showExtraHelp = false;
+    });
+  }
+
+  void _handleChatInput() {
+    if (!_hasStartedChat) {
+      _startChat();
+      return;
+    }
+
+    _explainAgain();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -71,34 +90,88 @@ class _TutorScreenState extends State<TutorScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const UserBubble(),
-                const SizedBox(height: 26),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  child: _isPractice
-                      ? PracticeCard(
-                          key: const ValueKey('practice'),
-                          onBack: _back,
-                          onExplainAgain: _explainAgain,
-                          showExtraHelp: _showExtraHelp,
-                        )
-                      : LessonCard(
-                          key: ValueKey(_step),
-                          step: _steps[_step],
-                          isFirst: _step == 0,
-                          isLast: _step == _steps.length - 1,
-                          onBack: _back,
-                          onNext: _next,
-                          onExplainAgain: _explainAgain,
-                          showExtraHelp: _showExtraHelp,
-                        ),
-                ),
+                const TutorWelcomeBubble(studentName: _studentName),
+                if (_hasStartedChat) ...[
+                  const SizedBox(height: 18),
+                  const UserBubble(),
+                  const SizedBox(height: 26),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    child: _isPractice
+                        ? PracticeCard(
+                            key: const ValueKey('practice'),
+                            onBack: _back,
+                            onExplainAgain: _explainAgain,
+                            showExtraHelp: _showExtraHelp,
+                          )
+                        : LessonCard(
+                            key: ValueKey(_step),
+                            step: _steps[_step],
+                            isFirst: _step == 0,
+                            isLast: _step == _steps.length - 1,
+                            onBack: _back,
+                            onNext: _next,
+                            onExplainAgain: _explainAgain,
+                            showExtraHelp: _showExtraHelp,
+                          ),
+                  ),
+                ],
               ],
             ),
           ),
         ),
-        ChatInput(onNeedHelp: _explainAgain),
+        ChatInput(onNeedHelp: _handleChatInput),
       ],
+    );
+  }
+}
+
+class TutorWelcomeBubble extends StatelessWidget {
+  const TutorWelcomeBubble({super.key, required this.studentName});
+
+  final String studentName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            constraints: const BoxConstraints(maxWidth: 326),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            decoration: BoxDecoration(
+              color: AppColors.answer,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(14),
+                topRight: Radius.circular(14),
+                bottomLeft: Radius.circular(2),
+                bottomRight: Radius.circular(14),
+              ),
+              border: Border.all(color: AppColors.cyan.withValues(alpha: .22)),
+            ),
+            child: Text(
+              'Hey $studentName, how can I help you today?',
+              style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 17,
+                height: 1.4,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Rean AI',
+            style: TextStyle(
+              color: AppColors.cyan,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

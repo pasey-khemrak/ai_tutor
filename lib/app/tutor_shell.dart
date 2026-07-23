@@ -15,7 +15,7 @@ class TutorShell extends StatefulWidget {
 }
 
 class _TutorShellState extends State<TutorShell> {
-  int _selectedIndex = 2;
+  int _selectedIndex = 0;
 
   Widget _buildScreen() {
     return switch (_selectedIndex) {

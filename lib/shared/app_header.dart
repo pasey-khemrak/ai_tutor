@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/app_colors.dart';
 import 'rean_avatar.dart';
 
@@ -26,7 +27,7 @@ class AppHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Rean រៀន',
+                  'Rean \u179A\u17C0\u1793',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
