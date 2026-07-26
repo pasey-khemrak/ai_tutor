@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
 
 class QuizSubmitScreen extends StatelessWidget {
@@ -13,12 +14,20 @@ class QuizSubmitScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final panelColor = AdaptiveColors.panel(context);
+    final lineColor = AdaptiveColors.line(context);
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+    final warningBackground = AdaptiveColors.isLight(context)
+        ? const Color(0xFFFFF1E8)
+        : const Color(0xFF3A2322);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(22, 42, 22, 28),
       child: Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          color: AppColors.panel,
+          color: panelColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.cyan.withValues(alpha: .3)),
           boxShadow: [
@@ -37,20 +46,20 @@ class QuizSubmitScreen extends StatelessWidget {
               child: Icon(Icons.quiz_outlined, color: Colors.white),
             ),
             const SizedBox(height: 22),
-            const Text(
+            Text(
               'ដាក់បញ្ចប់?',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.text,
+                color: textColor,
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'អ្នកបានឆ្លើយសំណួរចំនួន 17 ក្នុងចំណោម 20 សំណួរ។',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.muted, height: 1.4),
+              style: TextStyle(color: mutedColor, height: 1.4),
             ),
             const SizedBox(height: 24),
             const SubmitStatRow(label: 'បានឆ្លើយ', value: '17'),
@@ -64,7 +73,7 @@ class QuizSubmitScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF3A2322),
+                color: warningBackground,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: Colors.deepOrange.withValues(alpha: .45)),
               ),
@@ -101,8 +110,8 @@ class QuizSubmitScreen extends StatelessWidget {
               onPressed: onBack,
               style: OutlinedButton.styleFrom(
                 fixedSize: const Size.fromHeight(48),
-                foregroundColor: AppColors.text,
-                side: BorderSide(color: AppColors.muted.withValues(alpha: .5)),
+                foregroundColor: textColor,
+                side: BorderSide(color: lineColor),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -130,29 +139,34 @@ class SubmitStatRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = AdaptiveColors.card(context);
+    final lineColor = AdaptiveColors.line(context);
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: cardColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: lineColor),
       ),
       child: Row(
         children: [
           Icon(
             warning ? Icons.flag_rounded : Icons.circle,
-            color: warning ? Colors.deepOrangeAccent : AppColors.muted,
+            color: warning ? Colors.deepOrangeAccent : mutedColor,
             size: 14,
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(label, style: const TextStyle(color: AppColors.text)),
+            child: Text(label, style: TextStyle(color: textColor)),
           ),
           Text(
             value,
             style: TextStyle(
-              color: warning ? Colors.deepOrangeAccent : AppColors.text,
+              color: warning ? Colors.deepOrangeAccent : textColor,
               fontSize: 19,
               fontWeight: FontWeight.w900,
             ),

@@ -54,7 +54,11 @@ void main() {
     expect(find.textContaining('Find the equation of the line'), findsNothing);
     expect(find.text('Step 1: Find the Slope'), findsNothing);
 
-    await tester.tap(find.text('Ask Rean any question!'));
+    await tester.enterText(
+      find.byKey(const Key('tutor-message-field')),
+      'Find the equation of the line',
+    );
+    await tester.tap(find.byKey(const Key('tutor-send-button')));
     await pumpFrame();
     expect(find.textContaining('Find the equation of the line'), findsOneWidget);
     expect(find.text('Step 1: Find the Slope'), findsOneWidget);

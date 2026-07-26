@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
 
 class QuizQuestionScreen extends StatelessWidget {
@@ -15,6 +16,9 @@ class QuizQuestionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+    final borderColor = AdaptiveColors.line(context);
+
     return Column(
       children: [
         Expanded(
@@ -32,8 +36,8 @@ class QuizQuestionScreen extends StatelessWidget {
                   icon: const Icon(Icons.flag_outlined, size: 18),
                   label: const Text('ពិនិត្យលទ្ធផលរហ័ស'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.text,
-                    side: BorderSide(color: AppColors.muted.withValues(alpha: .7)),
+                    foregroundColor: textColor,
+                    side: BorderSide(color: borderColor),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
@@ -54,13 +58,17 @@ class QuizProgressHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+    final lineColor = AdaptiveColors.line(context);
+
     return Column(
       children: [
-        const Row(
+        Row(
           children: [
             Text(
               'សំណួរ ',
-              style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800),
+              style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
             ),
             Text(
               '5',
@@ -68,23 +76,23 @@ class QuizProgressHeader extends StatelessWidget {
             ),
             Text(
               ' នៃ 20',
-              style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800),
+              style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
             ),
             Spacer(),
             Text(
               '25% Complete',
-              style: TextStyle(color: AppColors.muted, fontSize: 12),
+              style: TextStyle(color: mutedColor, fontSize: 12),
             ),
           ],
         ),
         const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
-          child: const LinearProgressIndicator(
+          child: LinearProgressIndicator(
             value: .25,
             minHeight: 6,
-            backgroundColor: AppColors.line,
-            valueColor: AlwaysStoppedAnimation(AppColors.blue),
+            backgroundColor: lineColor,
+            valueColor: const AlwaysStoppedAnimation(AppColors.blue),
           ),
         ),
       ],
@@ -97,27 +105,31 @@ class QuestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final panelColor = AdaptiveColors.panel(context);
+    final lineColor = AdaptiveColors.line(context);
+    final textColor = AdaptiveColors.text(context);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 22),
       decoration: BoxDecoration(
-        color: AppColors.panel,
+        color: panelColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: lineColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: const [
+        children: [
           Text(
             '5. តើដែនកំណត់នៃអនុគមន៍ខាងក្រោមគឺមួយណា?',
             style: TextStyle(
-              color: AppColors.text,
+              color: textColor,
               fontSize: 17,
               height: 1.35,
               fontWeight: FontWeight.w800,
             ),
           ),
-          SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             'f(x) = √(x - 2)',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -127,7 +139,7 @@ class QuestionCard extends StatelessWidget {
               fontStyle: FontStyle.italic,
             ),
           ),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
           QuizChoice(letter: 'A', text: 'x ≥ 0'),
           QuizChoice(letter: 'B', text: 'x ≥ 2', selected: true),
           QuizChoice(letter: 'C', text: 'x ≤ 2'),
@@ -156,24 +168,31 @@ class QuizChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lineColor = AdaptiveColors.line(context);
+    final cardColor = AdaptiveColors.card(context);
+    final defaultTextColor = AdaptiveColors.text(context);
+    final letterBackground = AdaptiveColors.isLight(context)
+        ? const Color(0xFFEAF0FF)
+        : Colors.white.withValues(alpha: .07);
+
     final borderColor = correct
         ? Colors.greenAccent.withValues(alpha: .45)
         : wrong
             ? AppColors.peach.withValues(alpha: .45)
             : selected
                 ? AppColors.blue
-                : AppColors.line;
+                : lineColor;
     final textColor = correct
         ? Colors.greenAccent
         : wrong
             ? AppColors.peach
-            : AppColors.text;
+            : defaultTextColor;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: selected ? AppColors.blue.withValues(alpha: .14) : AppColors.card,
+        color: selected ? AppColors.blue.withValues(alpha: .14) : cardColor,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: borderColor, width: selected ? 2 : 1),
       ),
@@ -184,13 +203,13 @@ class QuizChoice extends StatelessWidget {
             height: 34,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: selected ? AppColors.blue : Colors.white.withValues(alpha: .07),
+              color: selected ? AppColors.blue : letterBackground,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               letter,
-              style: const TextStyle(
-                color: AppColors.text,
+              style: TextStyle(
+                color: selected ? Colors.white : defaultTextColor,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -226,11 +245,15 @@ class QuizQuestionFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final panelColor = AdaptiveColors.panel(context);
+    final lineColor = AdaptiveColors.line(context);
+    final mutedColor = AdaptiveColors.muted(context);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
       decoration: BoxDecoration(
-        color: AppColors.panel.withValues(alpha: .95),
-        border: Border(top: BorderSide(color: AppColors.line)),
+        color: panelColor,
+        border: Border(top: BorderSide(color: lineColor)),
       ),
       child: Row(
         children: [
@@ -238,7 +261,7 @@ class QuizQuestionFooter extends StatelessWidget {
             onPressed: onBack,
             icon: const Icon(Icons.chevron_left_rounded),
             label: const Text('មុន'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.muted),
+            style: TextButton.styleFrom(foregroundColor: mutedColor),
           ),
           const Spacer(),
           FilledButton(

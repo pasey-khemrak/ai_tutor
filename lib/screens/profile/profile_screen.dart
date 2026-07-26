@@ -525,20 +525,26 @@ class SettingsView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 40),
-                OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.logout_rounded),
-                  label: const Text('Logout from Rean'),
-                  style: OutlinedButton.styleFrom(
-                    fixedSize: const Size.fromHeight(64),
-                    foregroundColor: const Color(0xFFFF5574),
-                    side: BorderSide(color: ProfilePalette.line(context)),
-                    textStyle: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
+                SizedBox(
+                  width: double.infinity,
+                  height: 64,
+                  child: OutlinedButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.logout_rounded),
+                    label: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Logout from Rean'),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFFF5574),
+                      side: BorderSide(color: ProfilePalette.line(context)),
+                      textStyle: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
                 ),
@@ -852,6 +858,16 @@ class GoalChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final chipTextColor = ProfilePalette.isLight(context)
+        ? const Color(0xFF4057FF)
+        : const Color(0xFFC9A8FF);
+    final chipBackground = ProfilePalette.isLight(context)
+        ? const Color(0xFFEAF0FF)
+        : Colors.white.withValues(alpha: .12);
+    final chipBorder = ProfilePalette.isLight(context)
+        ? const Color(0xFFC7D4FF)
+        : Colors.transparent;
+
     const labels = ['#Physics', '#Mathematics', '+ Add Goal'];
     return Wrap(
       spacing: 10,
@@ -861,13 +877,14 @@ class GoalChips extends StatelessWidget {
           ActionChip(
             onPressed: enabled ? () {} : null,
             label: Text(label),
-            labelStyle: const TextStyle(
-              color: Color(0xFFC9A8FF),
+            labelStyle: TextStyle(
+              color: chipTextColor,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
-            backgroundColor: Colors.white.withValues(alpha: .12),
-            side: BorderSide.none,
+            backgroundColor: chipBackground,
+            disabledColor: chipBackground,
+            side: BorderSide(color: chipBorder),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(22),
             ),

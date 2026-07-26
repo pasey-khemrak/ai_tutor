@@ -13,9 +13,12 @@ class TutorScreen extends StatefulWidget {
 class _TutorScreenState extends State<TutorScreen> {
   static const _studentName = 'Khemrak';
 
+  final TextEditingController _messageController = TextEditingController();
   int _step = 0;
   bool _hasStartedChat = false;
   bool _showExtraHelp = false;
+  String _userQuestion =
+      'Find the equation of the line\nthrough D(0,1) and E(1,3)';
 
   static const _steps = [
     LessonStep(
@@ -46,6 +49,12 @@ class _TutorScreenState extends State<TutorScreen> {
 
   bool get _isPractice => _step >= _steps.length;
 
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
   void _next() {
     setState(() {
       _step = (_step + 1).clamp(0, _steps.length);
@@ -64,20 +73,28 @@ class _TutorScreenState extends State<TutorScreen> {
     setState(() => _showExtraHelp = !_showExtraHelp);
   }
 
-  void _startChat() {
+  void _startChat(String question) {
     setState(() {
+      _userQuestion = question;
       _hasStartedChat = true;
       _showExtraHelp = false;
     });
   }
 
   void _handleChatInput() {
+    final question = _messageController.text.trim();
+    if (question.isEmpty) return;
+
+    _messageController.clear();
     if (!_hasStartedChat) {
-      _startChat();
+      _startChat(question);
       return;
     }
 
-    _explainAgain();
+    setState(() {
+      _userQuestion = question;
+      _showExtraHelp = false;
+    });
   }
 
   @override
@@ -93,7 +110,7 @@ class _TutorScreenState extends State<TutorScreen> {
                 const TutorWelcomeBubble(studentName: _studentName),
                 if (_hasStartedChat) ...[
                   const SizedBox(height: 18),
-                  const UserBubble(),
+                  UserBubble(message: _userQuestion),
                   const SizedBox(height: 26),
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 220),
@@ -120,7 +137,10 @@ class _TutorScreenState extends State<TutorScreen> {
             ),
           ),
         ),
-        ChatInput(onNeedHelp: _handleChatInput),
+        ChatInput(
+          controller: _messageController,
+          onSubmit: _handleChatInput,
+        ),
       ],
     );
   }
@@ -177,7 +197,9 @@ class TutorWelcomeBubble extends StatelessWidget {
 }
 
 class UserBubble extends StatelessWidget {
-  const UserBubble({super.key});
+  const UserBubble({super.key, required this.message});
+
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -198,9 +220,13 @@ class UserBubble extends StatelessWidget {
                 bottomRight: Radius.circular(2),
               ),
             ),
-            child: const Text(
-              'Find the equation of the line\nthrough D(0,1) and E(1,3)',
-              style: TextStyle(color: Colors.white, fontSize: 18, height: 1.45),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                height: 1.45,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -636,9 +662,14 @@ class PracticeAnswerField extends StatelessWidget {
 }
 
 class ChatInput extends StatelessWidget {
-  const ChatInput({super.key, required this.onNeedHelp});
+  const ChatInput({
+    super.key,
+    required this.controller,
+    required this.onSubmit,
+  });
 
-  final VoidCallback onNeedHelp;
+  final TextEditingController controller;
+  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -657,12 +688,21 @@ class ChatInput extends StatelessWidget {
             const Icon(Icons.attach_file_rounded, color: AppColors.muted, size: 20),
             const SizedBox(width: 14),
             Expanded(
-              child: InkWell(
-                onTap: onNeedHelp,
-                child: const Text(
-                  'Ask Rean any question!',
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Color(0xFF777C91), fontSize: 16),
+              child: TextField(
+                key: const Key('tutor-message-field'),
+                controller: controller,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => onSubmit(),
+                style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                decoration: const InputDecoration(
+                  hintText: 'Ask Rean any question!',
+                  hintStyle: TextStyle(color: Color(0xFF777C91), fontSize: 16),
+                  border: InputBorder.none,
+                  isCollapsed: true,
                 ),
               ),
             ),
@@ -671,7 +711,8 @@ class ChatInput extends StatelessWidget {
             SizedBox.square(
               dimension: 40,
               child: FilledButton(
-                onPressed: onNeedHelp,
+                key: const Key('tutor-send-button'),
+                onPressed: onSubmit,
                 style: FilledButton.styleFrom(
                   padding: EdgeInsets.zero,
                   backgroundColor: AppColors.blue,

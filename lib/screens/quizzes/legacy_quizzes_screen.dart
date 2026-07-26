@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
 import '../../features/quizzes/quiz_catalog.dart';
 
@@ -20,25 +21,27 @@ class LegacyQuizzesScreen extends StatelessWidget {
       initialData: demoQuizCatalog,
       builder: (context, snapshot) {
         final quizzes = snapshot.data ?? demoQuizCatalog;
+        final titleColor = AdaptiveColors.text(context);
+        final mutedColor = AdaptiveColors.muted(context);
 
         return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'គណិតវិទ្យា',
                 style: TextStyle(
-                  color: AppColors.text,
+                  color: titleColor,
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'ថ្នាក់ទី១២\n​វិញ្ញាសារត្រៀមប្រលងបាក់ឌុប',
                 style: TextStyle(
-                  color: AppColors.muted,
+                  color: mutedColor,
                   fontSize: 18,
                   height: 1.35,
                 ),
@@ -53,11 +56,11 @@ class LegacyQuizzesScreen extends StatelessWidget {
                   onTap: () => onSelectQuiz(quiz),
                 ),
               if (snapshot.hasError)
-                const Padding(
-                  padding: EdgeInsets.only(top: 4),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     'Cannot reach Firebase right now. Showing saved quiz options.',
-                    style: TextStyle(color: AppColors.muted, fontSize: 12),
+                    style: TextStyle(color: mutedColor, fontSize: 12),
                   ),
                 ),
             ],
@@ -73,12 +76,14 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    final titleColor = AdaptiveColors.text(context);
+
+    return Row(
       children: [
         Text(
           'វិញ្ញាសារ',
           style: TextStyle(
-            color: AppColors.text,
+            color: titleColor,
             fontSize: 28,
             fontWeight: FontWeight.w900,
           ),
@@ -110,10 +115,21 @@ class QuizCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = AdaptiveColors.card(context);
+    final lineColor = AdaptiveColors.line(context);
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+    final iconTileColor = AdaptiveColors.isLight(context)
+        ? const Color(0xFFF0F4FA)
+        : Colors.white.withValues(alpha: .06);
+    final progressBackground = AdaptiveColors.isLight(context)
+        ? const Color(0xFFE3E8F3)
+        : Colors.white.withValues(alpha: .12);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Material(
-        color: AppColors.card.withValues(alpha: .82),
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           onTap: onTap,
@@ -122,7 +138,7 @@ class QuizCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(22, 22, 14, 22),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: lineColor),
             ),
             child: Row(
               children: [
@@ -130,11 +146,9 @@ class QuizCard extends StatelessWidget {
                   width: 54,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: .06),
+                    color: iconTileColor,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: .08),
-                    ),
+                    border: Border.all(color: lineColor),
                   ),
                   child: Icon(quiz.icon, color: quiz.iconColor, size: 32),
                 ),
@@ -147,8 +161,8 @@ class QuizCard extends StatelessWidget {
                         quiz.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.text,
+                        style: TextStyle(
+                          color: textColor,
                           fontSize: 25,
                           fontWeight: FontWeight.w900,
                           height: 1.05,
@@ -159,8 +173,8 @@ class QuizCard extends StatelessWidget {
                         quiz.subtitle,
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.muted,
+                        style: TextStyle(
+                          color: mutedColor,
                           fontSize: 16,
                           height: 1.28,
                           fontWeight: FontWeight.w600,
@@ -176,8 +190,8 @@ class QuizCard extends StatelessWidget {
                     children: [
                       Text(
                         '${quiz.progressPercent}%',
-                        style: const TextStyle(
-                          color: AppColors.text,
+                        style: TextStyle(
+                          color: textColor,
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                         ),
@@ -188,7 +202,7 @@ class QuizCard extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: quiz.progress,
                           minHeight: 5,
-                          backgroundColor: Colors.white.withValues(alpha: .12),
+                          backgroundColor: progressBackground,
                           valueColor: AlwaysStoppedAnimation(
                             quiz.progressColor,
                           ),
@@ -198,9 +212,9 @@ class QuizCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
-                  color: AppColors.muted,
+                  color: mutedColor,
                 ),
               ],
             ),

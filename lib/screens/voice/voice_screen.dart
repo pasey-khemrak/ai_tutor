@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
 
 class VoiceScreen extends StatefulWidget {
@@ -104,14 +105,20 @@ class VoiceReadyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = AdaptiveColors.card(context);
+    final panelColor = AdaptiveColors.controlFill(context);
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+    final lineColor = AdaptiveColors.line(context);
+
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 360),
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: cardColor,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withValues(alpha: .06)),
+        border: Border.all(color: lineColor),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -121,7 +128,7 @@ class VoiceReadyCard extends StatelessWidget {
             height: 126,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.panel,
+              color: panelColor,
               border: Border.all(color: AppColors.cyan.withValues(alpha: .32)),
             ),
             child: const Icon(
@@ -131,20 +138,20 @@ class VoiceReadyCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 28),
-          const Text(
+          Text(
             'Ready for voice tutoring',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.text,
+              color: textColor,
               fontSize: 26,
               fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Start when you are ready, or use the keyboard to type your question.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.muted, fontSize: 16, height: 1.45),
+            style: TextStyle(color: mutedColor, fontSize: 16, height: 1.45),
           ),
         ],
       ),
@@ -164,13 +171,17 @@ class VoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = AdaptiveColors.card(context);
+    final textColor = AdaptiveColors.text(context);
+    final lineColor = AdaptiveColors.line(context);
+
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 360),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: cardColor,
         borderRadius: BorderRadius.circular(36),
-        border: Border.all(color: Colors.white.withValues(alpha: .06)),
+        border: Border.all(color: lineColor),
         boxShadow: [
           BoxShadow(
             color: AppColors.cyan.withValues(alpha: muted ? .04 : .1),
@@ -193,8 +204,8 @@ class VoiceCard extends StatelessWidget {
                     ? 'Microphone muted'
                     : '"I am listening,\nSeypa."',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.text,
+                style: TextStyle(
+                  color: textColor,
                   fontSize: 29,
                   height: 1.18,
                   fontWeight: FontWeight.w800,
@@ -345,6 +356,10 @@ class ListeningPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final panelColor = AdaptiveColors.controlFill(context);
+    final textColor = AdaptiveColors.subtle(context);
+    final lineColor = AdaptiveColors.line(context);
+
     final text = !started
         ? 'Tap Start to begin voice tutoring.'
         : muted
@@ -356,9 +371,9 @@ class ListeningPrompt extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.panel,
+          color: panelColor,
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: Colors.white.withValues(alpha: .06)),
+          border: Border.all(color: lineColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -372,7 +387,7 @@ class ListeningPrompt extends StatelessWidget {
             Flexible(
               child: Text(
                 text,
-                style: const TextStyle(color: AppColors.subtle, fontSize: 18),
+                style: TextStyle(color: textColor, fontSize: 18),
               ),
             ),
           ],
@@ -394,12 +409,17 @@ class VoiceQuestionComposer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final panelColor = AdaptiveColors.panel(context);
+    final textColor = AdaptiveColors.text(context);
+    final hintColor = AdaptiveColors.muted(context);
+    final lineColor = AdaptiveColors.line(context);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
       decoration: BoxDecoration(
-        color: AppColors.panel,
+        color: panelColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: lineColor),
       ),
       child: Row(
         children: [
@@ -409,12 +429,12 @@ class VoiceQuestionComposer extends StatelessWidget {
               controller: controller,
               minLines: 1,
               maxLines: 3,
-              style: const TextStyle(color: AppColors.text),
+              style: TextStyle(color: textColor),
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => onSubmit(),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Type your question...',
-                hintStyle: TextStyle(color: AppColors.muted),
+                hintStyle: TextStyle(color: hintColor),
                 border: InputBorder.none,
               ),
             ),
@@ -447,15 +467,21 @@ class RoundActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final inactiveColor = AdaptiveColors.muted(context);
+    final borderColor = selected ? AppColors.cyan : AdaptiveColors.line(context);
+    final backgroundColor = selected
+        ? AppColors.cyan.withValues(alpha: .12)
+        : AdaptiveColors.controlFill(context);
+
     return SizedBox.square(
       dimension: 74,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           shape: const CircleBorder(),
-          side: BorderSide(color: selected ? AppColors.cyan : AppColors.line),
-          foregroundColor: selected ? AppColors.cyan : AppColors.muted,
-          backgroundColor: AppColors.panel.withValues(alpha: .4),
+          side: BorderSide(color: borderColor),
+          foregroundColor: selected ? AppColors.cyan : inactiveColor,
+          backgroundColor: backgroundColor,
         ),
         child: Icon(icon, semanticLabel: tooltip),
       ),
