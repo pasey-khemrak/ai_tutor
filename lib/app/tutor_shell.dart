@@ -1,5 +1,8 @@
-﻿import 'package:flutter/material.dart';
-import '../screens/placeholder/placeholder_screen.dart';
+import 'package:flutter/material.dart';
+
+import '../screens/Dashboard/dashboard.dart';
+import '../screens/auth/auth_form_screen.dart';
+import '../screens/profile/profile.dart';
 import '../screens/quizzes/quizzes_screen.dart';
 import '../screens/tutor/tutor_screen.dart';
 import '../screens/voice/voice_screen.dart';
@@ -14,35 +17,45 @@ class TutorShell extends StatefulWidget {
 }
 
 class _TutorShellState extends State<TutorShell> {
-  int _selectedIndex = 2;
+  int _selectedIndex = 0;
 
-  static const _screens = <Widget>[
-    PlaceholderScreen(label: 'Dashboard'),
-    TutorScreen(),
-    VoiceScreen(),
-    QuizzesScreen(),
-    PlaceholderScreen(label: 'Profile'),
-  ];
+  void _selectTab(int index) => setState(() => _selectedIndex = index);
+
+  void _logout() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const AuthFormScreen(initialIsSignUp: false),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screens = <Widget>[
+      DashboardScreen(onOpenTab: _selectTab),
+      const TutorScreen(),
+      const VoiceScreen(),
+      const QuizzesScreen(),
+      ProfileScreen(onLogout: _logout),
+    ];
+
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            const AppHeader(),
+            if (_selectedIndex != 0 && _selectedIndex != 4) const AppHeader(),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
                 child: KeyedSubtree(
                   key: ValueKey(_selectedIndex),
-                  child: _screens[_selectedIndex],
+                  child: screens[_selectedIndex],
                 ),
               ),
             ),
             AppBottomNavigation(
               selectedIndex: _selectedIndex,
-              onSelected: (index) => setState(() => _selectedIndex = index),
+              onSelected: _selectTab,
             ),
           ],
         ),
