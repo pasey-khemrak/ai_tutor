@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../screens/Dashboard/dashboard.dart';
-import '../screens/auth/auth_form_screen.dart';
-import '../screens/profile/profile.dart';
+import '../screens/profile/profile_screen.dart';
 import '../screens/quizzes/quizzes_screen.dart';
 import '../screens/tutor/tutor_screen.dart';
 import '../screens/voice/voice_screen.dart';
@@ -21,24 +20,18 @@ class _TutorShellState extends State<TutorShell> {
 
   void _selectTab(int index) => setState(() => _selectedIndex = index);
 
-  void _logout() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => const AuthFormScreen(initialIsSignUp: false),
-      ),
-    );
+  Widget _buildScreen() {
+    return switch (_selectedIndex) {
+      0 => DashboardScreen(onOpenTab: _selectTab),
+      1 => const TutorScreen(),
+      2 => const VoiceScreen(),
+      3 => const QuizzesScreen(),
+      _ => ProfileScreen(onBack: () => setState(() => _selectedIndex = 0)),
+    };
   }
 
   @override
   Widget build(BuildContext context) {
-    final screens = <Widget>[
-      DashboardScreen(onOpenTab: _selectTab),
-      const TutorScreen(),
-      const VoiceScreen(),
-      const QuizzesScreen(),
-      ProfileScreen(onLogout: _logout),
-    ];
-
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -49,7 +42,7 @@ class _TutorShellState extends State<TutorShell> {
                 duration: const Duration(milliseconds: 220),
                 child: KeyedSubtree(
                   key: ValueKey(_selectedIndex),
-                  child: screens[_selectedIndex],
+                  child: _buildScreen(),
                 ),
               ),
             ),

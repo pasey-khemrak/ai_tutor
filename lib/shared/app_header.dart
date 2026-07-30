@@ -21,28 +21,40 @@ class AppHeader extends StatelessWidget {
         children: [
           const ReanAvatar(),
           const SizedBox(width: 12),
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                height: 1,
-              ),
+          const Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextSpan(text: 'Rean-'),
-                TextSpan(
-                  text: '\u179A\u17C0\u1793',
-                  style: TextStyle(color: AppColors.blue),
+                Text(
+                  'Rean \u179A\u17C0\u1793',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.cyan,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: .2,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'AI Mathematics Tutor',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
           ),
-          const Spacer(),
           IconButton(
-            tooltip: 'Settings',
+            tooltip: 'More',
             onPressed: () {},
-            icon: const Icon(Icons.settings_outlined, color: AppColors.muted),
+            icon: const Icon(Icons.more_horiz_rounded, color: AppColors.muted),
           ),
         ],
       ),

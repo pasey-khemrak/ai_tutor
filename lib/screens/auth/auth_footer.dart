@@ -17,9 +17,10 @@ class AuthFooter extends StatelessWidget {
         PageDots(active: page),
         const Spacer(),
         SizedBox(
-          width: isLastPage ? 116 : 86,
+          width: isLastPage ? 180 : 86,
           height: 48,
           child: FilledButton(
+            key: const Key('auth-footer-next-button'),
             onPressed: onNext,
             style: FilledButton.styleFrom(
               padding: EdgeInsets.zero,

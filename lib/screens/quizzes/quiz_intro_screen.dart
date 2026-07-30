@@ -1,18 +1,47 @@
 import 'package:flutter/material.dart';
+import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
+import '../../features/quizzes/quiz_catalog.dart';
 
 class QuizIntroScreen extends StatelessWidget {
-  const QuizIntroScreen({super.key, required this.onStart});
+  const QuizIntroScreen({
+    super.key,
+    required this.quiz,
+    required this.onStart,
+    required this.onBack,
+  });
 
+  final QuizCatalogItem quiz;
   final VoidCallback onStart;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+    final lineColor = AdaptiveColors.line(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              key: const Key('quiz-intro-back-button'),
+              onPressed: onBack,
+              icon: const Icon(Icons.chevron_left_rounded),
+              label: const Text('ត្រឡប់ទៅជម្រើស'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: textColor,
+                side: BorderSide(color: lineColor),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
           Center(
             child: Container(
@@ -57,49 +86,49 @@ class QuizIntroScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 28),
-          const Text(
-            'លំហាត់អនុគមន៍',
+          Text(
+            quiz.title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.text,
+              color: textColor,
               fontSize: 28,
               fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'គណិតវិទ្យាថ្នាក់ទី១២',
+          Text(
+            quiz.subtitle.replaceAll('\n', ' • '),
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.muted,
+              color: mutedColor,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 36),
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: QuizInfoTile(
                   icon: Icons.assignment_outlined,
                   label: 'សំណួរ',
-                  value: '20',
+                  value: '${quiz.questionCount}',
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: QuizInfoTile(
                   icon: Icons.timer_outlined,
                   label: 'រយៈពេល',
-                  value: '30 min',
+                  value: quiz.durationLabel,
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: QuizInfoTile(
                   icon: Icons.auto_awesome_outlined,
                   label: 'កម្រិត',
-                  value: 'មធ្យម',
+                  value: quiz.level,
                 ),
               ),
             ],
@@ -122,11 +151,11 @@ class QuizIntroScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'By starting, you agree to the academic integrity policy.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.muted,
+              color: mutedColor,
               fontSize: 12,
               fontStyle: FontStyle.italic,
             ),
@@ -151,11 +180,15 @@ class QuizInfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final panelColor = AdaptiveColors.panel(context);
+    final labelColor = AdaptiveColors.muted(context);
+    final valueColor = AdaptiveColors.text(context);
+
     return Container(
       height: 104,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.panel,
+        color: panelColor,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.cyan.withValues(alpha: .18)),
       ),
@@ -168,15 +201,15 @@ class QuizInfoTile extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            style: TextStyle(color: labelColor, fontSize: 12),
           ),
           const SizedBox(height: 4),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppColors.text,
+            style: TextStyle(
+              color: valueColor,
               fontSize: 17,
               fontWeight: FontWeight.w800,
             ),
@@ -192,26 +225,31 @@ class QuizGuidelinesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final panelColor = AdaptiveColors.panel(context);
+    final lineColor = AdaptiveColors.line(context);
+    final textColor = AdaptiveColors.text(context);
+    final subtleColor = AdaptiveColors.subtle(context);
+
     const rules = [
-      'ត្រូវអានសំណួរឱ្យច្បាស់មុនជ្រើសរើសចម្លើយ។',
-      'ពិន្ទុនឹងត្រូវបូកដោយស្វ័យប្រវត្តិនៅពេលបញ្ចប់។',
-      'ក្រោយប្រឡង អ្នកអាចមើលការពន្យល់ពី AI បាន។',
+      'គ្រប់សំណួរទាំងអស់មានចម្លើយត្រឹមត្រូវតែ១ប៉ុណ្ណោះ',
+      'ការផ្លាស់ប្ដូរចុះឡើងរវាងសំណួរនានាត្រូវបានអនុញ្ញាតក្នុងអំឡុងពេលប្រឡង/អនុវត្ត។',
+      'ត្រូវប្រាកដថាអ្នកបានដាក់បញ្ជូនចម្លើយមុនពេលកំណត់',
     ];
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.panel,
+        color: panelColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: lineColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'សេចក្ដីណែនាំខ្លីៗ',
+          Text(
+            'សេចក្ដីណែនាំក្នុងការប្រលង',
             style: TextStyle(
-              color: AppColors.text,
+              color: textColor,
               fontSize: 15,
               fontWeight: FontWeight.w800,
             ),
@@ -231,8 +269,8 @@ class QuizGuidelinesCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       rule,
-                      style: const TextStyle(
-                        color: AppColors.subtle,
+                      style: TextStyle(
+                        color: subtleColor,
                         fontSize: 15,
                         height: 1.45,
                       ),
