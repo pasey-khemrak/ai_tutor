@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-// import '../core/app_colors.dart';
-import '../screens/placeholder/placeholder_screen.dart';
+import '../screens/Dashboard/dashboard.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/quizzes/quizzes_screen.dart';
 import '../screens/tutor/tutor_screen.dart';
@@ -19,9 +18,11 @@ class TutorShell extends StatefulWidget {
 class _TutorShellState extends State<TutorShell> {
   int _selectedIndex = 0;
 
+  void _selectTab(int index) => setState(() => _selectedIndex = index);
+
   Widget _buildScreen() {
     return switch (_selectedIndex) {
-      0 => const PlaceholderScreen(label: 'Dashboard'),
+      0 => DashboardScreen(onOpenTab: _selectTab),
       1 => const TutorScreen(),
       2 => const VoiceScreen(),
       3 => const QuizzesScreen(),
@@ -35,7 +36,7 @@ class _TutorShellState extends State<TutorShell> {
       body: SafeArea(
         child: Column(
           children: [
-            if (_selectedIndex != 4) const AppHeader(),
+            if (_selectedIndex != 0 && _selectedIndex != 4) const AppHeader(),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
@@ -47,7 +48,7 @@ class _TutorShellState extends State<TutorShell> {
             ),
             AppBottomNavigation(
               selectedIndex: _selectedIndex,
-              onSelected: (index) => setState(() => _selectedIndex = index),
+              onSelected: _selectTab,
             ),
           ],
         ),

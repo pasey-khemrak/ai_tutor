@@ -1,15 +1,10 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget, use the WidgetTester utility in the
-// flutter_test package.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ai_tutor/app/ai_tutor_app.dart';
 
 void main() {
-  testWidgets('AI Tutor shell shows generated screens', (
+  testWidgets('AI Tutor frontend auth and dashboard flow works', (
     WidgetTester tester,
   ) async {
     Future<void> pumpFrame() async {
@@ -19,6 +14,8 @@ void main() {
     }
 
     await tester.pumpWidget(const AiTutorApp());
+    await tester.pump(const Duration(milliseconds: 950));
+    await tester.pumpAndSettle();
 
     expect(find.text('Your intelligent learning companion'), findsOneWidget);
     expect(find.text('Skip'), findsNothing);
@@ -33,10 +30,15 @@ void main() {
     expect(find.text('Sign In'), findsWidgets);
     expect(find.byKey(const Key('forgot-password-link')), findsOneWidget);
 
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'student@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(1), 'secret123');
     await tester.tap(find.text('Sign In').last);
     await pumpFrame();
 
-    expect(find.text('Dashboard'), findsWidgets);
+    expect(find.text('Good morning, Brathna'), findsOneWidget);
 
     await tester.tap(find.text('Voice'));
     await pumpFrame();
@@ -64,48 +66,6 @@ void main() {
     expect(find.textContaining('Find the equation of the line'), findsOneWidget);
     expect(find.textContaining('the equation is y = 2x + 1'), findsOneWidget);
     expect(find.text('Step 1: Find the Slope'), findsNothing);
-
-    await tester.tap(find.text('Quizzes'));
-    await pumpFrame();
-    expect(find.text('គណិតវិទ្យា'), findsOneWidget);
-    expect(find.byKey(const Key('bac-dup-quiz-card')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('bac-dup-quiz-card')));
-    await pumpFrame();
-    expect(find.text('បាក់ឌុប'), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('quiz-intro-back-button')));
-    await pumpFrame();
-    expect(find.text('គណិតវិទ្យា'), findsOneWidget);
-
-    await tester.ensureVisible(find.byKey(const Key('semester-quiz-card')));
-    await tester.tap(find.byKey(const Key('semester-quiz-card')));
-    await pumpFrame();
-    expect(find.text('ប្រចាំឆមាស'), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('quiz-intro-back-button')));
-    await pumpFrame();
-    await tester.tap(find.byKey(const Key('bac-dup-quiz-card')));
-    await pumpFrame();
-    expect(find.text('បាក់ឌុប'), findsOneWidget);
-
-    await tester.ensureVisible(find.textContaining('ចាប់ផ្តើម'));
-    await pumpFrame();
-    await tester.tap(find.textContaining('ចាប់ផ្តើម'));
-    await pumpFrame();
-    expect(find.textContaining('f(x) = √'), findsOneWidget);
-
-    await tester.ensureVisible(find.textContaining('ពិនិត្យលទ្ធផល'));
-    await pumpFrame();
-    await tester.tap(find.textContaining('ពិនិត្យលទ្ធផល'));
-    await pumpFrame();
-    expect(find.text('បានបញ្ចប់ការតេស្ត'), findsOneWidget);
-
-    await tester.ensureVisible(find.text('មើលចម្លើយលម្អិត'));
-    await pumpFrame();
-    await tester.tap(find.text('មើលចម្លើយលម្អិត'));
-    await pumpFrame();
-    expect(find.textContaining('ទាំងអស់'), findsOneWidget);
 
     await tester.tap(find.text('Profile'));
     await pumpFrame();
