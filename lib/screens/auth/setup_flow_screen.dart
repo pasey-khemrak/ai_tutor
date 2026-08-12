@@ -31,6 +31,7 @@ class _SetupFlowScreenState extends State<SetupFlowScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: _SetupBackground(
         child: SafeArea(
           child: Padding(
@@ -361,19 +362,7 @@ class _SetupBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF080D19),
-            Color(0xFF09101E),
-            Color(0xFF10112A),
-            Color(0xFF171342),
-          ],
-          stops: [0, .46, .74, 1],
-        ),
-      ),
+      decoration: AppColors.backgroundDecoration,
       child: Stack(
         children: [
           Positioned.fill(

@@ -51,6 +51,7 @@ void main() {
     await tester.tap(find.text('Tutor'));
     await pumpFrame();
     expect(find.text('Hey Khemrak, how can I help you today?'), findsOneWidget);
+    expect(find.text('Ask any question to start chatting'), findsOneWidget);
     expect(find.textContaining('Find the equation of the line'), findsNothing);
     expect(find.text('Step 1: Find the Slope'), findsNothing);
 
@@ -61,8 +62,8 @@ void main() {
     await tester.tap(find.byKey(const Key('tutor-send-button')));
     await pumpFrame();
     expect(find.textContaining('Find the equation of the line'), findsOneWidget);
-    expect(find.text('Step 1: Find the Slope'), findsOneWidget);
-    expect(find.text('Next Step'), findsOneWidget);
+    expect(find.textContaining('the equation is y = 2x + 1'), findsOneWidget);
+    expect(find.text('Step 1: Find the Slope'), findsNothing);
 
     await tester.tap(find.text('Quizzes'));
     await pumpFrame();
@@ -111,6 +112,50 @@ void main() {
     expect(find.text('Edit Profile'), findsOneWidget);
     expect(find.text('Khemrak Pasey'), findsWidgets);
 
+    await tester.ensureVisible(find.byKey(const Key('profile-edit-save-button')));
+    await pumpFrame();
+    await tester.tap(find.byKey(const Key('profile-edit-save-button')));
+    await pumpFrame();
+    await tester.ensureVisible(find.byKey(const Key('profile-avatar-edit-button')));
+    await pumpFrame();
+    await tester.tap(find.byKey(const Key('profile-avatar-edit-button')));
+    await pumpFrame();
+    expect(find.text('Choose Profile'), findsOneWidget);
+    expect(find.byKey(const Key('profile-avatar-upload-button')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('profile-avatar-choice-1')));
+    await pumpFrame();
+    await tester.ensureVisible(find.byKey(const Key('profile-name-field')));
+    await pumpFrame();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('profile-name-field')),
+        matching: find.byType(TextField),
+      ),
+      'Sokha Rean',
+    );
+    await tester.ensureVisible(find.byKey(const Key('profile-grade-field')));
+    await pumpFrame();
+    await tester.tap(find.byKey(const Key('profile-grade-field')));
+    await pumpFrame();
+    await tester.tap(find.text('Grade 11').last);
+    await pumpFrame();
+    await tester.ensureVisible(find.byKey(const Key('profile-goal-field')));
+    await pumpFrame();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('profile-goal-field')),
+        matching: find.byType(TextField),
+      ),
+      'Improve algebra every day',
+    );
+    await tester.ensureVisible(find.byKey(const Key('profile-edit-save-button')));
+    await pumpFrame();
+    await tester.tap(find.byKey(const Key('profile-edit-save-button')));
+    await pumpFrame();
+    expect(find.text('Sokha Rean'), findsWidgets);
+    expect(find.text('Grade 11'), findsWidgets);
+    expect(find.text('Improve algebra every day'), findsOneWidget);
+
     await tester.tap(find.byTooltip('Settings'));
     await pumpFrame();
     expect(find.text('Settings'), findsOneWidget);
@@ -125,12 +170,12 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await pumpFrame();
 
-    await tester.tap(find.byKey(const Key('settings-level-row')));
+    await tester.tap(find.byKey(const Key('settings-grade-row')));
     await pumpFrame();
-    expect(find.text('Choose Level'), findsOneWidget);
-    await tester.tap(find.text('High'));
+    expect(find.text('Choose Grade'), findsOneWidget);
+    await tester.tap(find.text('Grade 10').last);
     await pumpFrame();
-    expect(find.text('High'), findsOneWidget);
+    expect(find.text('Grade 10'), findsWidgets);
 
     await tester.ensureVisible(find.byKey(const Key('settings-goal-row')));
     await pumpFrame();
@@ -144,6 +189,15 @@ void main() {
     await tester.tap(find.byKey(const Key('save-goal-button')));
     await pumpFrame();
     expect(find.text('Master algebra before finals'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back'));
+    await pumpFrame();
+    expect(find.text('Sokha Rean'), findsWidgets);
+    expect(find.text('Grade 10'), findsWidgets);
+    expect(find.text('Master algebra before finals'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Settings'));
+    await pumpFrame();
 
     await tester.ensureVisible(find.byKey(const Key('settings-reminders-row')));
     await tester.tap(find.byKey(const Key('settings-reminders-row')));

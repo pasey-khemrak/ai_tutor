@@ -18,12 +18,12 @@ class AiTutorApp extends StatelessWidget {
           themeMode: themeMode,
           theme: ThemeData(
             useMaterial3: true,
-            brightness: Brightness.light,
-            scaffoldBackgroundColor: const Color(0xFFF5F7FB),
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: AppColors.background,
             fontFamily: 'Roboto',
             colorScheme: ColorScheme.fromSeed(
               seedColor: AppColors.blue,
-              brightness: Brightness.light,
+              brightness: Brightness.dark,
             ),
           ),
           darkTheme: ThemeData(

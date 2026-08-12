@@ -1,13 +1,16 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_theme_controller.dart';
+import 'local_profile_image_picker.dart';
 
 class ProfilePalette {
   const ProfilePalette._();
 
   static bool isLight(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.light;
+    return false;
   }
 
   static Color text(BuildContext context) {
@@ -57,7 +60,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _notifications = true;
   bool _sound = false;
   bool _darkMode = true;
-  String _level = 'Advanced';
+  String _name = 'Khemrak Pasey';
+  String _grade = 'Grade 12';
+  int _avatarIndex = 0;
+  Uint8List? _profileImageBytes;
   String _goal =
       'Currently focusing on advanced Calculus and preparing for Physics.';
 
@@ -71,7 +77,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               notifications: _notifications,
               sound: _sound,
               darkMode: _darkMode,
-              level: _level,
+              grade: _grade,
+              avatarIndex: _avatarIndex,
+              profileImageBytes: _profileImageBytes,
               goal: _goal,
               onBack: () => setState(() => _showSettings = false),
               onNotificationsChanged: (value) {
@@ -82,13 +90,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 setState(() => _darkMode = value);
                 AppThemeController.setDarkMode(value);
               },
-              onLevelChanged: (value) => setState(() => _level = value),
+              onGradeChanged: (value) => setState(() => _grade = value),
               onGoalChanged: (value) => setState(() => _goal = value),
             )
           : EditProfileView(
               key: const ValueKey('edit-profile-view'),
+              name: _name,
+              grade: _grade,
+              avatarIndex: _avatarIndex,
+              profileImageBytes: _profileImageBytes,
+              goal: _goal,
               onBack: widget.onBack,
               onSettings: () => setState(() => _showSettings = true),
+              onProfileChanged: (name, grade, avatarIndex, imageBytes, goal) {
+                setState(() {
+                  _name = name;
+                  _grade = grade;
+                  _avatarIndex = avatarIndex;
+                  _profileImageBytes = imageBytes;
+                  _goal = goal;
+                });
+              },
             ),
     );
   }
@@ -97,12 +119,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
 class EditProfileView extends StatefulWidget {
   const EditProfileView({
     super.key,
+    required this.name,
+    required this.grade,
+    required this.avatarIndex,
+    required this.profileImageBytes,
+    required this.goal,
     required this.onBack,
     required this.onSettings,
+    required this.onProfileChanged,
   });
 
+  final String name;
+  final String grade;
+  final int avatarIndex;
+  final Uint8List? profileImageBytes;
+  final String goal;
   final VoidCallback onBack;
   final VoidCallback onSettings;
+  final void Function(
+    String name,
+    String grade,
+    int avatarIndex,
+    Uint8List? imageBytes,
+    String goal,
+  )
+  onProfileChanged;
 
   @override
   State<EditProfileView> createState() => _EditProfileViewState();
@@ -114,23 +155,43 @@ class _EditProfileViewState extends State<EditProfileView> {
   late final TextEditingController _schoolController;
   late final TextEditingController _dailyTargetController;
   late final TextEditingController _goalsController;
-  String _gradeLevel = 'Grade 12';
-  String _savedName = 'Khemrak Pasey';
-  String _savedGrade = 'Grade 12';
+  late String _gradeLevel;
+  late int _avatarIndex;
+  Uint8List? _profileImageBytes;
   bool _isEditing = false;
   bool _saved = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: _savedName);
+    _gradeLevel = widget.grade;
+    _avatarIndex = widget.avatarIndex;
+    _profileImageBytes = widget.profileImageBytes;
+    _nameController = TextEditingController(text: widget.name);
     _emailController = TextEditingController(text: 'khemrakpasey@gmail.com');
     _schoolController = TextEditingController(text: 'Rean High School');
     _dailyTargetController = TextEditingController(text: '2 hours per day');
-    _goalsController = TextEditingController(
-      text:
-          'Currently focusing on advanced Calculus and preparing for the upcoming Physics Olympiad.',
-    );
+    _goalsController = TextEditingController(text: widget.goal);
+  }
+
+  @override
+  void didUpdateWidget(covariant EditProfileView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isEditing && widget.name != oldWidget.name) {
+      _nameController.text = widget.name;
+    }
+    if (!_isEditing && widget.goal != oldWidget.goal) {
+      _goalsController.text = widget.goal;
+    }
+    if (!_isEditing && widget.grade != oldWidget.grade) {
+      _gradeLevel = widget.grade;
+    }
+    if (!_isEditing && widget.avatarIndex != oldWidget.avatarIndex) {
+      _avatarIndex = widget.avatarIndex;
+    }
+    if (!_isEditing && widget.profileImageBytes != oldWidget.profileImageBytes) {
+      _profileImageBytes = widget.profileImageBytes;
+    }
   }
 
   @override
@@ -143,6 +204,108 @@ class _EditProfileViewState extends State<EditProfileView> {
     super.dispose();
   }
 
+  Future<void> _openAvatarPicker() async {
+    if (!_isEditing) return;
+
+    final selected = await showModalBottomSheet<AvatarSelection>(
+      context: context,
+      backgroundColor: ProfilePalette.panel(context),
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final titleColor = ProfilePalette.text(sheetContext);
+        final subtitleColor = ProfilePalette.subtle(sheetContext);
+
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Choose Profile',
+                    style: TextStyle(
+                      color: titleColor,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Upload from your device or pick a built-in style.',
+                    style: TextStyle(
+                      color: subtitleColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton.icon(
+                      key: const Key('profile-avatar-upload-button'),
+                      onPressed: () async {
+                        final imageBytes = await pickLocalProfileImage();
+                        if (!sheetContext.mounted || imageBytes == null) return;
+                        Navigator.of(
+                          sheetContext,
+                        ).pop(AvatarSelection.image(imageBytes));
+                      },
+                      icon: const Icon(Icons.upload_file_outlined),
+                      label: const Text('Choose from local storage'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.blue,
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      for (
+                        var index = 0;
+                        index < ProfileAvatar.optionCount;
+                        index++
+                      )
+                        AvatarChoiceButton(
+                          index: index,
+                          selected:
+                              _profileImageBytes == null &&
+                              index == _avatarIndex,
+                          onTap: () => Navigator.of(
+                            sheetContext,
+                          ).pop(AvatarSelection.style(index)),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected != null) {
+      setState(() {
+        if (selected.imageBytes != null) {
+          _profileImageBytes = selected.imageBytes;
+        } else if (selected.avatarIndex != null) {
+          _avatarIndex = selected.avatarIndex!;
+          _profileImageBytes = null;
+        }
+      });
+    }
+  }
+
   void _saveProfile() {
     if (!_isEditing) {
       setState(() {
@@ -152,14 +315,24 @@ class _EditProfileViewState extends State<EditProfileView> {
       return;
     }
 
+    final updatedName = _nameController.text.trim().isEmpty
+        ? 'Student'
+        : _nameController.text.trim();
+    final updatedGoal = _goalsController.text.trim().isEmpty
+        ? 'No goal set yet'
+        : _goalsController.text.trim();
+
     setState(() {
-      _savedName = _nameController.text.trim().isEmpty
-          ? 'Student'
-          : _nameController.text.trim();
-      _savedGrade = _gradeLevel;
       _isEditing = false;
       _saved = true;
     });
+    widget.onProfileChanged(
+      updatedName,
+      _gradeLevel,
+      _avatarIndex,
+      _profileImageBytes,
+      updatedGoal,
+    );
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Profile updated')),
@@ -188,9 +361,17 @@ class _EditProfileViewState extends State<EditProfileView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ProfileIdentity(name: _savedName, gradeLevel: _savedGrade),
+                ProfileIdentity(
+                  name: widget.name,
+                  gradeLevel: widget.grade,
+                  avatarIndex: _avatarIndex,
+                  imageBytes: _profileImageBytes,
+                  editable: _isEditing,
+                  onAvatarTap: _openAvatarPicker,
+                ),
                 const SizedBox(height: 42),
                 ProfileTextField(
+                  key: const Key('profile-name-field'),
                   label: 'Full Name',
                   icon: Icons.person_outline_rounded,
                   controller: _nameController,
@@ -206,6 +387,7 @@ class _EditProfileViewState extends State<EditProfileView> {
                 ),
                 const SizedBox(height: 24),
                 ProfileDropdownField(
+                  key: const Key('profile-grade-field'),
                   label: 'Grade Level',
                   icon: Icons.school_outlined,
                   value: _gradeLevel,
@@ -233,6 +415,7 @@ class _EditProfileViewState extends State<EditProfileView> {
                 ),
                 const SizedBox(height: 24),
                 ProfileTextField(
+                  key: const Key('profile-goal-field'),
                   label: 'Learning Goals',
                   controller: _goalsController,
                   minHeight: 150,
@@ -243,6 +426,7 @@ class _EditProfileViewState extends State<EditProfileView> {
                 GoalChips(enabled: _isEditing),
                 const SizedBox(height: 34),
                 FilledButton.icon(
+                  key: const Key('profile-edit-save-button'),
                   onPressed: _saveProfile,
                   icon: Icon(
                     _isEditing ? Icons.save_outlined : Icons.edit_outlined,
@@ -289,26 +473,30 @@ class SettingsView extends StatelessWidget {
     required this.notifications,
     required this.sound,
     required this.darkMode,
-    required this.level,
+    required this.grade,
+    required this.avatarIndex,
+    required this.profileImageBytes,
     required this.goal,
     required this.onBack,
     required this.onNotificationsChanged,
     required this.onSoundChanged,
     required this.onDarkModeChanged,
-    required this.onLevelChanged,
+    required this.onGradeChanged,
     required this.onGoalChanged,
   });
 
   final bool notifications;
   final bool sound;
   final bool darkMode;
-  final String level;
+  final String grade;
+  final int avatarIndex;
+  final Uint8List? profileImageBytes;
   final String goal;
   final VoidCallback onBack;
   final ValueChanged<bool> onNotificationsChanged;
   final ValueChanged<bool> onSoundChanged;
   final ValueChanged<bool> onDarkModeChanged;
-  final ValueChanged<String> onLevelChanged;
+  final ValueChanged<String> onGradeChanged;
   final ValueChanged<String> onGoalChanged;
 
   Future<void> _openPasswordDialog(BuildContext context) async {
@@ -318,13 +506,13 @@ class SettingsView extends StatelessWidget {
     );
   }
 
-  Future<void> _openLevelPicker(BuildContext context) async {
+  Future<void> _openGradePicker(BuildContext context) async {
     final selected = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: ProfilePalette.panel(context),
       showDragHandle: true,
       builder: (sheetContext) {
-        const levels = ['Low', 'Medium', 'High', 'Advanced'];
+        const grades = ['Grade 10', 'Grade 11', 'Grade 12'];
         final titleColor = ProfilePalette.text(sheetContext);
         final itemColor = ProfilePalette.subtle(sheetContext);
 
@@ -336,7 +524,7 @@ class SettingsView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Choose Level',
+                  'Choose Grade',
                   style: TextStyle(
                     color: titleColor,
                     fontSize: 22,
@@ -344,9 +532,9 @@ class SettingsView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                for (final option in levels)
+                for (final option in grades)
                   ListTile(
-                    key: Key('level-$option'),
+                    key: Key('grade-$option'),
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       option,
@@ -355,7 +543,7 @@ class SettingsView extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    trailing: option == level
+                    trailing: option == grade
                         ? const Icon(Icons.check_rounded, color: AppColors.cyan)
                         : null,
                     onTap: () => Navigator.of(sheetContext).pop(option),
@@ -368,7 +556,7 @@ class SettingsView extends StatelessWidget {
     );
 
     if (selected != null) {
-      onLevelChanged(selected);
+      onGradeChanged(selected);
     }
   }
 
@@ -389,7 +577,10 @@ class SettingsView extends StatelessWidget {
         ProfileTopBar(
           title: 'Settings',
           onBack: onBack,
-          trailing: const MiniProfileAvatar(),
+          trailing: MiniProfileAvatar(
+            index: avatarIndex,
+            imageBytes: profileImageBytes,
+          ),
         ),
         Expanded(
           child: SingleChildScrollView(
@@ -427,13 +618,13 @@ class SettingsView extends StatelessWidget {
                 SettingsGroup(
                   children: [
                     SettingsRow(
-                      key: const Key('settings-level-row'),
-                      icon: Icons.trending_up_rounded,
+                      key: const Key('settings-grade-row'),
+                      icon: Icons.school_outlined,
                       iconColor: AppColors.cyan,
-                      title: 'My Level',
-                      subtitle: 'Choose from low to high',
-                      onTap: () => _openLevelPicker(context),
-                      trailing: PillLabel(label: level),
+                      title: 'Grade Level',
+                      subtitle: 'Choose your school grade',
+                      onTap: () => _openGradePicker(context),
+                      trailing: PillLabel(label: grade),
                     ),
                     SettingsRow(
                       key: const Key('settings-goal-row'),
@@ -607,48 +798,53 @@ class ProfileIdentity extends StatelessWidget {
     super.key,
     required this.name,
     required this.gradeLevel,
+    required this.avatarIndex,
+    required this.imageBytes,
+    required this.editable,
+    required this.onAvatarTap,
   });
 
   final String name;
   final String gradeLevel;
+  final int avatarIndex;
+  final Uint8List? imageBytes;
+  final bool editable;
+  final VoidCallback onAvatarTap;
 
   @override
   Widget build(BuildContext context) {
     final nameColor = ProfilePalette.text(context);
+    final gradeTextColor = ProfilePalette.subtle(context);
 
     return Column(
       children: [
         Stack(
           clipBehavior: Clip.none,
           children: [
-            Container(
-              width: 156,
-              height: 156,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-                border: Border.all(color: AppColors.blue, width: 3),
-              ),
-              child: ClipOval(child: CustomPaint(painter: BokChoyPainter())),
+            ProfileAvatar(
+              index: avatarIndex,
+              size: 156,
+              imageBytes: imageBytes,
             ),
-            Positioned(
-              right: -4,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.cyan,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  gradeLevel,
-                  style: const TextStyle(
-                    color: Color(0xFF082834),
-                    fontWeight: FontWeight.w900,
+            if (editable)
+              Positioned(
+                right: 4,
+                bottom: 4,
+                child: SizedBox.square(
+                  dimension: 46,
+                  child: FilledButton(
+                    key: const Key('profile-avatar-edit-button'),
+                    onPressed: onAvatarTap,
+                    style: FilledButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      backgroundColor: AppColors.blue,
+                      foregroundColor: Colors.white,
+                      shape: const CircleBorder(),
+                    ),
+                    child: const Icon(Icons.camera_alt_outlined, size: 20),
                   ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -661,20 +857,190 @@ class ProfileIdentity extends StatelessWidget {
             fontWeight: FontWeight.w900,
           ),
         ),
-        const SizedBox(height: 6),
-        const Text(
-          'Student Profile',
-          style: TextStyle(
-            color: AppColors.cyan,
-            fontSize: 18,
-            letterSpacing: 1.6,
-            fontWeight: FontWeight.w800,
-          ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.school_outlined, color: AppColors.cyan, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              gradeLevel,
+              style: TextStyle(
+                color: gradeTextColor,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
+
+class ProfileAvatar extends StatelessWidget {
+  const ProfileAvatar({
+    super.key,
+    required this.index,
+    required this.size,
+    this.imageBytes,
+  });
+
+  static const optionCount = 4;
+
+  final int index;
+  final double size;
+  final Uint8List? imageBytes;
+
+  @override
+  Widget build(BuildContext context) {
+    final data = _avatarData[index % optionCount];
+    final imageBytes = this.imageBytes;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+        border: Border.all(color: AppColors.blue, width: 3),
+      ),
+      child: ClipOval(
+        child: imageBytes == null
+            ? DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: data.colors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Icon(
+                  data.icon,
+                  color: Colors.white,
+                  size: size * .45,
+                ),
+              )
+            : Image.memory(
+                imageBytes,
+                fit: BoxFit.cover,
+                width: size,
+                height: size,
+                errorBuilder: (context, error, stackTrace) {
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: data.colors,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Icon(
+                      data.icon,
+                      color: Colors.white,
+                      size: size * .45,
+                    ),
+                  );
+                },
+              ),
+      ),
+    );
+  }
+}
+
+class AvatarChoiceButton extends StatelessWidget {
+  const AvatarChoiceButton({
+    super.key,
+    required this.index,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int index;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelColor = ProfilePalette.subtle(context);
+
+    return InkWell(
+      key: Key('profile-avatar-choice-$index'),
+      borderRadius: BorderRadius.circular(44),
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              ProfileAvatar(index: index, size: 64),
+              if (selected)
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.cyan, width: 3),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Style ${index + 1}',
+            style: TextStyle(
+              color: labelColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AvatarSelection {
+  const AvatarSelection._({this.avatarIndex, this.imageBytes});
+
+  factory AvatarSelection.style(int index) {
+    return AvatarSelection._(avatarIndex: index);
+  }
+
+  factory AvatarSelection.image(Uint8List bytes) {
+    return AvatarSelection._(imageBytes: bytes);
+  }
+
+  final int? avatarIndex;
+  final Uint8List? imageBytes;
+}
+
+class AvatarData {
+  const AvatarData({required this.colors, required this.icon});
+
+  final List<Color> colors;
+  final IconData icon;
+}
+
+const _avatarData = [
+  AvatarData(
+    colors: [Color(0xFF76A850), Color(0xFF4C812D)],
+    icon: Icons.eco_outlined,
+  ),
+  AvatarData(
+    colors: [Color(0xFF4057FF), Color(0xFF12DDF5)],
+    icon: Icons.psychology_alt_outlined,
+  ),
+  AvatarData(
+    colors: [Color(0xFFFF5574), Color(0xFFFFAAA4)],
+    icon: Icons.auto_stories_outlined,
+  ),
+  AvatarData(
+    colors: [Color(0xFF7C5CFF), Color(0xFFC9A8FF)],
+    icon: Icons.school_outlined,
+  ),
+];
 
 class ProfileTextField extends StatelessWidget {
   const ProfileTextField({
@@ -1273,26 +1639,18 @@ class AppSwitch extends StatelessWidget {
 }
 
 class MiniProfileAvatar extends StatelessWidget {
-  const MiniProfileAvatar({super.key});
+  const MiniProfileAvatar({
+    super.key,
+    required this.index,
+    required this.imageBytes,
+  });
+
+  final int index;
+  final Uint8List? imageBytes;
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = ProfilePalette.subtle(context);
-
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.blue, width: 3),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF12384A), Color(0xFF0E1425), Color(0xFF1A4856)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Icon(Icons.person_rounded, color: iconColor),
-    );
+    return ProfileAvatar(index: index, size: 56, imageBytes: imageBytes);
   }
 }
 

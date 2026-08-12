@@ -43,20 +43,9 @@ class _AuthFormScreenState extends State<AuthFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF080D19),
-              Color(0xFF09101E),
-              Color(0xFF10112A),
-              Color(0xFF171342),
-            ],
-            stops: [0, .46, .74, 1],
-          ),
-        ),
+        decoration: AppColors.backgroundDecoration,
         child: SafeArea(
           child: Stack(
             children: [

@@ -14,40 +14,9 @@ class _TutorScreenState extends State<TutorScreen> {
   static const _studentName = 'Khemrak';
 
   final TextEditingController _messageController = TextEditingController();
-  int _step = 0;
-  bool _hasStartedChat = false;
-  bool _showExtraHelp = false;
-  String _userQuestion =
-      'Find the equation of the line\nthrough D(0,1) and E(1,3)';
+  List<ChatMessage>? _messages;
 
-  static const _steps = [
-    LessonStep(
-      title: 'Step 1: Find the Slope',
-      progress: '1 of 3 Progress',
-      graphMode: GraphMode.slope,
-      prompt: 'The slope m is the change in y over the change in x:',
-      work: 'm = (y2 - y1) / (x2 - x1) = (3 - 1) / (1 - 0) = 2',
-      takeaway: 'So the line rises 2 units for every 1 unit it moves right.',
-    ),
-    LessonStep(
-      title: 'Step 2: Solve for Y-Intercept',
-      progress: '2 of 3 Progress',
-      graphMode: GraphMode.intercept,
-      prompt: 'Substitute point D(0,1) into the slope-intercept form y = mx + b:',
-      work: '1 = 2(0) + b\n1 = 0 + b\nb = 1',
-      takeaway: 'The y-intercept is 1 because the line crosses the y-axis at D(0,1).',
-    ),
-    LessonStep(
-      title: 'Step 3: Final Equation',
-      progress: '3 of 3 Progress',
-      graphMode: GraphMode.finalEquation,
-      prompt: 'Combine the slope m = 2 and the y-intercept b = 1 into y = mx + b.',
-      work: 'y = (2)x + (1)\ny = 2x + 1',
-      takeaway: 'Final answer: y = 2x + 1.',
-    ),
-  ];
-
-  bool get _isPractice => _step >= _steps.length;
+  List<ChatMessage> get _chatMessages => _messages ??= [];
 
   @override
   void dispose() {
@@ -55,30 +24,23 @@ class _TutorScreenState extends State<TutorScreen> {
     super.dispose();
   }
 
-  void _next() {
-    setState(() {
-      _step = (_step + 1).clamp(0, _steps.length);
-      _showExtraHelp = false;
-    });
-  }
+  String _buildTutorAnswer(String question) {
+    final lowerQuestion = question.toLowerCase();
+    final asksForLineEquation =
+        lowerQuestion.contains('line') &&
+        (lowerQuestion.contains('equation') ||
+            lowerQuestion.contains('slope') ||
+            lowerQuestion.contains('points'));
 
-  void _back() {
-    setState(() {
-      _step = (_step - 1).clamp(0, _steps.length);
-      _showExtraHelp = false;
-    });
-  }
+    if (asksForLineEquation) {
+      return 'To find a line equation, use y = mx + b. First find the slope m = (y2 - y1) / (x2 - x1), then substitute one point to solve for b. For example, through D(0,1) and E(1,3), m = 2 and b = 1, so the equation is y = 2x + 1.';
+    }
 
-  void _explainAgain() {
-    setState(() => _showExtraHelp = !_showExtraHelp);
-  }
+    if (lowerQuestion.contains('hello') || lowerQuestion.contains('hi')) {
+      return 'Hi $_studentName! Ask me any lesson question and I will help you step by step.';
+    }
 
-  void _startChat(String question) {
-    setState(() {
-      _userQuestion = question;
-      _hasStartedChat = true;
-      _showExtraHelp = false;
-    });
+    return 'Here is a good way to start: identify what the question gives you, what it asks for, and the formula or rule that connects them. Send me the exact problem, and I can walk through the answer step by step.';
   }
 
   void _handleChatInput() {
@@ -86,55 +48,37 @@ class _TutorScreenState extends State<TutorScreen> {
     if (question.isEmpty) return;
 
     _messageController.clear();
-    if (!_hasStartedChat) {
-      _startChat(question);
-      return;
-    }
-
     setState(() {
-      _userQuestion = question;
-      _showExtraHelp = false;
+      _chatMessages
+        ..add(ChatMessage(text: question, isUser: true))
+        ..add(ChatMessage(text: _buildTutorAnswer(question), isUser: false));
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final messages = _chatMessages;
+
     return Column(
       children: [
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const TutorWelcomeBubble(studentName: _studentName),
-                if (_hasStartedChat) ...[
-                  const SizedBox(height: 18),
-                  UserBubble(message: _userQuestion),
-                  const SizedBox(height: 26),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    child: _isPractice
-                        ? PracticeCard(
-                            key: const ValueKey('practice'),
-                            onBack: _back,
-                            onExplainAgain: _explainAgain,
-                            showExtraHelp: _showExtraHelp,
-                          )
-                        : LessonCard(
-                            key: ValueKey(_step),
-                            step: _steps[_step],
-                            isFirst: _step == 0,
-                            isLast: _step == _steps.length - 1,
-                            onBack: _back,
-                            onNext: _next,
-                            onExplainAgain: _explainAgain,
-                            showExtraHelp: _showExtraHelp,
-                          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: messages.isEmpty
+                ? const TutorWelcomeLabel(studentName: _studentName)
+                : ListView.separated(
+                    key: const ValueKey('tutor-chat-list'),
+                    padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
+                    itemCount: messages.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 18),
+                    itemBuilder: (context, index) {
+                      final message = messages[index];
+                      return message.isUser
+                          ? UserBubble(message: message.text)
+                          : TutorAnswerBubble(message: message.text);
+                    },
                   ),
-                ],
-              ],
-            ),
           ),
         ),
         ChatInput(
@@ -146,48 +90,44 @@ class _TutorScreenState extends State<TutorScreen> {
   }
 }
 
-class TutorWelcomeBubble extends StatelessWidget {
-  const TutorWelcomeBubble({super.key, required this.studentName});
+class TutorWelcomeLabel extends StatelessWidget {
+  const TutorWelcomeLabel({super.key, required this.studentName});
 
   final String studentName;
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
+    return Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            constraints: const BoxConstraints(maxWidth: 326),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            decoration: BoxDecoration(
-              color: AppColors.answer,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(14),
-                topRight: Radius.circular(14),
-                bottomLeft: Radius.circular(2),
-                bottomRight: Radius.circular(14),
-              ),
-              border: Border.all(color: AppColors.cyan.withValues(alpha: .22)),
-            ),
+          Icon(
+            Icons.smart_toy_outlined,
+            color: AppColors.cyan.withValues(alpha: .9),
+            size: 34,
+          ),
+          const SizedBox(height: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Text(
               'Hey $studentName, how can I help you today?',
+              textAlign: TextAlign.center,
               style: const TextStyle(
                 color: AppColors.text,
-                fontSize: 17,
-                height: 1.4,
-                fontWeight: FontWeight.w800,
+                fontSize: 24,
+                height: 1.25,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           const Text(
-            'Rean AI',
+            'Ask any question to start chatting',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.cyan,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
+              color: AppColors.muted,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -231,7 +171,7 @@ class UserBubble extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'You • 10:43 AM',
+            'You',
             style: TextStyle(
               color: AppColors.muted,
               fontSize: 13,
@@ -242,6 +182,63 @@ class UserBubble extends StatelessWidget {
       ),
     );
   }
+}
+
+class TutorAnswerBubble extends StatelessWidget {
+  const TutorAnswerBubble({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            constraints: const BoxConstraints(maxWidth: 326),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            decoration: BoxDecoration(
+              color: AppColors.answer,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(14),
+                topRight: Radius.circular(14),
+                bottomLeft: Radius.circular(2),
+                bottomRight: Radius.circular(14),
+              ),
+              border: Border.all(color: AppColors.cyan.withValues(alpha: .22)),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 16,
+                height: 1.4,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Rean AI',
+            style: TextStyle(
+              color: AppColors.cyan,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ChatMessage {
+  const ChatMessage({required this.text, required this.isUser});
+
+  final String text;
+  final bool isUser;
 }
 
 class LessonCard extends StatelessWidget {

@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+
+// import '../core/app_colors.dart';
 import '../screens/placeholder/placeholder_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/quizzes/quizzes_screen.dart';
