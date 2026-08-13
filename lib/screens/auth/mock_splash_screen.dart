@@ -27,21 +27,10 @@ class _MockSplashScreenState extends State<MockSplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF080D19),
-              Color(0xFF09101E),
-              Color(0xFF10112A),
-              Color(0xFF171342),
-            ],
-          ),
-        ),
-        child: Center(
+        decoration: AppColors.backgroundDecoration,
+        child: const Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

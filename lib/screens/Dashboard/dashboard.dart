@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -23,19 +24,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF080D19),
-            Color(0xFF09101E),
-            Color(0xFF10112A),
-            Color(0xFF171342),
-          ],
-          stops: [0, .46, .74, 1],
-        ),
-      ),
+      decoration: AppColors.backgroundDecorationFor(context),
       child: isLoading
           ? const _DashboardLoadingState()
           : SingleChildScrollView(
@@ -381,11 +370,15 @@ class _GreetingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final titleColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+    final isLight = AdaptiveColors.isLight(context);
+
     return Row(
       children: [
         const _AvatarMark(),
         const SizedBox(width: 16),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -394,18 +387,18 @@ class _GreetingHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: titleColor,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 'Grade 11 - Let\'s continue learning',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Color(0xFF96A0CF),
+                  color: mutedColor,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -419,13 +412,13 @@ class _GreetingHeader extends StatelessWidget {
             onPressed: () =>
                 _showDashboardMessage(context, 'No new notifications'),
             style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF090D19),
+              backgroundColor: isLight ? Colors.white : const Color(0xFF090D19),
               side: BorderSide(color: AppColors.blue.withValues(alpha: .55)),
               padding: EdgeInsets.zero,
             ),
-            icon: const Icon(
+            icon: Icon(
               Icons.notifications_rounded,
-              color: Color(0xFFDDE4FF),
+              color: isLight ? AppColors.blue : const Color(0xFFDDE4FF),
               size: 17,
             ),
           ),
@@ -440,6 +433,9 @@ class _StreakCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+
     return _Panel(
       padding: const EdgeInsets.fromLTRB(20, 17, 17, 17),
       borderColor: AppColors.blue.withValues(alpha: .52),
@@ -451,23 +447,23 @@ class _StreakCard extends StatelessWidget {
             color: Color(0xFF8BA0FF),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '5-day streak',
                   style: TextStyle(
-                    color: Color(0xFFDDE4FF),
+                    color: textColor,
                     fontSize: 19,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'You\'re on fire! Keep it up.',
                   style: TextStyle(
-                    color: Color(0xFF96A0CF),
+                    color: mutedColor,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -507,23 +503,37 @@ class _StartLearningCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AdaptiveColors.isLight(context);
+    final titleColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 34, 24, 28),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF090D19), Color(0xFF10112A), Color(0xFF171342)],
-        ),
-        borderRadius: BorderRadius.circular(27),
-        border: Border.all(color: AppColors.blue),
-      ),
+      decoration: isLight
+          ? BoxDecoration(
+              color: AdaptiveColors.card(context),
+              borderRadius: BorderRadius.circular(27),
+              border: Border.all(color: AdaptiveColors.line(context)),
+            )
+          : BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF090D19),
+                  Color(0xFF10112A),
+                  Color(0xFF171342),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(27),
+              border: Border.all(color: AppColors.blue),
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -531,7 +541,7 @@ class _StartLearningCard extends StatelessWidget {
                     Text(
                       'What would\nyou like to\nexplore today?',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: titleColor,
                         fontSize: 28,
                         height: 1.08,
                         fontWeight: FontWeight.w900,
@@ -541,7 +551,7 @@ class _StartLearningCard extends StatelessWidget {
                     Text(
                       'I\'m ready to help you with\nyour lessons.',
                       style: TextStyle(
-                        color: Color(0xFF8BA0FF),
+                        color: mutedColor,
                         fontSize: 15,
                         height: 1.25,
                         fontWeight: FontWeight.w500,
@@ -550,7 +560,7 @@ class _StartLearningCard extends StatelessWidget {
                   ],
                 ),
               ),
-              _MathTiles(),
+              const _MathTiles(),
             ],
           ),
           const SizedBox(height: 28),
@@ -614,6 +624,10 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final panelColor = AdaptiveColors.panel(context);
+    final lineColor = AdaptiveColors.line(context);
+    final mutedColor = AdaptiveColors.muted(context);
+
     final actions = [
       (
         Icons.chat_bubble_rounded,
@@ -648,8 +662,9 @@ class _QuickActions extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
       decoration: BoxDecoration(
-        color: const Color(0xFF090D19).withValues(alpha: .92),
+        color: panelColor,
         borderRadius: BorderRadius.circular(21),
+        border: Border.all(color: lineColor),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -670,8 +685,8 @@ class _QuickActions extends StatelessWidget {
                     const SizedBox(height: 12),
                     Text(
                       item.$2,
-                      style: const TextStyle(
-                        color: Color(0xFFC6CAE9),
+                      style: TextStyle(
+                        color: mutedColor,
                         fontSize: 11,
                         fontWeight: FontWeight.w900,
                       ),
@@ -695,13 +710,15 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+
     return Row(
       children: [
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: textColor,
               fontSize: 19,
               fontWeight: FontWeight.w900,
             ),
@@ -735,14 +752,17 @@ class _ContinueLessonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+
     return _Panel(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           Row(
-            children: const [
-              _MiniChart(size: 54),
-              SizedBox(width: 18),
+            children: [
+              const _MiniChart(size: 54),
+              const SizedBox(width: 18),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -750,7 +770,7 @@ class _ContinueLessonCard extends StatelessWidget {
                     Text(
                       'Linear Equations',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: textColor,
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                       ),
@@ -759,7 +779,7 @@ class _ContinueLessonCard extends StatelessWidget {
                     Text(
                       'Mathematics - Step 3\nof 5',
                       style: TextStyle(
-                        color: Color(0xFF96A0CF),
+                        color: mutedColor,
                         fontSize: 13,
                         height: 1.25,
                         fontWeight: FontWeight.w600,
@@ -770,7 +790,7 @@ class _ContinueLessonCard extends StatelessWidget {
               ),
               Text(
                 '60%',
-                style: TextStyle(
+                style: const TextStyle(
                   color: Color(0xFF8BA0FF),
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -813,26 +833,28 @@ class _LearningPlan extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: const [
+      children: [
         Text(
           'Today\'s Learning Plan',
           style: TextStyle(
-            color: Colors.white,
+            color: textColor,
             fontSize: 18,
             fontWeight: FontWeight.w900,
           ),
         ),
-        SizedBox(height: 14),
-        _PlanTile(
+        const SizedBox(height: 14),
+        const _PlanTile(
           icon: Icons.assignment_rounded,
           title: 'Review Physics Quiz',
           subtitle: 'Laws of Thermodynamics',
           color: Color(0xFF6E43E5),
         ),
-        SizedBox(height: 10),
-        _PlanTile(
+        const SizedBox(height: 10),
+        const _PlanTile(
           icon: Icons.menu_book_rounded,
           title: 'English Grammar',
           subtitle: 'Complex Sentences',
@@ -848,19 +870,21 @@ class _SubjectProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: const [
+      children: [
         Text(
           'Subject Progress',
           style: TextStyle(
-            color: Colors.white,
+            color: textColor,
             fontSize: 18,
             fontWeight: FontWeight.w900,
           ),
         ),
-        SizedBox(height: 14),
-        Row(
+        const SizedBox(height: 14),
+        const Row(
           children: [
             Expanded(
               child: _SubjectCard(
@@ -895,28 +919,30 @@ class _StrengthenCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+
     return _Panel(
       borderColor: const Color(0xFF31245B),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: const [
+        children: [
           Text(
             'Let\'s strengthen this',
             style: TextStyle(
-              color: Colors.white,
+              color: textColor,
               fontSize: 16,
               fontWeight: FontWeight.w900,
             ),
           ),
-          SizedBox(height: 18),
-          _FocusTile(
+          const SizedBox(height: 18),
+          const _FocusTile(
             title: 'Finding the y-intercept',
             subtitle: 'Mathematics - 42% accuracy',
             chip: 'Study',
           ),
-          SizedBox(height: 12),
-          _FocusTile(
+          const SizedBox(height: 12),
+          const _FocusTile(
             title: 'Newton\'s Second Law',
             subtitle: 'Physics - Practice needed',
             chip: 'Practice',
@@ -934,6 +960,9 @@ class _RecommendationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+
     return _Panel(
       padding: EdgeInsets.zero,
       borderColor: Colors.transparent,
@@ -954,11 +983,11 @@ class _RecommendationCard extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Understanding Slope\nVisually',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: textColor,
                             fontSize: 19,
                             height: 1.18,
                             fontWeight: FontWeight.w900,
@@ -986,10 +1015,10 @@ class _RecommendationCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  const Text(
+                  Text(
                     'A deep dive into how changing m affects\nlinear graphs.',
                     style: TextStyle(
-                      color: Color(0xFF96A0CF),
+                      color: mutedColor,
                       fontSize: 13,
                       height: 1.35,
                       fontWeight: FontWeight.w600,
@@ -1038,31 +1067,33 @@ class _RecentActivity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: const [
+      children: [
         Text(
           'Recent Activity',
           style: TextStyle(
-            color: Colors.white,
+            color: textColor,
             fontSize: 18,
             fontWeight: FontWeight.w900,
           ),
         ),
-        SizedBox(height: 18),
-        _ActivityItem(
+        const SizedBox(height: 18),
+        const _ActivityItem(
           color: AppColors.blue,
           title: 'Completed Linear Equation lesson',
           time: '2 hours ago',
         ),
-        SizedBox(height: 16),
-        _ActivityItem(
+        const SizedBox(height: 16),
+        const _ActivityItem(
           color: Color(0xFF7C5BFF),
           title: 'Mastered Verb Conjugations',
           time: 'Yesterday',
         ),
-        SizedBox(height: 16),
-        _ActivityItem(
+        const SizedBox(height: 16),
+        const _ActivityItem(
           color: Color(0xFFFF7046),
           title: 'Achieved Perfect Quiz Score in Physics',
           time: '2 days ago',
@@ -1077,16 +1108,19 @@ class _DashboardEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+
     return _Panel(
       borderColor: Colors.white.withValues(alpha: .08),
-      child: const Row(
+      child: Row(
         children: [
-          _RoundIcon(
+          const _RoundIcon(
             icon: Icons.inbox_outlined,
             background: Color(0xFF11172E),
             color: Color(0xFF8BA0FF),
           ),
-          SizedBox(width: 16),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1094,16 +1128,16 @@ class _DashboardEmptyState extends StatelessWidget {
                 Text(
                   'Empty state ready',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: textColor,
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'When there is no activity, lessons, or progress, this card can be shown.',
                   style: TextStyle(
-                    color: Color(0xFF96A0CF),
+                    color: mutedColor,
                     fontSize: 12,
                     height: 1.35,
                     fontWeight: FontWeight.w600,
@@ -1165,6 +1199,10 @@ class _TinyAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AdaptiveColors.isLight(context);
+    final textColor = AdaptiveColors.text(context);
+    final lineColor = AdaptiveColors.line(context);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(13),
@@ -1172,9 +1210,9 @@ class _TinyAction extends StatelessWidget {
         height: 42,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: const Color(0xFF090D19).withValues(alpha: .9),
+          color: isLight ? Colors.white : const Color(0xFF090D19).withValues(alpha: .9),
           borderRadius: BorderRadius.circular(13),
-          border: Border.all(color: Colors.white.withValues(alpha: .1)),
+          border: Border.all(color: isLight ? lineColor : Colors.white.withValues(alpha: .1)),
         ),
         child: FittedBox(
           fit: BoxFit.scaleDown,
@@ -1185,8 +1223,8 @@ class _TinyAction extends StatelessWidget {
               const SizedBox(width: 7),
               Text(
                 label,
-                style: const TextStyle(
-                  color: Color(0xFFDDE4FF),
+                style: TextStyle(
+                  color: textColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                 ),
@@ -1225,6 +1263,9 @@ class _PlanTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+
     return _Panel(
       borderColor: Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -1244,8 +1285,8 @@ class _PlanTile extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFDDE4FF),
+                  style: TextStyle(
+                    color: textColor,
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1255,8 +1296,8 @@ class _PlanTile extends StatelessWidget {
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF96A0CF),
+                  style: TextStyle(
+                    color: mutedColor,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1264,7 +1305,7 @@ class _PlanTile extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: Color(0xFF7680A6)),
+          Icon(Icons.chevron_right_rounded, color: mutedColor),
         ],
       ),
     );
@@ -1290,6 +1331,12 @@ class _SubjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+    final progressBackground = AdaptiveColors.isLight(context)
+        ? const Color(0xFFE3E8F3)
+        : const Color(0xFF242A42);
+
     return _Panel(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       borderColor: Colors.transparent,
@@ -1302,8 +1349,8 @@ class _SubjectCard extends StatelessWidget {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFFDDE4FF),
+            style: TextStyle(
+              color: textColor,
               fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
@@ -1312,8 +1359,8 @@ class _SubjectCard extends StatelessWidget {
             subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF96A0CF),
+            style: TextStyle(
+              color: mutedColor,
               fontSize: 10,
               fontWeight: FontWeight.w600,
             ),
@@ -1335,7 +1382,7 @@ class _SubjectCard extends StatelessWidget {
                   value: value,
                   color: color,
                   height: 4,
-                  background: const Color(0xFF242A42),
+                  background: progressBackground,
                 ),
               ),
             ],
@@ -1359,11 +1406,18 @@ class _FocusTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AdaptiveColors.isLight(context);
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: const Color(0xFF0E1323),
+        color: isLight ? const Color(0xFFF7F9FF) : const Color(0xFF0E1323),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isLight ? AdaptiveColors.line(context) : Colors.transparent,
+        ),
       ),
       child: Row(
         children: [
@@ -1375,8 +1429,8 @@ class _FocusTile extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFDDE4FF),
+                  style: TextStyle(
+                    color: textColor,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1386,8 +1440,8 @@ class _FocusTile extends StatelessWidget {
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF735CFF),
+                  style: TextStyle(
+                    color: isLight ? mutedColor : const Color(0xFF735CFF),
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1429,6 +1483,9 @@ class _ActivityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = AdaptiveColors.text(context);
+    final mutedColor = AdaptiveColors.muted(context);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1443,8 +1500,8 @@ class _ActivityItem extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  color: Color(0xFFDDE4FF),
+                style: TextStyle(
+                  color: textColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w900,
                 ),
@@ -1452,8 +1509,8 @@ class _ActivityItem extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 time,
-                style: const TextStyle(
-                  color: Color(0xFF747A9B),
+                style: TextStyle(
+                  color: mutedColor,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1479,13 +1536,16 @@ class _Panel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final panelColor = AdaptiveColors.panel(context);
+    final lineColor = AdaptiveColors.line(context);
+
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: const Color(0xFF090D19).withValues(alpha: .88),
+        color: panelColor,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: borderColor ?? Colors.white.withValues(alpha: .05),
+          color: borderColor ?? lineColor,
         ),
       ),
       child: child,

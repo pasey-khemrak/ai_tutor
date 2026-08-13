@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../core/adaptive_colors.dart';
 import '../core/app_colors.dart';
 
 class AppBottomNavigation extends StatelessWidget {
@@ -21,13 +23,27 @@ class AppBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AdaptiveColors.isLight(context);
+    final backgroundColor = isLight
+        ? Colors.white.withValues(alpha: .94)
+        : AppColors.panel.withValues(alpha: .86);
+    final borderColor = isLight
+        ? const Color(0xFFD8DEEC)
+        : Colors.white.withValues(alpha: .06);
+
     return Container(
       height: 78,
       decoration: BoxDecoration(
-        color: AppColors.panel.withValues(alpha: .86),
-        border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: .06)),
-        ),
+        color: backgroundColor,
+        border: Border(top: BorderSide(color: borderColor)),
+        boxShadow: [
+          if (isLight)
+            BoxShadow(
+              color: const Color(0xFF172033).withValues(alpha: .08),
+              blurRadius: 18,
+              offset: const Offset(0, -6),
+            ),
+        ],
       ),
       child: Row(
         children: [
@@ -58,7 +74,11 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.cyan : AppColors.muted;
+    final isLight = AdaptiveColors.isLight(context);
+    final color = selected
+        ? (isLight ? AppColors.blue : AppColors.cyan)
+        : (isLight ? const Color(0xFF69738A) : AppColors.muted);
+
     return Semantics(
       button: true,
       selected: selected,

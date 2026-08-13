@@ -48,9 +48,10 @@ class ProfilePalette {
 }
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key, required this.onBack});
+  const ProfileScreen({super.key, required this.onBack, required this.onLogout});
 
   final VoidCallback onBack;
+  final VoidCallback onLogout;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -60,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _showSettings = false;
   bool _notifications = true;
   bool _sound = false;
-  bool _darkMode = true;
+  bool _darkMode = AppThemeController.isDarkMode;
   String _level = 'Advanced';
   String _goal =
       'Currently focusing on advanced Calculus and preparing for Physics.';
@@ -106,6 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
     );
   }
+
 }
 
 class EditProfileView extends StatefulWidget {
@@ -549,7 +551,7 @@ class SettingsView extends StatelessWidget {
                   width: double.infinity,
                   height: 64,
                   child: OutlinedButton.icon(
-                    key: const Key('profile-logout-button'),
+                    key: const Key('settings-logout-button'),
                     onPressed: onLogout,
                     icon: const Icon(Icons.logout_rounded),
                     label: const FittedBox(
@@ -1177,6 +1179,45 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
             ).showSnackBar(const SnackBar(content: Text('Password updated')));
           },
           child: const Text('Change Password'),
+        ),
+      ],
+    );
+  }
+}
+
+class LogoutConfirmDialog extends StatelessWidget {
+  const LogoutConfirmDialog({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final panelColor = ProfilePalette.panel(context);
+    final titleColor = ProfilePalette.text(context);
+    final subtitleColor = ProfilePalette.subtitle(context);
+
+    return AlertDialog(
+      backgroundColor: panelColor,
+      title: Text(
+        'Logout?',
+        style: TextStyle(color: titleColor, fontWeight: FontWeight.w900),
+      ),
+      content: Text(
+        'You will return to the sign in screen.',
+        style: TextStyle(color: subtitleColor, fontWeight: FontWeight.w600),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          key: const Key('confirm-logout-button'),
+          onPressed: () => Navigator.of(context).pop(true),
+          icon: const Icon(Icons.logout_rounded, size: 17),
+          label: const Text('Logout'),
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFFF5574),
+            foregroundColor: Colors.white,
+          ),
         ),
       ],
     );

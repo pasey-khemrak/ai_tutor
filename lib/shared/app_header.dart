@@ -1,27 +1,38 @@
 import 'package:flutter/material.dart';
 
+import '../core/adaptive_colors.dart';
 import '../core/app_colors.dart';
 import 'rean_avatar.dart';
 
 class AppHeader extends StatelessWidget {
-  const AppHeader({super.key});
+  const AppHeader({super.key, this.forceDark = false});
+
+  final bool forceDark;
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AdaptiveColors.isLight(context) && !forceDark;
+    final panelColor = isLight
+        ? Colors.white.withValues(alpha: .92)
+        : AppColors.panel.withValues(alpha: .72);
+    final borderColor = isLight
+        ? const Color(0xFFD8DEEC)
+        : Colors.white.withValues(alpha: .03);
+    final titleColor = isLight ? AppColors.blue : AppColors.cyan;
+    final subtitleColor = AdaptiveColors.muted(context);
+
     return Container(
       height: 74,
       padding: const EdgeInsets.symmetric(horizontal: 22),
       decoration: BoxDecoration(
-        color: AppColors.panel.withValues(alpha: .72),
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: .03)),
-        ),
+        color: panelColor,
+        border: Border(bottom: BorderSide(color: borderColor)),
       ),
       child: Row(
         children: [
           const ReanAvatar(),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,19 +42,19 @@ class AppHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: AppColors.cyan,
+                    color: titleColor,
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     letterSpacing: .2,
                   ),
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 3),
                 Text(
                   'AI Mathematics Tutor',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: AppColors.muted,
+                    color: subtitleColor,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -54,7 +65,7 @@ class AppHeader extends StatelessWidget {
           IconButton(
             tooltip: 'More',
             onPressed: () {},
-            icon: const Icon(Icons.more_horiz_rounded, color: AppColors.muted),
+            icon: Icon(Icons.more_horiz_rounded, color: subtitleColor),
           ),
         ],
       ),

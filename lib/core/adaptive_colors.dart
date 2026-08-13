@@ -6,7 +6,7 @@ class AdaptiveColors {
   const AdaptiveColors._();
 
   static bool isLight(BuildContext context) {
-    return false;
+    return Theme.of(context).brightness == Brightness.light;
   }
 
   static Color text(BuildContext context) {

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../core/routing/app_routes.dart';
@@ -61,7 +59,6 @@ class _AuthScreenState extends State<AuthScreen> {
         child: SafeArea(
           child: Stack(
             children: [
-              const _AuthBlurCircles(),
               PageView(
                 controller: _pageController,
                 onPageChanged: (value) => setState(() => _page = value),
@@ -78,98 +75,6 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: AuthFooter(page: _page, onNext: _next),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AuthBlurCircles extends StatelessWidget {
-  const _AuthBlurCircles();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Positioned.fill(
-      child: IgnorePointer(
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            _BlurCircle(
-              diameter: 340,
-              blur: 92,
-              color: Color(0xFF2F4DFF),
-              opacity: .26,
-              right: -24,
-              topFactor: .28,
-            ),
-            _BlurCircle(
-              diameter: 280,
-              blur: 78,
-              color: Color(0xFF0B7E93),
-              opacity: .24,
-              left: -150,
-              topFactor: .56,
-            ),
-            _BlurCircle(
-              diameter: 300,
-              blur: 82,
-              color: Color(0xFF6F3CFF),
-              opacity: .3,
-              right: -132,
-              topFactor: .65,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BlurCircle extends StatelessWidget {
-  const _BlurCircle({
-    required this.diameter,
-    required this.blur,
-    required this.color,
-    required this.opacity,
-    this.left,
-    this.right,
-    this.topFactor,
-  });
-
-  final double diameter;
-  final double blur;
-  final Color color;
-  final double opacity;
-  final double? left;
-  final double? right;
-  final double? topFactor;
-
-  @override
-  Widget build(BuildContext context) {
-    final top = topFactor == null
-        ? null
-        : MediaQuery.sizeOf(context).height * topFactor! - diameter / 2;
-
-    return Positioned(
-      left: left,
-      right: right,
-      top: top,
-      child: ImageFiltered(
-        imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Container(
-          width: diameter,
-          height: diameter,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                color.withValues(alpha: opacity),
-                color.withValues(alpha: opacity * .58),
-                color.withValues(alpha: 0),
-              ],
-              stops: const [0, .58, 1],
-            ),
           ),
         ),
       ),

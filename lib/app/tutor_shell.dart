@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/routing/app_routes.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/dashboard/dashboard_repository.dart';
 import '../screens/learning_selection/learning_selection_repository.dart';
@@ -110,6 +111,13 @@ class _TutorShellState extends State<TutorShell> {
     );
   }
 
+  void _logout() {
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRoutes.signIn,
+      (route) => false,
+    );
+  }
+
   Widget _buildScreen() {
     return switch (_selectedIndex) {
       0 => DashboardScreen(
@@ -143,7 +151,10 @@ class _TutorShellState extends State<TutorShell> {
         ),
       ),
       3 => QuizzesScreen(),
-      _ => ProfileScreen(onBack: () => setState(() => _selectedIndex = 0)),
+      _ => ProfileScreen(
+        onBack: () => setState(() => _selectedIndex = 0),
+        onLogout: _logout,
+      ),
     };
   }
 

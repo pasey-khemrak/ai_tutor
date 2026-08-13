@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -111,7 +109,6 @@ class _AuthFormScreenState extends State<AuthFormScreen> {
         child: SafeArea(
           child: Stack(
             children: [
-              const _AuthGlow(),
               SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(26, 28, 26, 26),
                 child: ConstrainedBox(
@@ -578,32 +575,6 @@ class _GoogleButton extends StatelessWidget {
           width: 24,
           height: 24,
           fit: BoxFit.contain,
-        ),
-      ),
-    );
-  }
-}
-
-class _AuthGlow extends StatelessWidget {
-  const _AuthGlow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: IgnorePointer(
-        child: ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: 96, sigmaY: 96),
-          child: Align(
-            alignment: const Alignment(.3, -1.1),
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.blue.withValues(alpha: .2),
-              ),
-            ),
-          ),
         ),
       ),
     );
