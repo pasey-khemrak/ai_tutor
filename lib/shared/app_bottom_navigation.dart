@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 
 class AppBottomNavigation extends StatelessWidget {
@@ -12,10 +12,10 @@ class AppBottomNavigation extends StatelessWidget {
   final ValueChanged<int> onSelected;
 
   static const _items = [
-    _NavItem(Icons.dashboard_outlined, 'Dashboard'),
+    _NavItem(Icons.dashboard_outlined, 'Home'),
     _NavItem(Icons.smart_toy_outlined, 'Tutor'),
     _NavItem(Icons.mic_none_rounded, 'Voice'),
-    _NavItem(Icons.quiz_outlined, 'Quizzes'),
+    _NavItem(Icons.quiz_outlined, 'Lessons'),
     _NavItem(Icons.person_rounded, 'Profile'),
   ];
 
@@ -25,7 +25,9 @@ class AppBottomNavigation extends StatelessWidget {
       height: 78,
       decoration: BoxDecoration(
         color: AppColors.panel.withValues(alpha: .86),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: .06))),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: .06)),
+        ),
       ),
       child: Row(
         children: [

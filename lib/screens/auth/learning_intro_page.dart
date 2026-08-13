@@ -11,10 +11,13 @@ class LearningIntroPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final artSize = (constraints.maxWidth * .68).clamp(238.0, 300.0);
+        final compact = constraints.maxHeight < 560;
+        final artSize = math
+            .min(constraints.maxWidth * .68, constraints.maxHeight * .38)
+            .clamp(compact ? 150.0 : 238.0, 300.0);
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 22, 24, 106),
+          padding: EdgeInsets.fromLTRB(24, compact ? 12 : 22, 24, 106),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -88,17 +91,17 @@ class LearningIntroPage extends StatelessWidget {
                 ),
               ),
               const FeatureBadge(),
-              const SizedBox(height: 18),
-              const Text(
+              SizedBox(height: compact ? 10 : 18),
+              Text(
                 'Learn at your\nown pace',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 26,
+                  fontSize: compact ? 22 : 26,
                   height: 1.12,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: compact ? 10 : 16),
               Text(
                 'Rean adapts to your learning style, difficulty level, and schedule - creating a unique path just for you.',
                 style: TextStyle(

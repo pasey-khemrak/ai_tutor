@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
+import '../../features/quizzes/quiz_models.dart';
 
 class QuizQuestionScreen extends StatelessWidget {
   const QuizQuestionScreen({
     super.key,
+    required this.quiz,
+    required this.questionIndex,
+    required this.selectedAnswer,
+    required this.onAnswerChanged,
     required this.onNext,
     required this.onResults,
     required this.onBack,
   });
 
+  final QuizEntity quiz;
+  final int questionIndex;
+  final QuizAnswerSubmissionEntity? selectedAnswer;
+  final ValueChanged<QuizAnswerSubmissionEntity> onAnswerChanged;
   final VoidCallback onNext;
   final VoidCallback onResults;
   final VoidCallback onBack;
@@ -18,6 +27,7 @@ class QuizQuestionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final textColor = AdaptiveColors.text(context);
     final borderColor = AdaptiveColors.line(context);
+    final question = quiz.questions[questionIndex];
 
     return Column(
       children: [
@@ -27,9 +37,16 @@ class QuizQuestionScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const QuizProgressHeader(),
+                QuizProgressHeader(
+                  questionNumber: questionIndex + 1,
+                  totalQuestions: quiz.questions.length,
+                ),
                 const SizedBox(height: 18),
-                const QuestionCard(),
+                QuestionCard(
+                  question: question,
+                  selectedAnswer: selectedAnswer,
+                  onAnswerChanged: onAnswerChanged,
+                ),
                 const SizedBox(height: 18),
                 OutlinedButton.icon(
                   onPressed: onResults,
@@ -54,7 +71,14 @@ class QuizQuestionScreen extends StatelessWidget {
 }
 
 class QuizProgressHeader extends StatelessWidget {
-  const QuizProgressHeader({super.key});
+  const QuizProgressHeader({
+    super.key,
+    required this.questionNumber,
+    required this.totalQuestions,
+  });
+
+  final int questionNumber;
+  final int totalQuestions;
 
   @override
   Widget build(BuildContext context) {
@@ -71,16 +95,19 @@ class QuizProgressHeader extends StatelessWidget {
               style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
             ),
             Text(
-              '5',
-              style: TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w900),
+              '$questionNumber',
+              style: TextStyle(
+                color: AppColors.cyan,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             Text(
-              ' នៃ 20',
+              ' នៃ $totalQuestions',
               style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
             ),
             Spacer(),
             Text(
-              '25% Complete',
+              '${((questionNumber / totalQuestions) * 100).round()}% Complete',
               style: TextStyle(color: mutedColor, fontSize: 12),
             ),
           ],
@@ -89,7 +116,7 @@ class QuizProgressHeader extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: LinearProgressIndicator(
-            value: .25,
+            value: questionNumber / totalQuestions,
             minHeight: 6,
             backgroundColor: lineColor,
             valueColor: const AlwaysStoppedAnimation(AppColors.blue),
@@ -101,7 +128,16 @@ class QuizProgressHeader extends StatelessWidget {
 }
 
 class QuestionCard extends StatelessWidget {
-  const QuestionCard({super.key});
+  const QuestionCard({
+    super.key,
+    required this.question,
+    required this.selectedAnswer,
+    required this.onAnswerChanged,
+  });
+
+  final QuizQuestionEntity question;
+  final QuizAnswerSubmissionEntity? selectedAnswer;
+  final ValueChanged<QuizAnswerSubmissionEntity> onAnswerChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +156,7 @@ class QuestionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            '5. តើដែនកំណត់នៃអនុគមន៍ខាងក្រោមគឺមួយណា?',
+            '${question.order}. ${question.questionText}',
             style: TextStyle(
               color: textColor,
               fontSize: 17,
@@ -128,22 +164,46 @@ class QuestionCard extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'f(x) = √(x - 2)',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.cyan,
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-              fontStyle: FontStyle.italic,
+          if (question.visualizationData?['equation'] is String) ...[
+            const SizedBox(height: 8),
+            Text(
+              question.visualizationData!['equation'] as String,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.cyan,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+                fontStyle: FontStyle.italic,
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 24),
-          QuizChoice(letter: 'A', text: 'x ≥ 0'),
-          QuizChoice(letter: 'B', text: 'x ≥ 2', selected: true),
-          QuizChoice(letter: 'C', text: 'x ≤ 2'),
-          QuizChoice(letter: 'D', text: 'គ្មានចម្លើយត្រឹមត្រូវ'),
+          if (question.isMultipleChoice)
+            for (final option in question.options)
+              QuizChoice(
+                key: Key('quiz-choice-${option.optionId}'),
+                letter: option.label,
+                text: option.text,
+                selected: selectedAnswer?.selectedOptionId == option.optionId,
+                onTap: () => onAnswerChanged(
+                  QuizAnswerSubmissionEntity(
+                    questionId: question.questionId,
+                    selectedOptionId: option.optionId,
+                    answer: option.text,
+                  ),
+                ),
+              )
+          else
+            QuizFreeResponseInput(
+              key: Key('quiz-free-response-${question.questionId}'),
+              initialValue: selectedAnswer?.answer ?? '',
+              onChanged: (value) => onAnswerChanged(
+                QuizAnswerSubmissionEntity(
+                  questionId: question.questionId,
+                  answer: value,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -158,6 +218,7 @@ class QuizChoice extends StatelessWidget {
     this.selected = false,
     this.correct = false,
     this.wrong = false,
+    this.onTap,
   });
 
   final String letter;
@@ -165,6 +226,7 @@ class QuizChoice extends StatelessWidget {
   final bool selected;
   final bool correct;
   final bool wrong;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -178,56 +240,113 @@ class QuizChoice extends StatelessWidget {
     final borderColor = correct
         ? Colors.greenAccent.withValues(alpha: .45)
         : wrong
-            ? AppColors.peach.withValues(alpha: .45)
-            : selected
-                ? AppColors.blue
-                : lineColor;
+        ? AppColors.peach.withValues(alpha: .45)
+        : selected
+        ? AppColors.blue
+        : lineColor;
     final textColor = correct
         ? Colors.greenAccent
         : wrong
-            ? AppColors.peach
-            : defaultTextColor;
+        ? AppColors.peach
+        : defaultTextColor;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      decoration: BoxDecoration(
-        color: selected ? AppColors.blue.withValues(alpha: .14) : cardColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: borderColor, width: selected ? 2 : 1),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.blue.withValues(alpha: .14) : cardColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor, width: selected ? 2 : 1),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: selected ? AppColors.blue : letterBackground,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                letter,
+                style: TextStyle(
+                  color: selected ? Colors.white : defaultTextColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            if (selected || correct)
+              const Icon(Icons.check_circle, color: AppColors.cyan, size: 18),
+          ],
+        ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: selected ? AppColors.blue : letterBackground,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              letter,
-              style: TextStyle(
-                color: selected ? Colors.white : defaultTextColor,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(width: 18),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          if (selected || correct)
-            const Icon(Icons.check_circle, color: AppColors.cyan, size: 18),
-        ],
+    );
+  }
+}
+
+class QuizFreeResponseInput extends StatefulWidget {
+  const QuizFreeResponseInput({
+    super.key,
+    required this.initialValue,
+    required this.onChanged,
+  });
+
+  final String initialValue;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<QuizFreeResponseInput> createState() => _QuizFreeResponseInputState();
+}
+
+class _QuizFreeResponseInputState extends State<QuizFreeResponseInput> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void didUpdateWidget(covariant QuizFreeResponseInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialValue != widget.initialValue &&
+        _controller.text != widget.initialValue) {
+      _controller.text = widget.initialValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      key: const Key('quiz-free-response-input'),
+      keyboardType: TextInputType.text,
+      onChanged: widget.onChanged,
+      decoration: InputDecoration(
+        hintText: 'Type your answer...',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }

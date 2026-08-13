@@ -10,10 +10,12 @@ class ClarityIntroPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final artSize = (constraints.maxWidth * .7).clamp(240.0, 306.0);
+        final compact = constraints.maxHeight < 560;
+        final artSize = (constraints.maxWidth * .7)
+            .clamp(compact ? 150.0 : 240.0, compact ? 190.0 : 306.0);
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 56, 24, 106),
+          padding: EdgeInsets.fromLTRB(24, compact ? 14 : 56, 24, 106),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -71,17 +73,17 @@ class ClarityIntroPage extends StatelessWidget {
                 ),
               ),
               const FeatureBadge(label: 'INTERACTIVE'),
-              const SizedBox(height: 18),
-              const Text(
+              SizedBox(height: compact ? 10 : 18),
+              Text(
                 'Ask anything,\nget clarity',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 26,
+                  fontSize: compact ? 22 : 26,
                   height: 1.12,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 28),
+              SizedBox(height: compact ? 12 : 28),
               Text(
                 'From Math to Physic, to chemistry -\nget clear, step-by-step explanation in seconds.',
                 style: TextStyle(

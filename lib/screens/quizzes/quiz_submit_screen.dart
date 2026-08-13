@@ -5,10 +5,18 @@ import '../../core/app_colors.dart';
 class QuizSubmitScreen extends StatelessWidget {
   const QuizSubmitScreen({
     super.key,
+    required this.answeredCount,
+    required this.totalQuestions,
+    this.isSubmitting = false,
+    this.errorMessage,
     required this.onSubmit,
     required this.onBack,
   });
 
+  final int answeredCount;
+  final int totalQuestions;
+  final bool isSubmitting;
+  final String? errorMessage;
   final VoidCallback onSubmit;
   final VoidCallback onBack;
 
@@ -57,25 +65,58 @@ class QuizSubmitScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'អ្នកបានឆ្លើយសំណួរចំនួន 17 ក្នុងចំណោម 20 សំណួរ។',
+              'អ្នកបានឆ្លើយសំណួរចំនួន $answeredCount ក្នុងចំណោម $totalQuestions សំណួរ។',
               textAlign: TextAlign.center,
               style: TextStyle(color: mutedColor, height: 1.4),
             ),
             const SizedBox(height: 24),
-            const SubmitStatRow(label: 'បានឆ្លើយ', value: '17'),
-            const SubmitStatRow(label: 'មិនទាន់ឆ្លើយ', value: '3'),
+            SubmitStatRow(label: 'បានឆ្លើយ', value: '$answeredCount'),
+            SubmitStatRow(
+              label: 'មិនទាន់ឆ្លើយ',
+              value: '${totalQuestions - answeredCount}',
+            ),
             const SubmitStatRow(
               label: 'កំណត់សម្គាល់សម្រាប់ពិនិត្យ',
               value: '2',
               warning: true,
             ),
             const SizedBox(height: 12),
+            if (errorMessage != null) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: warningBackground,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.deepOrange.withValues(alpha: .45),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.orangeAccent),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        errorMessage!,
+                        style: const TextStyle(
+                          color: Colors.orangeAccent,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: warningBackground,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.deepOrange.withValues(alpha: .45)),
+                border: Border.all(
+                  color: Colors.deepOrange.withValues(alpha: .45),
+                ),
               ),
               child: const Row(
                 children: [
@@ -84,7 +125,10 @@ class QuizSubmitScreen extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'សូមពិនិត្យចម្លើយមុនដាក់បញ្ចប់ ព្រោះអ្នកនៅមានសំណួរមិនទាន់ឆ្លើយ។',
-                      style: TextStyle(color: Colors.orangeAccent, height: 1.35),
+                      style: TextStyle(
+                        color: Colors.orangeAccent,
+                        height: 1.35,
+                      ),
                     ),
                   ),
                 ],
@@ -92,7 +136,7 @@ class QuizSubmitScreen extends StatelessWidget {
             ),
             const SizedBox(height: 22),
             FilledButton(
-              onPressed: onSubmit,
+              onPressed: isSubmitting ? null : onSubmit,
               style: FilledButton.styleFrom(
                 fixedSize: const Size.fromHeight(56),
                 backgroundColor: AppColors.blue,
@@ -100,10 +144,22 @@ class QuizSubmitScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text(
-                'ដាក់បញ្ចប់',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-              ),
+              child: isSubmitting
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.6,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'ដាក់បញ្ចប់',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
             ),
             const SizedBox(height: 12),
             OutlinedButton(

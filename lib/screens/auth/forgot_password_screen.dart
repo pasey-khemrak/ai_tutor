@@ -3,7 +3,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
-import 'auth_form_screen.dart';
+import '../../core/auth/auth_service.dart';
+import '../../core/auth/auth_validators.dart';
+import '../../core/routing/app_routes.dart';
 import 'rean_logo_mark.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -14,18 +16,10 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  static const _savedEmail = 'meanseav672@gmail.com';
-
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isSent = false;
-  bool _showSavedEmail = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _emailController.addListener(_updateSavedEmailSuggestion);
-  }
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -33,54 +27,45 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  void _updateSavedEmailSuggestion() {
-    final text = _emailController.text.trim();
-    final shouldShow =
-        text.isNotEmpty &&
-        text != _savedEmail &&
-        _savedEmail.startsWith(text.toLowerCase());
-    if (shouldShow != _showSavedEmail) {
-      setState(() => _showSavedEmail = shouldShow);
-    }
-  }
-
-  void _useSavedEmail() {
-    _emailController.value = const TextEditingValue(
-      text: _savedEmail,
-      selection: TextSelection.collapsed(offset: _savedEmail.length),
-    );
-    setState(() => _showSavedEmail = false);
-  }
-
   void _backToSignIn() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => const AuthFormScreen(initialIsSignUp: false),
-      ),
-    );
+    Navigator.of(context).pushReplacementNamed(AppRoutes.signIn);
   }
 
   Future<void> _sendResetLink() async {
-    if (_isSent) {
-      return;
-    }
-    if (!_formKey.currentState!.validate()) {
+    if (_isSent || !(_formKey.currentState?.validate() ?? false)) {
       return;
     }
 
-    setState(() => _isSent = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Reset link sent. Please check your email.'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.blue,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+    setState(() {
+      _isSent = true;
+      _errorMessage = null;
+    });
 
-    await Future<void>.delayed(const Duration(milliseconds: 1200));
-    if (mounted) {
-      _backToSignIn();
+    try {
+      await appAuthService.sendPasswordResetEmail(_emailController.text.trim());
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Reset link sent. Please check your email.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.blue,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      if (mounted) {
+        _backToSignIn();
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isSent = false;
+          _errorMessage = 'Could not send reset link. Please try again.';
+        });
+      }
     }
   }
 
@@ -132,11 +117,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           key: _formKey,
                           child: _EmailField(controller: _emailController),
                         ),
-                        if (_showSavedEmail) ...[
-                          const SizedBox(height: 8),
-                          _SavedEmailSuggestion(
-                            email: _savedEmail,
-                            onTap: _useSavedEmail,
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            _errorMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.peach,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ],
                         const SizedBox(height: 22),
@@ -201,118 +191,44 @@ class _EmailField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          validator: _validateEmail,
-          textAlignVertical: TextAlignVertical.center,
-          keyboardType: TextInputType.emailAddress,
-          textInputAction: TextInputAction.done,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Pasey@example.com',
-            hintStyle: TextStyle(
-              color: Colors.white.withValues(alpha: .58),
-              fontWeight: FontWeight.w700,
+        SizedBox(
+          height: 45,
+          child: TextFormField(
+            key: const Key('forgot-email-field'),
+            controller: controller,
+            validator: AuthValidators.email,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.done,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Pasey@example.com',
+              hintStyle: TextStyle(
+                color: Colors.white.withValues(alpha: .58),
+                fontWeight: FontWeight.w700,
+              ),
+              prefixIcon: const Icon(
+                Icons.mail_rounded,
+                color: Color(0xFFB9C5F9),
+                size: 18,
+              ),
+              filled: true,
+              fillColor: Colors.black.withValues(alpha: .78),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF7781B5)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppColors.blue, width: 1.4),
+              ),
             ),
-            prefixIcon: const Icon(
-              Icons.mail_rounded,
-              color: Color(0xFFB9C5F9),
-              size: 18,
-            ),
-            prefixIconConstraints: const BoxConstraints(
-              minWidth: 44,
-              minHeight: 52,
-            ),
-            filled: true,
-            fillColor: Colors.black.withValues(alpha: .78),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 16,
-            ),
-            constraints: const BoxConstraints(minHeight: 52),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF7781B5)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.blue, width: 1.4),
-            ),
-            errorMaxLines: 2,
           ),
         ),
       ],
     );
   }
-}
-
-class _SavedEmailSuggestion extends StatelessWidget {
-  const _SavedEmailSuggestion({required this.email, required this.onTap});
-
-  final String email;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF11172E),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.blue.withValues(alpha: .38)),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.account_circle_outlined,
-                color: Color(0xFF8BA0FF),
-                size: 18,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  email,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFDDE4FF),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Use',
-                style: TextStyle(
-                  color: AppColors.blue,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-String? _validateEmail(String? value) {
-  final email = value?.trim() ?? '';
-  if (email.isEmpty) {
-    return 'Please enter your email.';
-  }
-  if (!email.contains('@') || !email.contains('.')) {
-    return 'Please enter a valid email address.';
-  }
-  return null;
 }
 
 class _DividerLabel extends StatelessWidget {

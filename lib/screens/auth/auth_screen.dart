@@ -2,9 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../../core/app_colors.dart';
+import '../../core/routing/app_routes.dart';
 import 'auth_footer.dart';
-import 'auth_form_screen.dart';
 import 'brand_intro_page.dart';
 import 'clarity_intro_page.dart';
 import 'learning_intro_page.dart';
@@ -27,11 +26,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _openAuthForm() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => const AuthFormScreen(initialIsSignUp: false),
-      ),
-    );
+    Navigator.of(context).pushReplacementNamed(AppRoutes.signIn);
   }
 
   void _next() {
@@ -49,9 +44,20 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: DecoratedBox(
-        decoration: AppColors.backgroundDecoration,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF080D19),
+              Color(0xFF09101E),
+              Color(0xFF10112A),
+              Color(0xFF171342),
+            ],
+            stops: [0, .46, .74, 1],
+          ),
+        ),
         child: SafeArea(
           child: Stack(
             children: [

@@ -2,24 +2,42 @@ import 'package:flutter/material.dart';
 import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
 import '../../features/quizzes/quiz_catalog.dart';
+import '../../features/quizzes/quiz_models.dart';
+import '../../shared/state_widgets/app_error_state.dart';
+import '../../shared/state_widgets/app_loading_state.dart';
 
 class QuizIntroScreen extends StatelessWidget {
   const QuizIntroScreen({
     super.key,
     required this.quiz,
+    this.loadedQuiz,
+    this.isLoading = false,
+    this.errorMessage,
     required this.onStart,
     required this.onBack,
+    this.onRetry,
   });
 
   final QuizCatalogItem quiz;
+  final QuizEntity? loadedQuiz;
+  final bool isLoading;
+  final String? errorMessage;
   final VoidCallback onStart;
   final VoidCallback onBack;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
     final textColor = AdaptiveColors.text(context);
     final mutedColor = AdaptiveColors.muted(context);
     final lineColor = AdaptiveColors.line(context);
+    final backendQuiz = loadedQuiz;
+    final title = backendQuiz?.title ?? quiz.title;
+    final subtitle = backendQuiz?.description.isNotEmpty == true
+        ? backendQuiz!.description
+        : quiz.subtitle.replaceAll('\n', ' • ');
+    final questionCount = backendQuiz?.questions.length ?? quiz.questionCount;
+    final level = backendQuiz?.difficultyLevel ?? quiz.level;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -50,7 +68,9 @@ class QuizIntroScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.answer,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.cyan.withValues(alpha: .35)),
+                border: Border.all(
+                  color: AppColors.cyan.withValues(alpha: .35),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.cyan.withValues(alpha: .26),
@@ -87,7 +107,7 @@ class QuizIntroScreen extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           Text(
-            quiz.title,
+            title,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: textColor,
@@ -97,7 +117,7 @@ class QuizIntroScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            quiz.subtitle.replaceAll('\n', ' • '),
+            subtitle,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: mutedColor,
@@ -112,7 +132,7 @@ class QuizIntroScreen extends StatelessWidget {
                 child: QuizInfoTile(
                   icon: Icons.assignment_outlined,
                   label: 'សំណួរ',
-                  value: '${quiz.questionCount}',
+                  value: '$questionCount',
                 ),
               ),
               const SizedBox(width: 10),
@@ -128,16 +148,25 @@ class QuizIntroScreen extends StatelessWidget {
                 child: QuizInfoTile(
                   icon: Icons.auto_awesome_outlined,
                   label: 'កម្រិត',
-                  value: quiz.level,
+                  value: level,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 22),
+          if (isLoading) ...[
+            const AppLoadingState(message: 'Loading quiz...'),
+            const SizedBox(height: 22),
+          ] else if (errorMessage != null) ...[
+            AppErrorState(message: errorMessage!, onRetry: onRetry),
+            const SizedBox(height: 22),
+          ],
           const QuizGuidelinesCard(),
           const SizedBox(height: 28),
           FilledButton(
-            onPressed: onStart,
+            onPressed: isLoading || errorMessage != null || backendQuiz == null
+                ? null
+                : onStart,
             style: FilledButton.styleFrom(
               fixedSize: const Size.fromHeight(58),
               backgroundColor: AppColors.blue,

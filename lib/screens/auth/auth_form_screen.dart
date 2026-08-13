@@ -3,10 +3,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
-import '../../app/tutor_shell.dart';
-import 'forgot_password_screen.dart';
+import '../../core/auth/auth_service.dart';
+import '../../core/auth/auth_validators.dart';
+import '../../core/routing/app_routes.dart';
 import 'rean_logo_mark.dart';
-import 'setup_flow_screen.dart';
 
 class AuthFormScreen extends StatefulWidget {
   const AuthFormScreen({super.key, this.initialIsSignUp = true});
@@ -18,14 +18,19 @@ class AuthFormScreen extends StatefulWidget {
 }
 
 class _AuthFormScreenState extends State<AuthFormScreen> {
-  static const _savedEmail = 'meanseav672@gmail.com';
-
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   late bool _isSignUp;
-  bool _showSavedEmail = false;
+  bool _isSubmitting = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _isSignUp = widget.initialIsSignUp;
+  }
 
   @override
   void dispose() {
@@ -35,61 +40,66 @@ class _AuthFormScreenState extends State<AuthFormScreen> {
     super.dispose();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _isSignUp = widget.initialIsSignUp;
-    _emailController.addListener(_updateSavedEmailSuggestion);
-  }
-
-  void _updateSavedEmailSuggestion() {
-    final text = _emailController.text.trim();
-    final shouldShow =
-        text.isNotEmpty &&
-        text != _savedEmail &&
-        _savedEmail.startsWith(text.toLowerCase());
-    if (shouldShow != _showSavedEmail) {
-      setState(() => _showSavedEmail = shouldShow);
-    }
-  }
-
-  void _useSavedEmail() {
-    _emailController.value = const TextEditingValue(
-      text: _savedEmail,
-      selection: TextSelection.collapsed(offset: _savedEmail.length),
-    );
-    setState(() => _showSavedEmail = false);
-  }
-
-  void _submit() {
-    if (!_formKey.currentState!.validate()) {
+  Future<void> _submit() async {
+    final form = _formKey.currentState;
+    if (form == null || !form.validate() || _isSubmitting) {
       return;
     }
 
-    final nextScreen = _isSignUp ? const SetupFlowScreen() : const TutorShell();
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => nextScreen));
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      if (_isSignUp) {
+        await appAuthService.registerWithEmail(
+          name: _nameController.text,
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+      } else {
+        await appAuthService.signInWithEmail(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+      }
+
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(AppRoutes.dashboard, (route) => false);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _errorMessage = _friendlyError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   void _openForgotPassword() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => const ForgotPasswordScreen(),
-      ),
-    );
+    Navigator.of(context).pushNamed(AppRoutes.forgotPassword);
   }
 
-  void _showGoogleConfigMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Google Sign-In is ready for configuration.'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.blue,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+  String _friendlyError(Object error) {
+    if (error is AuthException) {
+      return error.message;
+    }
+    final message = error.toString();
+    if (message.contains('user-not-found') ||
+        message.contains('wrong-password')) {
+      return 'Email or password is incorrect.';
+    }
+    if (message.contains('email-already-in-use')) {
+      return 'This email is already registered.';
+    }
+    return 'Authentication failed. Please try again.';
   }
 
   @override
@@ -111,23 +121,22 @@ class _AuthFormScreenState extends State<AuthFormScreen> {
                         MediaQuery.paddingOf(context).vertical -
                         54,
                   ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 12),
-                        const ReanLogoMark(size: 110),
-                        const SizedBox(height: 14),
-                        _AuthTitle(isSignUp: _isSignUp),
-                        const SizedBox(height: 44),
-                        _AuthTabs(
-                          isSignUp: _isSignUp,
-                          onChanged: (value) =>
-                              setState(() => _isSignUp = value),
-                        ),
-                        const SizedBox(height: 18),
-                        AnimatedSwitcher(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 12),
+                      const ReanLogoMark(size: 110),
+                      const SizedBox(height: 14),
+                      _AuthTitle(isSignUp: _isSignUp),
+                      const SizedBox(height: 44),
+                      _AuthTabs(
+                        isSignUp: _isSignUp,
+                        onChanged: (value) => setState(() => _isSignUp = value),
+                      ),
+                      const SizedBox(height: 18),
+                      Form(
+                        key: _formKey,
+                        child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 220),
                           child: _isSignUp
                               ? _SignUpFields(
@@ -135,47 +144,57 @@ class _AuthFormScreenState extends State<AuthFormScreen> {
                                   nameController: _nameController,
                                   emailController: _emailController,
                                   passwordController: _passwordController,
-                                  showSavedEmail: _showSavedEmail,
-                                  savedEmail: _savedEmail,
-                                  onUseSavedEmail: _useSavedEmail,
                                 )
                               : _SignInFields(
                                   key: const ValueKey('signin'),
                                   emailController: _emailController,
                                   passwordController: _passwordController,
-                                  showSavedEmail: _showSavedEmail,
-                                  savedEmail: _savedEmail,
-                                  onUseSavedEmail: _useSavedEmail,
                                   onForgotPassword: _openForgotPassword,
                                 ),
                         ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          height: 48,
-                          child: FilledButton(
-                            onPressed: _submit,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.blue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppColors.peach,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        height: 48,
+                        child: FilledButton(
+                          onPressed: _isSubmitting ? null : _submit,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.blue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text(
-                              _isSignUp ? 'Create Account' : 'Sign In',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                              ),
+                          ),
+                          child: Text(
+                            _isSubmitting
+                                ? 'Please wait...'
+                                : _isSignUp
+                                ? 'Create Account'
+                                : 'Sign In',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 28),
-                        const _DividerLabel(),
-                        const SizedBox(height: 16),
-                        _GoogleButton(onPressed: _showGoogleConfigMessage),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 28),
+                      const _DividerLabel(),
+                      const SizedBox(height: 16),
+                      const _GoogleButton(),
+                    ],
                   ),
                 ),
               ),
@@ -319,53 +338,46 @@ class _SignUpFields extends StatelessWidget {
     required this.nameController,
     required this.emailController,
     required this.passwordController,
-    required this.showSavedEmail,
-    required this.savedEmail,
-    required this.onUseSavedEmail,
   });
 
   final TextEditingController nameController;
   final TextEditingController emailController;
   final TextEditingController passwordController;
-  final bool showSavedEmail;
-  final String savedEmail;
-  final VoidCallback onUseSavedEmail;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         _AuthField(
+          key: const Key('auth-name-field'),
           label: 'Full Name',
           hint: 'Khemarak Pasey',
           icon: Icons.person_rounded,
           controller: nameController,
-          validator: _validateName,
           textInputAction: TextInputAction.next,
+          validator: AuthValidators.name,
         ),
-        SizedBox(height: 9),
+        const SizedBox(height: 9),
         _AuthField(
+          key: const Key('auth-email-field'),
           label: 'Email Address',
           hint: 'Pasey@example.com',
           icon: Icons.mail_rounded,
           controller: emailController,
-          validator: _validateEmail,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
+          validator: AuthValidators.email,
         ),
-        if (showSavedEmail) ...[
-          const SizedBox(height: 8),
-          _SavedEmailSuggestion(email: savedEmail, onTap: onUseSavedEmail),
-        ],
-        SizedBox(height: 9),
+        const SizedBox(height: 9),
         _AuthField(
+          key: const Key('auth-password-field'),
           label: 'Password',
           hint: '........................',
           icon: Icons.key_rounded,
-          obscure: true,
           controller: passwordController,
-          validator: _validatePassword,
+          obscure: true,
           textInputAction: TextInputAction.done,
+          validator: AuthValidators.password,
         ),
       ],
     );
@@ -377,17 +389,11 @@ class _SignInFields extends StatelessWidget {
     super.key,
     required this.emailController,
     required this.passwordController,
-    required this.showSavedEmail,
-    required this.savedEmail,
-    required this.onUseSavedEmail,
     required this.onForgotPassword,
   });
 
   final TextEditingController emailController;
   final TextEditingController passwordController;
-  final bool showSavedEmail;
-  final String savedEmail;
-  final VoidCallback onUseSavedEmail;
   final VoidCallback onForgotPassword;
 
   @override
@@ -396,27 +402,25 @@ class _SignInFields extends StatelessWidget {
       key: key,
       children: [
         _AuthField(
+          key: const Key('auth-email-field'),
           label: 'Email Address',
           hint: 'Pasey@example.com',
           icon: Icons.mail_rounded,
           controller: emailController,
-          validator: _validateEmail,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
+          validator: AuthValidators.email,
         ),
-        if (showSavedEmail) ...[
-          const SizedBox(height: 8),
-          _SavedEmailSuggestion(email: savedEmail, onTap: onUseSavedEmail),
-        ],
         const SizedBox(height: 9),
         _AuthField(
+          key: const Key('auth-password-field'),
           label: 'Password',
           hint: '........................',
           icon: Icons.key_rounded,
-          obscure: true,
           controller: passwordController,
-          validator: _validatePassword,
+          obscure: true,
           textInputAction: TextInputAction.done,
+          validator: AuthValidators.password,
         ),
         Align(
           alignment: Alignment.centerRight,
@@ -448,11 +452,12 @@ class _SignInFields extends StatelessWidget {
 
 class _AuthField extends StatelessWidget {
   const _AuthField({
+    super.key,
     required this.label,
     required this.hint,
     required this.icon,
     required this.controller,
-    required this.validator,
+    this.validator,
     this.keyboardType,
     this.textInputAction,
     this.obscure = false,
@@ -462,7 +467,7 @@ class _AuthField extends StatelessWidget {
   final String hint;
   final IconData icon;
   final TextEditingController controller;
-  final FormFieldValidator<String> validator;
+  final FormFieldValidator<String>? validator;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final bool obscure;
@@ -481,144 +486,52 @@ class _AuthField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          validator: validator,
-          obscureText: obscure,
-          keyboardType: keyboardType,
-          textInputAction: textInputAction,
-          textAlignVertical: TextAlignVertical.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              color: Colors.white.withValues(alpha: .58),
+        SizedBox(
+          height: 45,
+          child: TextFormField(
+            controller: controller,
+            validator: validator,
+            keyboardType: keyboardType,
+            textInputAction: textInputAction,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            obscureText: obscure,
+            style: const TextStyle(
+              color: Colors.white,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
-            prefixIcon: Icon(icon, color: const Color(0xFFB9C5F9), size: 18),
-            prefixIconConstraints: const BoxConstraints(
-              minWidth: 44,
-              minHeight: 52,
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: Colors.white.withValues(alpha: .58),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+              prefixIcon: Icon(icon, color: const Color(0xFFB9C5F9), size: 18),
+              suffixIcon: obscure
+                  ? const Icon(
+                      Icons.visibility_rounded,
+                      color: Color(0xFF9EAAE8),
+                      size: 18,
+                    )
+                  : null,
+              filled: true,
+              fillColor: Colors.black.withValues(alpha: .78),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(color: Color(0xFF7781B5)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(9),
+                borderSide: const BorderSide(color: AppColors.blue, width: 1.4),
+              ),
             ),
-            suffixIcon: obscure
-                ? const Icon(
-                    Icons.visibility_rounded,
-                    color: Color(0xFF9EAAE8),
-                    size: 18,
-                  )
-                : null,
-            filled: true,
-            fillColor: Colors.black.withValues(alpha: .78),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 16,
-            ),
-            constraints: const BoxConstraints(minHeight: 52),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(9),
-              borderSide: const BorderSide(color: Color(0xFF7781B5)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(9),
-              borderSide: const BorderSide(color: AppColors.blue, width: 1.4),
-            ),
-            errorMaxLines: 2,
           ),
         ),
       ],
     );
   }
-}
-
-class _SavedEmailSuggestion extends StatelessWidget {
-  const _SavedEmailSuggestion({required this.email, required this.onTap});
-
-  final String email;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF11172E),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.blue.withValues(alpha: .38)),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.account_circle_outlined,
-                color: Color(0xFF8BA0FF),
-                size: 18,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  email,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFDDE4FF),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Use',
-                style: TextStyle(
-                  color: AppColors.blue,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-String? _validateName(String? value) {
-  if (value == null || value.trim().isEmpty) {
-    return 'Please enter your full name.';
-  }
-  return null;
-}
-
-String? _validateEmail(String? value) {
-  final email = value?.trim() ?? '';
-  if (email.isEmpty) {
-    return 'Please enter your email.';
-  }
-  if (!email.contains('@') || !email.contains('.')) {
-    return 'Please enter a valid email address.';
-  }
-  return null;
-}
-
-String? _validatePassword(String? value) {
-  if (value == null || value.isEmpty) {
-    return 'Please enter your password.';
-  }
-  if (value.length < 6) {
-    return 'Password must be at least 6 characters.';
-  }
-  return null;
 }
 
 class _DividerLabel extends StatelessWidget {
@@ -647,15 +560,13 @@ class _DividerLabel extends StatelessWidget {
 }
 
 class _GoogleButton extends StatelessWidget {
-  const _GoogleButton({required this.onPressed});
-
-  final VoidCallback onPressed;
+  const _GoogleButton();
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: TextButton(
-        onPressed: onPressed,
+        onPressed: () {},
         style: TextButton.styleFrom(
           minimumSize: const Size(52, 52),
           padding: EdgeInsets.zero,

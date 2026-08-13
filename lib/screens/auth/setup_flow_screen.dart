@@ -2,8 +2,9 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../../app/tutor_shell.dart';
 import '../../core/app_colors.dart';
+import '../../core/routing/app_routes.dart';
+import '../../core/routing/auth_route_guard.dart';
 
 class SetupFlowScreen extends StatefulWidget {
   const SetupFlowScreen({super.key});
@@ -23,9 +24,10 @@ class _SetupFlowScreenState extends State<SetupFlowScreen> {
       return;
     }
 
+    appAuthSession.markSignedIn();
     Navigator.of(
       context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const TutorShell()));
+    ).pushNamedAndRemoveUntil(AppRoutes.dashboard, (route) => false);
   }
 
   @override

@@ -18,9 +18,8 @@ class LegacyQuizzesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return StreamBuilder<List<QuizCatalogItem>>(
       stream: repository.watchQuizzes(),
-      initialData: demoQuizCatalog,
       builder: (context, snapshot) {
-        final quizzes = snapshot.data ?? demoQuizCatalog;
+        final quizzes = snapshot.data ?? const <QuizCatalogItem>[];
         final titleColor = AdaptiveColors.text(context);
         final mutedColor = AdaptiveColors.muted(context);
 
@@ -40,11 +39,7 @@ class LegacyQuizzesScreen extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 'ថ្នាក់ទី១២\n​វិញ្ញាសារត្រៀមប្រលងបាក់ឌុប',
-                style: TextStyle(
-                  color: mutedColor,
-                  fontSize: 18,
-                  height: 1.35,
-                ),
+                style: TextStyle(color: mutedColor, fontSize: 18, height: 1.35),
               ),
               const SizedBox(height: 48),
               const SectionTitle(),
@@ -55,11 +50,13 @@ class LegacyQuizzesScreen extends StatelessWidget {
                   quiz: quiz,
                   onTap: () => onSelectQuiz(quiz),
                 ),
-              if (snapshot.hasError)
+              if (quizzes.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    'Cannot reach Firebase right now. Showing saved quiz options.',
+                    snapshot.hasError
+                        ? 'Practice quizzes are unavailable right now.'
+                        : 'No practice quizzes are available yet.',
                     style: TextStyle(color: mutedColor, fontSize: 12),
                   ),
                 ),
@@ -104,11 +101,7 @@ class SectionTitle extends StatelessWidget {
 }
 
 class QuizCard extends StatelessWidget {
-  const QuizCard({
-    super.key,
-    required this.quiz,
-    required this.onTap,
-  });
+  const QuizCard({super.key, required this.quiz, required this.onTap});
 
   final QuizCatalogItem quiz;
   final VoidCallback onTap;
@@ -212,10 +205,7 @@ class QuizCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: mutedColor,
-                ),
+                Icon(Icons.chevron_right_rounded, color: mutedColor),
               ],
             ),
           ),

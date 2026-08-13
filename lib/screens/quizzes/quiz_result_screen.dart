@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../core/app_colors.dart';
+import '../../features/quizzes/quiz_models.dart';
 
 class QuizResultScreen extends StatelessWidget {
   const QuizResultScreen({
     super.key,
+    required this.result,
     required this.onReview,
     required this.onRetry,
   });
 
+  final QuizAttemptResultEntity result;
   final VoidCallback onReview;
   final VoidCallback onRetry;
 
@@ -49,51 +52,59 @@ class QuizResultScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 36),
-          const ScoreRing(score: .8),
+          ScoreRing(result: result),
           const SizedBox(height: 44),
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: ResultMetric(
                   icon: Icons.check_circle,
                   label: 'ត្រឹមត្រូវ',
-                  value: '16',
+                  value: '${result.correctCount}',
                   color: AppColors.cyan,
                 ),
               ),
-              SizedBox(width: 14),
+              const SizedBox(width: 14),
               Expanded(
                 child: ResultMetric(
                   icon: Icons.cancel,
                   label: 'ខុស',
-                  value: '3',
+                  value: '${result.incorrectCount}',
                   color: AppColors.peach,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: ResultMetric(
                   icon: Icons.help,
                   label: 'មិនទាន់ឆ្លើយ',
-                  value: '1',
+                  value: '${result.skippedCount}',
                   color: AppColors.muted,
                 ),
               ),
-              SizedBox(width: 14),
-              Expanded(
+              const SizedBox(width: 14),
+              const Expanded(
                 child: ResultMetric(
                   icon: Icons.timer,
                   label: 'រយៈពេល',
-                  value: '22:14',
+                  value: '--',
                   color: Color(0xFFB9B4FF),
                 ),
               ),
             ],
           ),
+          if (result.answers.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            for (final answer in result.answers.take(2))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: ResultFeedbackCard(answer: answer),
+              ),
+          ],
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: onReview,
@@ -134,9 +145,9 @@ class QuizResultScreen extends StatelessWidget {
 }
 
 class ScoreRing extends StatelessWidget {
-  const ScoreRing({super.key, required this.score});
+  const ScoreRing({super.key, required this.result});
 
-  final double score;
+  final QuizAttemptResultEntity result;
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +160,7 @@ class ScoreRing extends StatelessWidget {
           children: [
             SizedBox.expand(
               child: CircularProgressIndicator(
-                value: score,
+                value: result.score / 100,
                 strokeWidth: 12,
                 backgroundColor: AppColors.line,
                 valueColor: const AlwaysStoppedAnimation(AppColors.cyan),
@@ -158,24 +169,60 @@ class ScoreRing extends StatelessWidget {
             ),
             Column(
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Text(
-                  '80%',
-                  style: TextStyle(
+                  '${result.score}%',
+                  style: const TextStyle(
                     color: AppColors.cyan,
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  '16 / 20 ពិន្ទុ',
-                  style: TextStyle(color: AppColors.muted, fontSize: 12),
+                  '${result.correctCount} / ${result.totalQuestions} ពិន្ទុ',
+                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
                 ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class ResultFeedbackCard extends StatelessWidget {
+  const ResultFeedbackCard({super.key, required this.answer});
+
+  final QuizScoredAnswerEntity answer;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = answer.isCorrect ? AppColors.cyan : AppColors.peach;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            answer.isCorrect ? Icons.check_circle : Icons.info_outline,
+            color: color,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              answer.feedback,
+              style: const TextStyle(color: AppColors.text, height: 1.35),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -216,10 +263,7 @@ class ResultMetric extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: TextStyle(color: color, fontWeight: FontWeight.w800),
                 ),
               ),
             ],

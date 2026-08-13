@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/config/app_config.dart';
 
 class QuizCatalogItem {
   const QuizCatalogItem({
@@ -16,6 +17,9 @@ class QuizCatalogItem {
     required this.icon,
     required this.iconColor,
     required this.progressColor,
+    this.backendTopicId = '',
+    this.backendSubjectId = '',
+    this.backendGradeLevelId = '',
   });
 
   factory QuizCatalogItem.fromFirestore(
@@ -33,6 +37,9 @@ class QuizCatalogItem {
       icon: _icon(data['icon']),
       iconColor: _color(data['iconColor'], const Color(0xFFFFD267)),
       progressColor: _color(data['progressColor'], AppColors.cyan),
+      backendTopicId: _string(data['topicId'], ''),
+      backendSubjectId: _string(data['subjectId'], ''),
+      backendGradeLevelId: _string(data['gradeLevelId'], ''),
     );
   }
 
@@ -46,6 +53,9 @@ class QuizCatalogItem {
   final IconData icon;
   final Color iconColor;
   final Color progressColor;
+  final String backendTopicId;
+  final String backendSubjectId;
+  final String backendGradeLevelId;
 
   int get progressPercent => (progress * 100).round();
 
@@ -89,11 +99,16 @@ class QuizCatalogItem {
 }
 
 class QuizCatalogRepository {
-  const QuizCatalogRepository();
+  const QuizCatalogRepository({this.config});
+
+  final AppConfig? config;
 
   Stream<List<QuizCatalogItem>> watchQuizzes() {
+    final allowDemoCatalog =
+        (config ?? AppConfig.current).shouldUseDemoTutorData;
+    if (allowDemoCatalog) return Stream.value(demoQuizCatalog);
     if (Firebase.apps.isEmpty) {
-      return Stream.value(demoQuizCatalog);
+      return Stream.value(const []);
     }
 
     return FirebaseFirestore.instance
@@ -101,9 +116,11 @@ class QuizCatalogRepository {
         .orderBy('sortOrder')
         .snapshots()
         .map((snapshot) {
-      final items = snapshot.docs.map(QuizCatalogItem.fromFirestore).toList();
-      return items.isEmpty ? demoQuizCatalog : items;
-    });
+          final items = snapshot.docs
+              .map(QuizCatalogItem.fromFirestore)
+              .toList();
+          return items;
+        });
   }
 }
 
