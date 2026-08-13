@@ -8,7 +8,6 @@ import '../screens/quizzes/quizzes_screen.dart';
 import '../screens/tutor/tutor_screen.dart';
 import '../screens/tutor/scan_problem_screen.dart';
 import '../screens/tutor/visual_tutor_home_screen.dart';
-import '../screens/voice/voice_screen.dart';
 import '../shared/app_bottom_navigation.dart';
 import '../shared/app_header.dart';
 
@@ -73,12 +72,15 @@ class _TutorShellState extends State<TutorShell> {
   }
 
   void _openVoiceTutor() {
-    setState(() {
-      _learningContext = null;
-      _initialTutorSubmission = null;
-      _initialTutorSessionId = null;
-      _selectedIndex = 2;
-    });
+    _openLiveTutor(
+      initialSubmission: const VisualTutorStudentSubmission(
+        message: '',
+        intent: 'voice_ready',
+        action: 'start_voice',
+        inputType: 'voice',
+        metadata: {'entry_point': 'voice_tab'},
+      ),
+    );
   }
 
   void _openStuckTutor() {
@@ -110,10 +112,9 @@ class _TutorShellState extends State<TutorShell> {
   }
 
   void _logout() {
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.signIn,
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.signIn, (route) => false);
   }
 
   Widget _buildScreen() {
@@ -138,7 +139,16 @@ class _TutorShellState extends State<TutorShell> {
                 initialSessionId: _initialTutorSessionId,
                 initialSubmission: _initialTutorSubmission,
               ),
-      2 => const VoiceScreen(),
+      2 => TutorScreen(
+        context: _defaultTutorContext,
+        initialSubmission: const VisualTutorStudentSubmission(
+          message: '',
+          intent: 'voice_ready',
+          action: 'start_voice',
+          inputType: 'voice',
+          metadata: {'entry_point': 'voice_tab'},
+        ),
+      ),
       3 => QuizzesScreen(),
       _ => ProfileScreen(
         onBack: () => setState(() => _selectedIndex = 0),
@@ -153,8 +163,7 @@ class _TutorShellState extends State<TutorShell> {
       body: SafeArea(
         child: Column(
           children: [
-            if (_selectedIndex != 4 && _selectedIndex != 1 && _selectedIndex != 2)
-              const AppHeader(),
+            if (_selectedIndex != 4 && _selectedIndex != 1) const AppHeader(),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
@@ -169,6 +178,8 @@ class _TutorShellState extends State<TutorShell> {
               onSelected: (index) {
                 if (index == 1) {
                   _openTutorHome();
+                } else if (index == 2) {
+                  _openVoiceTutor();
                 } else {
                   setState(() => _selectedIndex = index);
                 }
