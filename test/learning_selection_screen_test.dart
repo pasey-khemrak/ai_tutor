@@ -68,7 +68,7 @@ void main() {
 
     expect(find.byKey(const Key('visual-tutor-canvas-board')), findsOneWidget);
     expect(find.byKey(const Key('tutor-presence-bar')), findsOneWidget);
-    expect(find.text('Rean AI'), findsOneWidget);
+    expect(find.text('Rean AI Tutor'), findsOneWidget);
     expect(find.textContaining('រង់ចាំអ្នក'), findsOneWidget);
   });
 

@@ -1839,19 +1839,23 @@ class TutorPresenceBar extends StatelessWidget {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    Text(
-                      status.english,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: VisualTutorTypography.presenceStatus,
+                    Flexible(
+                      child: Text(
+                        status.english,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: VisualTutorTypography.presenceStatus,
+                      ),
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      status.khmer,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: VisualTutorTypography.presenceStatus.copyWith(
-                        color: VisualTutorColors.cyan.withValues(alpha: .6),
+                    Flexible(
+                      child: Text(
+                        status.khmer,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: VisualTutorTypography.presenceStatus.copyWith(
+                          color: VisualTutorColors.cyan.withValues(alpha: .6),
+                        ),
                       ),
                     ),
                   ],
@@ -1996,12 +2000,7 @@ class TutorSpeechQuotePanel extends StatelessWidget {
     return Container(
       key: const Key('tutor-speech-quote-panel'),
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        14,
-        compact ? 12 : 14,
-        8,
-        compact ? 12 : 14,
-      ),
+      padding: EdgeInsets.fromLTRB(14, compact ? 12 : 14, 8, compact ? 12 : 14),
       decoration: VisualTutorDecorations.speechPanel(),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3529,26 +3528,25 @@ class _CheckWorkBottomActions extends StatelessWidget {
             onPressed: onTryAgain,
             icon: const Icon(Icons.replay_rounded, size: 17),
             label: const Text('Try again'),
-            style: FilledButton.styleFrom(
-              backgroundColor: VisualTutorColors.cyan,
-              foregroundColor: VisualTutorColors.shell,
-              minimumSize: const Size.fromHeight(50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(VisualTutorRadius.md),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                fontFamilyFallback: VisualTutorTypography.fontFallback,
-              ),
-            ).copyWith(
-              elevation: WidgetStatePropertyAll(
-                onTryAgain != null ? 6 : 0,
-              ),
-              shadowColor: WidgetStatePropertyAll(
-                VisualTutorColors.cyan.withValues(alpha: .42),
-              ),
-            ),
+            style:
+                FilledButton.styleFrom(
+                  backgroundColor: VisualTutorColors.cyan,
+                  foregroundColor: VisualTutorColors.shell,
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(VisualTutorRadius.md),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    fontFamilyFallback: VisualTutorTypography.fontFallback,
+                  ),
+                ).copyWith(
+                  elevation: WidgetStatePropertyAll(onTryAgain != null ? 6 : 0),
+                  shadowColor: WidgetStatePropertyAll(
+                    VisualTutorColors.cyan.withValues(alpha: .42),
+                  ),
+                ),
           ),
         ),
         const SizedBox(width: 10),
@@ -4033,8 +4031,8 @@ class _InteractionInput extends StatelessWidget {
             boxShadow: (inputEnabled && isListening)
                 ? VisualTutorShadows.cyanGlowStrong
                 : inputEnabled
-                    ? VisualTutorShadows.cyanGlow
-                    : null,
+                ? VisualTutorShadows.cyanGlow
+                : null,
           ),
           child: FilledButton(
             key: const Key('voice-response-button'),
@@ -4047,8 +4045,7 @@ class _InteractionInput extends StatelessWidget {
               foregroundColor: inputEnabled
                   ? VisualTutorColors.shell
                   : VisualTutorColors.textMuted,
-              disabledBackgroundColor:
-                  VisualTutorColors.panel,
+              disabledBackgroundColor: VisualTutorColors.panel,
               shape: const CircleBorder(),
             ),
             child: Semantics(
@@ -4118,12 +4115,14 @@ class _ChoiceInput extends StatelessWidget {
                                   width: 20,
                                   height: 20,
                                   decoration: BoxDecoration(
-                                    color: VisualTutorColors.cyan
-                                        .withValues(alpha: .12),
+                                    color: VisualTutorColors.cyan.withValues(
+                                      alpha: .12,
+                                    ),
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                      color: VisualTutorColors.cyan
-                                          .withValues(alpha: .35),
+                                      color: VisualTutorColors.cyan.withValues(
+                                        alpha: .35,
+                                      ),
                                     ),
                                   ),
                                   child: Center(
@@ -4145,8 +4144,8 @@ class _ChoiceInput extends StatelessWidget {
                                     'OPTION ${choice.label.toUpperCase()}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: VisualTutorTypography
-                                        .multiChoiceLabel,
+                                    style:
+                                        VisualTutorTypography.multiChoiceLabel,
                                   ),
                                 ),
                               ],
@@ -4156,14 +4155,13 @@ class _ChoiceInput extends StatelessWidget {
                               choice.value,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style:
-                                  VisualTutorTypography.multiChoiceAnswer
-                                      .copyWith(
-                                        fontSize: compact ? 15 : 17,
-                                        color: enabled
-                                            ? VisualTutorColors.text
-                                            : VisualTutorColors.textMuted,
-                                      ),
+                              style: VisualTutorTypography.multiChoiceAnswer
+                                  .copyWith(
+                                    fontSize: compact ? 15 : 17,
+                                    color: enabled
+                                        ? VisualTutorColors.text
+                                        : VisualTutorColors.textMuted,
+                                  ),
                             ),
                           ],
                         ),
@@ -4183,12 +4181,11 @@ class _ChoiceInput extends StatelessWidget {
             height: compact ? 56 : 64,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              boxShadow:
-                  enabled && isListening
-                      ? VisualTutorShadows.cyanGlowStrong
-                      : enabled
-                          ? VisualTutorShadows.cyanGlow
-                          : null,
+              boxShadow: enabled && isListening
+                  ? VisualTutorShadows.cyanGlowStrong
+                  : enabled
+                  ? VisualTutorShadows.cyanGlow
+                  : null,
             ),
             child: FilledButton(
               key: const Key('choice-voice-button'),
