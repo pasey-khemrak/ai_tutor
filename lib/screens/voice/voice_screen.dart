@@ -9,7 +9,14 @@ import '../auth/rean_logo_mark.dart';
 enum _VoiceLessonStage { waiting, listening, writing, explaining, solved }
 
 class VoiceScreen extends StatefulWidget {
-  const VoiceScreen({super.key});
+  const VoiceScreen({
+    super.key,
+    required this.onStartRecording,
+    required this.onSubmitText,
+  });
+
+  final VoidCallback onStartRecording;
+  final ValueChanged<String> onSubmitText;
 
   @override
   State<VoiceScreen> createState() => _VoiceScreenState();
@@ -49,39 +56,31 @@ class _VoiceScreenState extends State<VoiceScreen> {
       _keyboardOpen = false;
     });
 
-    _timers.add(Timer(const Duration(milliseconds: 550), () {
-      if (!mounted) return;
-      setState(() => _stage = _VoiceLessonStage.writing);
-    }));
-    _timers.add(Timer(const Duration(milliseconds: 1300), () {
-      if (!mounted) return;
-      setState(() => _stage = _VoiceLessonStage.explaining);
-    }));
+    _timers.add(
+      Timer(const Duration(milliseconds: 550), () {
+        if (!mounted) return;
+        setState(() => _stage = _VoiceLessonStage.writing);
+      }),
+    );
+    _timers.add(
+      Timer(const Duration(milliseconds: 1300), () {
+        if (!mounted) return;
+        setState(() => _stage = _VoiceLessonStage.explaining);
+      }),
+    );
   }
 
   void _toggleCall() {
-    final stage = _safeStage;
-    if (stage == _VoiceLessonStage.waiting ||
-        stage == _VoiceLessonStage.solved) {
-      _startInstantLesson();
-      return;
-    }
-
-    for (final timer in _timers) {
-      timer.cancel();
-    }
-    _timers.clear();
-    setState(() {
-      _stage = _VoiceLessonStage.waiting;
-      _muted = false;
-    });
+    // A student explicitly tapping this control enters the real TutorScreen,
+    // where microphone permission and recording are handled securely.
+    widget.onStartRecording();
   }
 
   void _submitTypedQuestion() {
     final text = _questionController.text.trim();
     if (text.isEmpty) return;
     _questionController.clear();
-    _startInstantLesson(question: text);
+    widget.onSubmitText(text);
   }
 
   void _showVisualExample() {
@@ -243,8 +242,11 @@ class _LiveWhiteboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = AdaptiveColors.isLight(context);
-    final boardColor = isLight ? const Color(0xFFFFFBEE) : const Color(0xFFFFFBEE);
-    final showSine = question.toLowerCase().contains('sine') ||
+    final boardColor = isLight
+        ? const Color(0xFFFFFBEE)
+        : const Color(0xFFFFFBEE);
+    final showSine =
+        question.toLowerCase().contains('sine') ||
         question.toLowerCase().contains('sin');
 
     return Container(
@@ -278,7 +280,8 @@ class _LiveWhiteboard extends StatelessWidget {
             top: 82,
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 220),
-              opacity: stage == _VoiceLessonStage.waiting ||
+              opacity:
+                  stage == _VoiceLessonStage.waiting ||
                       stage == _VoiceLessonStage.listening
                   ? 1
                   : .28,
@@ -336,9 +339,10 @@ class _TeacherPanel extends StatelessWidget {
       _VoiceLessonStage.waiting =>
         'Tap the microphone and ask me a question. I will write and explain as we go.',
       _VoiceLessonStage.listening =>
-        muted ? 'I am paused while your mic is muted.' : 'I am listening. Tell me the problem.',
-      _VoiceLessonStage.writing =>
-        'Let me write the first steps on the board.',
+        muted
+            ? 'I am paused while your mic is muted.'
+            : 'I am listening. Tell me the problem.',
+      _VoiceLessonStage.writing => 'Let me write the first steps on the board.',
       _VoiceLessonStage.explaining =>
         'Use integration by parts: choose u = x, and dv = e^x dx.',
       _VoiceLessonStage.solved =>
@@ -429,10 +433,14 @@ class _TeacherActionButton extends StatelessWidget {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: isLight ? const Color(0xFF31405C) : AppColors.text,
-          backgroundColor: isLight ? const Color(0xFFF4F7FF) : const Color(0xFF172238),
+          backgroundColor: isLight
+              ? const Color(0xFFF4F7FF)
+              : const Color(0xFF172238),
           side: BorderSide(color: AdaptiveColors.line(context)),
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -443,7 +451,10 @@ class _TeacherActionButton extends StatelessWidget {
               child: Text(
                 label,
                 maxLines: 1,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],
@@ -454,10 +465,7 @@ class _TeacherActionButton extends StatelessWidget {
 }
 
 class _FollowUpComposer extends StatelessWidget {
-  const _FollowUpComposer({
-    required this.controller,
-    required this.onSubmit,
-  });
+  const _FollowUpComposer({required this.controller, required this.onSubmit});
 
   final TextEditingController controller;
   final VoidCallback onSubmit;
@@ -517,8 +525,8 @@ class _CallControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = stage != _VoiceLessonStage.waiting &&
-        stage != _VoiceLessonStage.solved;
+    final isActive =
+        stage != _VoiceLessonStage.waiting && stage != _VoiceLessonStage.solved;
     final isLight = AdaptiveColors.isLight(context);
 
     return Container(
@@ -584,7 +592,10 @@ class _MicButton extends StatelessWidget {
           foregroundColor: const Color(0xFF07111E),
           shape: const CircleBorder(),
         ),
-        icon: Icon(active ? Icons.call_end_rounded : Icons.mic_rounded, size: 34),
+        icon: Icon(
+          active ? Icons.call_end_rounded : Icons.mic_rounded,
+          size: 34,
+        ),
       ),
     );
   }
@@ -710,14 +721,40 @@ class _IntegralBoardPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
-    canvas.drawLine(Offset(size.width * .08, 42), Offset(size.width * .92, 42), faint);
+    canvas.drawLine(
+      Offset(size.width * .08, 42),
+      Offset(size.width * .92, 42),
+      faint,
+    );
     _drawIntegral(canvas, Offset(size.width * .12, 48), 74, ink);
-    _drawText(canvas, 'e^x dx', Offset(size.width * .28, 72), 27, const Color(0xFF253149));
+    _drawText(
+      canvas,
+      'e^x dx',
+      Offset(size.width * .28, 72),
+      27,
+      const Color(0xFF253149),
+    );
 
     if (stage.index >= _VoiceLessonStage.writing.index) {
-      _drawText(canvas, '= e^x + C', Offset(size.width * .16, 160), 30, const Color(0xFF253149));
-      canvas.drawLine(Offset(size.width * .16, 204), Offset(size.width * .34, 204), blue);
-      _drawText(canvas, 'same derivative', Offset(size.width * .40, 205), 16, const Color(0xFF3D89FF));
+      _drawText(
+        canvas,
+        '= e^x + C',
+        Offset(size.width * .16, 160),
+        30,
+        const Color(0xFF253149),
+      );
+      canvas.drawLine(
+        Offset(size.width * .16, 204),
+        Offset(size.width * .34, 204),
+        blue,
+      );
+      _drawText(
+        canvas,
+        'same derivative',
+        Offset(size.width * .40, 205),
+        16,
+        const Color(0xFF3D89FF),
+      );
     }
 
     if (stage.index >= _VoiceLessonStage.explaining.index) {
@@ -735,20 +772,52 @@ class _IntegralBoardPainter extends CustomPainter {
           ..strokeWidth = 3
           ..style = PaintingStyle.stroke,
       );
-      _drawText(canvas, '?', Offset(rect.left + 30, rect.top + 50), 30, const Color(0xFF7C879C));
-      _drawText(canvas, 'The antiderivative keeps e^x.', Offset(size.width * .08, size.height - 34), 18, const Color(0xFF3D89FF));
+      _drawText(
+        canvas,
+        '?',
+        Offset(rect.left + 30, rect.top + 50),
+        30,
+        const Color(0xFF7C879C),
+      );
+      _drawText(
+        canvas,
+        'The antiderivative keeps e^x.',
+        Offset(size.width * .08, size.height - 34),
+        18,
+        const Color(0xFF3D89FF),
+      );
     }
   }
 
   void _drawIntegral(Canvas canvas, Offset origin, double height, Paint paint) {
     final path = Path()
       ..moveTo(origin.dx + 20, origin.dy)
-      ..cubicTo(origin.dx - 8, origin.dy + 10, origin.dx + 34, origin.dy + 32, origin.dx + 4, origin.dy + height)
-      ..cubicTo(origin.dx - 8, origin.dy + height + 16, origin.dx + 14, origin.dy + height + 22, origin.dx + 28, origin.dy + height + 6);
+      ..cubicTo(
+        origin.dx - 8,
+        origin.dy + 10,
+        origin.dx + 34,
+        origin.dy + 32,
+        origin.dx + 4,
+        origin.dy + height,
+      )
+      ..cubicTo(
+        origin.dx - 8,
+        origin.dy + height + 16,
+        origin.dx + 14,
+        origin.dy + height + 22,
+        origin.dx + 28,
+        origin.dy + height + 6,
+      );
     canvas.drawPath(path, paint);
   }
 
-  void _drawText(Canvas canvas, String text, Offset offset, double size, Color color) {
+  void _drawText(
+    Canvas canvas,
+    String text,
+    Offset offset,
+    double size,
+    Color color,
+  ) {
     final painter = TextPainter(
       text: TextSpan(
         text: text,
@@ -785,9 +854,23 @@ class _SineBoardPainter extends CustomPainter {
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
-    _drawText(canvas, 'f(x) = sin(x)', Offset(size.width * .12, 38), 22, const Color(0xFF253149));
-    canvas.drawLine(Offset(size.width * .12, 175), Offset(size.width * .88, 175), axis);
-    canvas.drawLine(Offset(size.width * .62, 78), Offset(size.width * .62, 270), axis);
+    _drawText(
+      canvas,
+      'f(x) = sin(x)',
+      Offset(size.width * .12, 38),
+      22,
+      const Color(0xFF253149),
+    );
+    canvas.drawLine(
+      Offset(size.width * .12, 175),
+      Offset(size.width * .88, 175),
+      axis,
+    );
+    canvas.drawLine(
+      Offset(size.width * .62, 78),
+      Offset(size.width * .62, 270),
+      axis,
+    );
 
     final path = Path();
     for (var i = 0; i <= 120; i++) {
@@ -803,14 +886,42 @@ class _SineBoardPainter extends CustomPainter {
     canvas.drawPath(path, wave);
 
     if (stage.index >= _VoiceLessonStage.explaining.index) {
-      canvas.drawCircle(Offset(size.width * .66, 175), 8, Paint()..color = AppColors.cyan);
-      _drawText(canvas, 'Amplitude = 1', Offset(size.width * .66, 128), 16, const Color(0xFF3D89FF));
-      _drawText(canvas, 'Peak', Offset(size.width * .45, 82), 16, const Color(0xFF3D89FF));
-      _drawText(canvas, 'Trough', Offset(size.width * .66, 244), 16, const Color(0xFF253149));
+      canvas.drawCircle(
+        Offset(size.width * .66, 175),
+        8,
+        Paint()..color = AppColors.cyan,
+      );
+      _drawText(
+        canvas,
+        'Amplitude = 1',
+        Offset(size.width * .66, 128),
+        16,
+        const Color(0xFF3D89FF),
+      );
+      _drawText(
+        canvas,
+        'Peak',
+        Offset(size.width * .45, 82),
+        16,
+        const Color(0xFF3D89FF),
+      );
+      _drawText(
+        canvas,
+        'Trough',
+        Offset(size.width * .66, 244),
+        16,
+        const Color(0xFF253149),
+      );
     }
   }
 
-  void _drawText(Canvas canvas, String text, Offset offset, double size, Color color) {
+  void _drawText(
+    Canvas canvas,
+    String text,
+    Offset offset,
+    double size,
+    Color color,
+  ) {
     final painter = TextPainter(
       text: TextSpan(
         text: text,

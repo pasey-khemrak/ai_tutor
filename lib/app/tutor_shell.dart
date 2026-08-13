@@ -8,6 +8,7 @@ import '../screens/quizzes/quizzes_screen.dart';
 import '../screens/tutor/tutor_screen.dart';
 import '../screens/tutor/scan_problem_screen.dart';
 import '../screens/tutor/visual_tutor_home_screen.dart';
+import '../screens/voice/voice_screen.dart';
 import '../shared/app_bottom_navigation.dart';
 import '../shared/app_header.dart';
 
@@ -72,16 +73,33 @@ class _TutorShellState extends State<TutorShell> {
   }
 
   void _openVoiceTutor() {
-    _openLiveTutor(
-      initialSubmission: const VisualTutorStudentSubmission(
-        message: '',
-        intent: 'voice_ready',
-        action: 'start_voice',
-        inputType: 'voice',
-        metadata: {'entry_point': 'voice_tab'},
-      ),
-    );
+    setState(() {
+      _learningContext = null;
+      _initialTutorSubmission = null;
+      _initialTutorSessionId = null;
+      _selectedIndex = 2;
+    });
   }
+
+  void _startVoiceRecording() => _openLiveTutor(
+    initialSubmission: const VisualTutorStudentSubmission(
+      message: '',
+      intent: 'voice_ready',
+      action: 'start_voice',
+      inputType: 'voice',
+      metadata: {'entry_point': 'voice_tab'},
+    ),
+  );
+
+  void _submitVoiceText(String text) => _openLiveTutor(
+    initialSubmission: VisualTutorStudentSubmission(
+      message: text,
+      intent: 'new_problem',
+      action: 'submit_problem',
+      inputType: 'text',
+      metadata: const {'entry_point': 'voice_typed_question'},
+    ),
+  );
 
   void _openStuckTutor() {
     _openLiveTutor(
@@ -139,15 +157,9 @@ class _TutorShellState extends State<TutorShell> {
                 initialSessionId: _initialTutorSessionId,
                 initialSubmission: _initialTutorSubmission,
               ),
-      2 => TutorScreen(
-        context: _defaultTutorContext,
-        initialSubmission: const VisualTutorStudentSubmission(
-          message: '',
-          intent: 'voice_ready',
-          action: 'start_voice',
-          inputType: 'voice',
-          metadata: {'entry_point': 'voice_tab'},
-        ),
+      2 => VoiceScreen(
+        onStartRecording: _startVoiceRecording,
+        onSubmitText: _submitVoiceText,
       ),
       3 => QuizzesScreen(),
       _ => ProfileScreen(
@@ -163,7 +175,10 @@ class _TutorShellState extends State<TutorShell> {
       body: SafeArea(
         child: Column(
           children: [
-            if (_selectedIndex != 4 && _selectedIndex != 1) const AppHeader(),
+            if (_selectedIndex != 4 &&
+                _selectedIndex != 1 &&
+                _selectedIndex != 2)
+              const AppHeader(),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
@@ -178,6 +193,8 @@ class _TutorShellState extends State<TutorShell> {
               onSelected: (index) {
                 if (index == 1) {
                   _openTutorHome();
+                } else if (index == 2) {
+                  _openVoiceTutor();
                 } else if (index == 2) {
                   _openVoiceTutor();
                 } else {
