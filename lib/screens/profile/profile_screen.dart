@@ -135,6 +135,7 @@ class _EditProfileViewState extends State<EditProfileView> {
   String _savedGrade = 'Not set';
   bool _isEditing = false;
   bool _saved = false;
+  bool _hasProfile = false;
 
   @override
   void initState() {
@@ -142,6 +143,7 @@ class _EditProfileViewState extends State<EditProfileView> {
     final user = Firebase.apps.isEmpty
         ? null
         : FirebaseAuth.instance.currentUser;
+    _hasProfile = user != null;
     _savedName = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!.trim()
         : 'Learner';
@@ -202,102 +204,178 @@ class _EditProfileViewState extends State<EditProfileView> {
           ),
         ),
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ProfileIdentity(name: _savedName, gradeLevel: _savedGrade),
-                const SizedBox(height: 42),
-                ProfileTextField(
-                  label: 'Full Name',
-                  icon: Icons.person_outline_rounded,
-                  controller: _nameController,
-                  enabled: _isEditing,
-                ),
-                const SizedBox(height: 24),
-                ProfileTextField(
-                  label: 'Email Address',
-                  icon: Icons.mail_outline_rounded,
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: _isEditing,
-                ),
-                const SizedBox(height: 24),
-                ProfileDropdownField(
-                  label: 'Grade Level',
-                  icon: Icons.school_outlined,
-                  value: _gradeLevel,
-                  options: const ['Grade 10', 'Grade 11', 'Grade 12'],
-                  enabled: _isEditing,
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _gradeLevel = value);
-                    }
-                  },
-                ),
-                const SizedBox(height: 24),
-                ProfileTextField(
-                  label: 'School',
-                  icon: Icons.account_balance_outlined,
-                  controller: _schoolController,
-                  enabled: _isEditing,
-                ),
-                const SizedBox(height: 24),
-                ProfileTextField(
-                  label: 'Daily Study Target',
-                  icon: Icons.schedule_outlined,
-                  controller: _dailyTargetController,
-                  enabled: _isEditing,
-                ),
-                const SizedBox(height: 24),
-                ProfileTextField(
-                  label: 'Learning Goals',
-                  controller: _goalsController,
-                  minHeight: 150,
-                  maxLines: 5,
-                  enabled: _isEditing,
-                ),
-                const SizedBox(height: 14),
-                GoalChips(enabled: _isEditing),
-                const SizedBox(height: 34),
-                FilledButton.icon(
-                  onPressed: _saveProfile,
-                  icon: Icon(
-                    _isEditing ? Icons.save_outlined : Icons.edit_outlined,
+          child: _hasProfile
+              ? SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ProfileIdentity(name: _savedName, gradeLevel: _savedGrade),
+                      const SizedBox(height: 42),
+                      ProfileTextField(
+                        label: 'Full Name',
+                        icon: Icons.person_outline_rounded,
+                        controller: _nameController,
+                        enabled: _isEditing,
+                      ),
+                      const SizedBox(height: 24),
+                      ProfileTextField(
+                        label: 'Email Address',
+                        icon: Icons.mail_outline_rounded,
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        enabled: _isEditing,
+                      ),
+                      const SizedBox(height: 24),
+                      ProfileDropdownField(
+                        label: 'Grade Level',
+                        icon: Icons.school_outlined,
+                        value: _gradeLevel,
+                        options: const ['Grade 10', 'Grade 11', 'Grade 12'],
+                        enabled: _isEditing,
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _gradeLevel = value);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      ProfileTextField(
+                        label: 'School',
+                        icon: Icons.account_balance_outlined,
+                        controller: _schoolController,
+                        enabled: _isEditing,
+                      ),
+                      const SizedBox(height: 24),
+                      ProfileTextField(
+                        label: 'Daily Study Target',
+                        icon: Icons.schedule_outlined,
+                        controller: _dailyTargetController,
+                        enabled: _isEditing,
+                      ),
+                      const SizedBox(height: 24),
+                      ProfileTextField(
+                        label: 'Learning Goals',
+                        controller: _goalsController,
+                        minHeight: 150,
+                        maxLines: 5,
+                        enabled: _isEditing,
+                      ),
+                      const SizedBox(height: 14),
+                      GoalChips(enabled: _isEditing),
+                      const SizedBox(height: 34),
+                      FilledButton.icon(
+                        onPressed: _saveProfile,
+                        icon: Icon(
+                          _isEditing ? Icons.save_outlined : Icons.edit_outlined,
+                        ),
+                        label: Text(_isEditing ? 'Save Profile' : 'Edit Profile'),
+                        style: FilledButton.styleFrom(
+                          fixedSize: const Size.fromHeight(64),
+                          backgroundColor: AppColors.blue,
+                          foregroundColor: AppColors.text,
+                          textStyle: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        _saved
+                            ? 'Saved. Changes are synced across your Rean AI ecosystem.'
+                            : _isEditing
+                            ? 'Update your student information, then save your profile.'
+                            : 'Changes are synced across your Rean AI ecosystem.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                        ).copyWith(color: ProfilePalette.muted(context)),
+                      ),
+                    ],
                   ),
-                  label: Text(_isEditing ? 'Save Profile' : 'Edit Profile'),
-                  style: FilledButton.styleFrom(
-                    fixedSize: const Size.fromHeight(64),
-                    backgroundColor: AppColors.blue,
-                    foregroundColor: AppColors.text,
-                    textStyle: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  _saved
-                      ? 'Saved. Changes are synced across your Rean AI ecosystem.'
-                      : _isEditing
-                      ? 'Update your student information, then save your profile.'
-                      : 'Changes are synced across your Rean AI ecosystem.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontStyle: FontStyle.italic,
-                  ).copyWith(color: ProfilePalette.muted(context)),
-                ),
-              ],
-            ),
-          ),
+                )
+              : const NoProfileView(),
         ),
       ],
+    );
+  }
+}
+
+class NoProfileView extends StatelessWidget {
+  const NoProfileView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = ProfilePalette.isLight(context);
+    final textColor = ProfilePalette.text(context);
+    final subtitleColor = ProfilePalette.subtitle(context);
+    final lineColor = ProfilePalette.line(context);
+    final panelColor = ProfilePalette.panel(context);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 34, 24, 26),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: panelColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: lineColor),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isLight ? .06 : .22),
+              blurRadius: 24,
+              offset: const Offset(0, 14),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: AppColors.blue.withValues(alpha: .12),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.blue.withValues(alpha: .35),
+                ),
+              ),
+              child: const Icon(
+                Icons.person_off_outlined,
+                color: AppColors.blue,
+                size: 42,
+              ),
+            ),
+            const SizedBox(height: 22),
+            Text(
+              'No profile yet',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Sign in with a saved account to view your student profile here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 16,
+                height: 1.45,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

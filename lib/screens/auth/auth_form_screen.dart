@@ -483,47 +483,56 @@ class _AuthField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        SizedBox(
-          height: 45,
-          child: TextFormField(
-            controller: controller,
-            validator: validator,
-            keyboardType: keyboardType,
-            textInputAction: textInputAction,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            obscureText: obscure,
-            style: const TextStyle(
-              color: Colors.white,
+        TextFormField(
+          controller: controller,
+          validator: validator,
+          keyboardType: keyboardType,
+          textInputAction: textInputAction,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          obscureText: obscure,
+          textAlignVertical: TextAlignVertical.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            height: 1.2,
+            fontWeight: FontWeight.w700,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(
+              color: Colors.white.withValues(alpha: .58),
               fontSize: 14,
+              height: 1.2,
               fontWeight: FontWeight.w700,
             ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(
-                color: Colors.white.withValues(alpha: .58),
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-              prefixIcon: Icon(icon, color: const Color(0xFFB9C5F9), size: 18),
-              suffixIcon: obscure
-                  ? const Icon(
-                      Icons.visibility_rounded,
-                      color: Color(0xFF9EAAE8),
-                      size: 18,
-                    )
-                  : null,
-              filled: true,
-              fillColor: Colors.black.withValues(alpha: .78),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: Color(0xFF7781B5)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(9),
-                borderSide: const BorderSide(color: AppColors.blue, width: 1.4),
-              ),
+            prefixIcon: Icon(icon, color: const Color(0xFFB9C5F9), size: 18),
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 44,
+              minHeight: 52,
             ),
+            suffixIcon: obscure
+                ? const Icon(
+                    Icons.visibility_rounded,
+                    color: Color(0xFF9EAAE8),
+                    size: 18,
+                  )
+                : null,
+            filled: true,
+            fillColor: Colors.black.withValues(alpha: .78),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 16,
+            ),
+            constraints: const BoxConstraints(minHeight: 52),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(9),
+              borderSide: const BorderSide(color: Color(0xFF7781B5)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(9),
+              borderSide: const BorderSide(color: AppColors.blue, width: 1.4),
+            ),
+            errorMaxLines: 2,
           ),
         ),
       ],

@@ -22,6 +22,8 @@ class AuthService {
   final FirebaseAuth? _firebaseAuth;
 
   bool get _hasFirebase => Firebase.apps.isNotEmpty;
+  bool get _canUseLocalDevelopmentAuth =>
+      config.isDevelopment && !config.requiresProductionServices;
   FirebaseAuth get _auth => _firebaseAuth ?? FirebaseAuth.instance;
 
   Future<bool> restoreSession() async {
@@ -46,7 +48,7 @@ class AuthService {
       return const AuthResult(isDemo: false);
     }
 
-    if (!config.shouldUseDemoData) {
+    if (!config.shouldUseDemoData && !_canUseLocalDevelopmentAuth) {
       throw const AuthException('Firebase is not configured for this app.');
     }
 
@@ -71,7 +73,7 @@ class AuthService {
       return const AuthResult(isDemo: false);
     }
 
-    if (!config.shouldUseDemoData) {
+    if (!config.shouldUseDemoData && !_canUseLocalDevelopmentAuth) {
       throw const AuthException('Firebase is not configured for this app.');
     }
 
@@ -85,7 +87,7 @@ class AuthService {
       return;
     }
 
-    if (!config.shouldUseDemoData) {
+    if (!config.shouldUseDemoData && !_canUseLocalDevelopmentAuth) {
       throw const AuthException('Firebase is not configured for this app.');
     }
   }
@@ -101,7 +103,9 @@ class AuthService {
   /// are intentionally available only when the explicit development flag is on.
   Future<String?> getAccessToken() async {
     if (_hasFirebase) return _auth.currentUser?.getIdToken();
-    return config.shouldUseDemoData ? 'demo-token' : null;
+    return config.shouldUseDemoData || _canUseLocalDevelopmentAuth
+        ? 'demo-token'
+        : null;
   }
 }
 

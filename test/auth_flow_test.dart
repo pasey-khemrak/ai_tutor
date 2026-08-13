@@ -48,6 +48,8 @@ void main() {
   ) async {
     await tester.pumpWidget(const MaterialApp(home: AuthFormScreen()));
 
+    await tester.ensureVisible(find.text('Create Account'));
+    await tester.pump();
     await tester.tap(find.text('Create Account'));
     await tester.pump();
 
@@ -78,5 +80,19 @@ void main() {
     await service.signOut();
 
     expect(session.isAuthenticated, isFalse);
+  });
+
+  test('development sign in works without Firebase configuration', () async {
+    final session = AuthSession(isAuthenticated: false);
+    final service = AuthService(config: config, session: session);
+
+    final result = await service.signInWithEmail(
+      email: 'student@example.com',
+      password: 'secret123',
+    );
+
+    expect(result.isDemo, isTrue);
+    expect(session.isAuthenticated, isTrue);
+    expect(await service.getAccessToken(), 'demo-token');
   });
 }
