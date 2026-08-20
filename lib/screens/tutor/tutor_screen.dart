@@ -91,7 +91,12 @@ class _TutorScreenState extends State<TutorScreen> {
     if (initialSubmission != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          unawaited(_handleStudentSubmission(initialSubmission));
+          if (initialSubmission.action == 'start_voice' &&
+              initialSubmission.message.trim().isEmpty) {
+            _toggleListening();
+          } else {
+            unawaited(_handleStudentSubmission(initialSubmission));
+          }
         }
       });
     }

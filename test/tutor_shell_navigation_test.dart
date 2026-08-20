@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('bottom navigation opens the voice call screen', (tester) async {
+  testWidgets('bottom navigation opens the Visual Tutor voice entry UI', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(theme: AppTheme.light(), home: const TutorShell()),
     );

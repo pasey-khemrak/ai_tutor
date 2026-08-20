@@ -81,6 +81,26 @@ class _TutorShellState extends State<TutorShell> {
     });
   }
 
+  void _startVoiceRecording() => _openLiveTutor(
+    initialSubmission: const VisualTutorStudentSubmission(
+      message: '',
+      intent: 'voice_ready',
+      action: 'start_voice',
+      inputType: 'voice',
+      metadata: {'entry_point': 'voice_tab'},
+    ),
+  );
+
+  void _submitVoiceText(String text) => _openLiveTutor(
+    initialSubmission: VisualTutorStudentSubmission(
+      message: text,
+      intent: 'new_problem',
+      action: 'submit_problem',
+      inputType: 'text',
+      metadata: const {'entry_point': 'voice_typed_question'},
+    ),
+  );
+
   void _openStuckTutor() {
     _openLiveTutor(
       initialSubmission: const VisualTutorStudentSubmission(
@@ -110,10 +130,9 @@ class _TutorShellState extends State<TutorShell> {
   }
 
   void _logout() {
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.signIn,
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.signIn, (route) => false);
   }
 
   Widget _buildScreen() {
@@ -138,7 +157,10 @@ class _TutorShellState extends State<TutorShell> {
                 initialSessionId: _initialTutorSessionId,
                 initialSubmission: _initialTutorSubmission,
               ),
-      2 => const VoiceScreen(),
+      2 => VoiceScreen(
+        onStartRecording: _startVoiceRecording,
+        onSubmitText: _submitVoiceText,
+      ),
       3 => QuizzesScreen(),
       _ => ProfileScreen(
         onBack: () => setState(() => _selectedIndex = 0),
@@ -153,7 +175,9 @@ class _TutorShellState extends State<TutorShell> {
       body: SafeArea(
         child: Column(
           children: [
-            if (_selectedIndex != 4 && _selectedIndex != 1 && _selectedIndex != 2)
+            if (_selectedIndex != 4 &&
+                _selectedIndex != 1 &&
+                _selectedIndex != 2)
               const AppHeader(),
             Expanded(
               child: AnimatedSwitcher(
@@ -169,6 +193,10 @@ class _TutorShellState extends State<TutorShell> {
               onSelected: (index) {
                 if (index == 1) {
                   _openTutorHome();
+                } else if (index == 2) {
+                  _openVoiceTutor();
+                } else if (index == 2) {
+                  _openVoiceTutor();
                 } else {
                   setState(() => _selectedIndex = index);
                 }
