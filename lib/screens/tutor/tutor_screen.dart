@@ -213,24 +213,13 @@ class _TutorScreenState extends State<TutorScreen> {
 
   bool get _hasCurriculumContext => widget.context?.isCurriculumScoped ?? false;
 
-  /// The scope-locked deployment serves exactly one grade+subject+topic
-  /// combination (Grade 12 Mathematics, Limits of Functions) -- an
-  /// "ask anything" question carries no topic picker of its own, so once the
-  /// student's profile says Grade 12, that's the only content this build
-  /// actually has to offer. Without this, the server's own scope lock
-  /// (api/services/visual_tutor/orchestrator.py's
-  /// _is_grade12_math_limits_request) rejects every such question as
-  /// out-of-scope, whatever grade metadata is attached.
-  bool get _isScopeLockedGrade12 =>
-      !_hasCurriculumContext && _profileGradeNumber == 12;
-
   String get _requestSubject => _hasCurriculumContext
       ? widget.context!.subject
-      : (_isScopeLockedGrade12 ? 'Mathematics' : 'General');
+      : 'General';
 
   String? get _requestTopic => _hasCurriculumContext
       ? widget.context!.topic
-      : (_isScopeLockedGrade12 ? 'Limits of Functions' : null);
+      : null;
 
   String get _requestLanguageMode => widget.context?.languageMode ?? 'english';
 

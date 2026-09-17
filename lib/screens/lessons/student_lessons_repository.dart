@@ -5,7 +5,7 @@ import 'local_mvp_limits_scope.dart';
 
 const localMvpUnsupportedRecoveryMessage =
     'មេរៀនដែលអ្នកស្នើមិនទាន់គាំទ្រសម្រាប់សាកល្បងនេះទេ។ '
-    'This local MVP currently supports Grade 12 Mathematics — Limits of Functions.';
+    'This tutor currently supports Grade 12 Mathematics, Physics, and Chemistry.';
 
 class StudentLesson {
   const StudentLesson({

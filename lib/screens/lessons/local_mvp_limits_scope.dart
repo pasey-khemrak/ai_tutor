@@ -26,3 +26,32 @@ bool isLocalMvpLimitsScope({
     lessonId == localMvpLessonId &&
     curriculumVersionId == localMvpCurriculumVersionId &&
     teachingMomentId == localMvpTeachingMomentId;
+
+const supportedGrade = 12;
+
+const supportedSubjects = <String>{
+  'Mathematics',
+  'Physics',
+  'Chemistry',
+};
+
+const supportedLanguageModes = <String>{
+  'english',
+  'khmer',
+  'bilingual',
+};
+
+bool isGrade12StemScope({
+  required int grade,
+  required String subject,
+}) {
+  final normSubject = subject.trim().toLowerCase();
+  final isSupportedSubject = normSubject == 'mathematics' ||
+      normSubject == 'math' ||
+      normSubject == 'គណិតវិទ្យា' ||
+      normSubject == 'physics' ||
+      normSubject == 'រូបវិទ្យា' ||
+      normSubject == 'chemistry' ||
+      normSubject == 'គីមីវិទ្យា';
+  return grade == supportedGrade && isSupportedSubject;
+}
