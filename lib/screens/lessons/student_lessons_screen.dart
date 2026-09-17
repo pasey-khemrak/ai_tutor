@@ -15,10 +15,12 @@ class StudentLessonsScreen extends StatefulWidget {
     required this.onOpenLesson,
     required this.onPractice,
     this.repository,
+    this.onAskTutor,
   });
   final ValueChanged<StudentLesson> onOpenLesson;
   final ValueChanged<StudentLesson> onPractice;
   final StudentLessonsRepository? repository;
+  final ValueChanged<String?>? onAskTutor;
   @override
   State<StudentLessonsScreen> createState() => _StudentLessonsScreenState();
 }
@@ -137,6 +139,7 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen> {
             if (lessons.isEmpty)
               _NoPublishedLessons(
                 onRetry: _reload,
+                onAskTutor: widget.onAskTutor,
                 message: _repository is LocalDemoStudentLessonsRepository
                     ? localMvpUnsupportedRecoveryMessage
                     : null,
@@ -171,38 +174,99 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen> {
 }
 
 class _NoPublishedLessons extends StatelessWidget {
-  const _NoPublishedLessons({required this.onRetry, this.message});
+  const _NoPublishedLessons({
+    required this.onRetry,
+    this.message,
+    this.onAskTutor,
+  });
   final VoidCallback onRetry;
   final String? message;
+  final ValueChanged<String?>? onAskTutor;
+
   @override
-  Widget build(BuildContext context) => StudentCard(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(Icons.menu_book_outlined, color: AppColors.cyan, size: 40),
-        const SizedBox(height: 12),
-        Text(
-          AppLocalizations.of(context).noLessonsAvailable,
-          style: TextStyle(
-            color: AdaptiveColors.text(context),
-            fontSize: 21,
-            fontWeight: FontWeight.w900,
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return StudentCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.school_rounded, color: AppColors.cyan, size: 40),
+          const SizedBox(height: 12),
+          Text(
+            loc.noLessonsAvailable,
+            style: TextStyle(
+              color: AdaptiveColors.text(context),
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          message ??
-              'Your school has not published a lesson for this selection. Try again later or ask your tutor a question.',
-          style: const TextStyle(color: AppColors.muted),
-        ),
-        const SizedBox(height: 16),
-        OutlinedButton(
-          onPressed: onRetry,
-          child: Text(AppLocalizations.of(context).retry),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 8),
+          Text(
+            message ?? loc.emptyCatalogDescription,
+            style: const TextStyle(color: AppColors.muted, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton.icon(
+                key: const Key('empty-catalog-ask-tutor-button'),
+                onPressed: () => onAskTutor?.call(''),
+                icon: const Icon(Icons.psychology_rounded, size: 18),
+                label: Text(loc.askTutorAQuestion),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.cyan,
+                  foregroundColor: const Color(0xFF070B14),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+              OutlinedButton(
+                key: const Key('empty-catalog-retry-button'),
+                onPressed: onRetry,
+                child: Text(loc.retry),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            loc.trySampleProblem,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ActionChip(
+                key: const Key('empty-starter-limits'),
+                avatar: const Text('📐'),
+                label: const Text(r'lim x→3 (x²-9)/(x-3)'),
+                onPressed: () => onAskTutor?.call(r'\lim_{x \to 3} \frac{x^2 - 9}{x - 3}'),
+              ),
+              ActionChip(
+                key: const Key('empty-starter-physics'),
+                avatar: const Text('⚡'),
+                label: const Text('v = u + at, u=0, a=2, t=5'),
+                onPressed: () => onAskTutor?.call('v = u + at, u=0, a=2, t=5'),
+              ),
+              ActionChip(
+                key: const Key('empty-starter-chemistry'),
+                avatar: const Text('🧪'),
+                label: const Text('2H₂ + O₂ → 2H₂O'),
+                onPressed: () => onAskTutor?.call(r'2H_2 + O_2 \to 2H_2O'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _LessonCard extends StatelessWidget {

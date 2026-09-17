@@ -13,6 +13,7 @@ import '../screens/lessons/student_lessons_screen.dart';
 import '../screens/lessons/student_lessons_repository.dart';
 import '../screens/profile/student_profile_setup_sheet.dart';
 import '../features/quizzes/quiz_repository.dart';
+import '../screens/onboarding/first_run_explainer_sheet.dart';
 import '../screens/tutor/tutor_screen.dart';
 import '../screens/tutor/visual_tutor_home_screen.dart';
 import '../shared/app_bottom_navigation.dart';
@@ -45,6 +46,22 @@ class _TutorShellState extends State<TutorShell> {
     if (AppConfig.current.shouldUseDemoTutorData) {
       unawaited(_restoreLocalLimitsView());
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        FirstRunExplainerSheet.showIfNeeded(
+          context,
+          onSelectProblem: (problem) => _openLiveTutor(
+            initialSubmission: VisualTutorStudentSubmission(
+              message: problem,
+              intent: 'new_problem',
+              action: 'submit_problem',
+              inputType: 'text',
+              metadata: const {'entry_point': 'first_run_explainer'},
+            ),
+          ),
+        );
+      }
+    });
   }
 
   Future<void> _restoreLocalLimitsView() async {
@@ -302,6 +319,17 @@ class _TutorShellState extends State<TutorShell> {
             : StudentLessonsScreen(
                 onOpenLesson: _openLesson,
                 onPractice: _practiceLesson,
+                onAskTutor: (problem) => _openLiveTutor(
+                  initialSubmission: (problem != null && problem.isNotEmpty)
+                      ? VisualTutorStudentSubmission(
+                          message: problem,
+                          intent: 'new_problem',
+                          action: 'submit_problem',
+                          inputType: 'text',
+                          metadata: const {'entry_point': 'empty_catalog'},
+                        )
+                      : null,
+                ),
               ),
       _ => StudentProfileSummaryScreen(
         onSetup: _completeLearningProfile,

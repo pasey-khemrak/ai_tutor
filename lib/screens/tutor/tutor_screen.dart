@@ -38,6 +38,7 @@ import '../../shared/rean_avatar.dart';
 import '../learning_selection/learning_selection_repository.dart';
 import '../lessons/local_mvp_limits_scope.dart';
 import '../profile/student_profile_repository.dart';
+import '../onboarding/first_run_explainer_sheet.dart';
 import 'tutor_stream_coordinator.dart';
 
 class TutorScreen extends StatefulWidget {
@@ -351,22 +352,20 @@ class _TutorScreenState extends State<TutorScreen> {
         }
       }
 
-      if (session == null) {
-        session = await _repository.createSession(
-          VisualTutorSessionCreateRequestEntity(
-            userId: widget.userId,
-            subject: _requestSubject,
-            sessionMode: 'draft',
-            topic: _requestTopic,
-            metadata: _contextMetadata(),
-          ),
-        );
-      }
+      session ??= await _repository.createSession(
+        VisualTutorSessionCreateRequestEntity(
+          userId: widget.userId,
+          subject: _requestSubject,
+          sessionMode: 'draft',
+          topic: _requestTopic,
+          metadata: _contextMetadata(),
+        ),
+      );
 
-      await prefs?.setString('active_tutor_session_id', session!.sessionId);
+      final currentSession = session;
+      await prefs?.setString('active_tutor_session_id', currentSession.sessionId);
       if (!mounted) return;
       setState(() {
-        final currentSession = session!;
         _session = currentSession;
         _turnState = VisualTutorTurnStateEntity(
           problemInstanceId: _stringFromMap(
@@ -486,10 +485,17 @@ class _TutorScreenState extends State<TutorScreen> {
         ),
       );
       final response = await _sendTurnWithStreaming(
-              turnRequest,
-              turnSerial: turnSerial,
-              requestBoardVersion: requestBoardVersion,
-            );
+        turnRequest,
+        turnSerial: turnSerial,
+        requestBoardVersion: requestBoardVersion,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw const ApiException(
+          message:
+              'The tutor is taking longer than expected. Tap retry to continue.',
+          statusCode: 408,
+        ),
+      );
       if (!mounted) return;
       if (!_streamCoordinator.isCurrent(turnSerial)) return;
       final responseLessonState = _mapFromObject(
@@ -2265,13 +2271,24 @@ class _TutorScreenState extends State<TutorScreen> {
   }
 
   String _friendlyError(Object error) {
-    if (error is ApiException) {
-      if (error.statusCode == 409) {
-        return 'The board changed while that was loading. Retry from the latest board.';
-      }
-      return error.message;
+    final loc = AppLocalizations.of(context);
+    if (error is TimeoutException) {
+      return loc.requestTimedOutFriendly;
     }
-    return 'Could not reach the tutor service. Check the backend and try again.';
+    if (error is ApiException) {
+      if (error.statusCode == 408) {
+        return loc.requestTimedOutFriendly;
+      }
+      if (error.statusCode == 409) {
+        return loc.boardConflictFriendly;
+      }
+      final msg = error.message.trim();
+      if (msg.isNotEmpty && !msg.toLowerCase().contains('backend') && !msg.toLowerCase().contains('exception')) {
+        return msg;
+      }
+      return loc.connectionErrorFriendly;
+    }
+    return loc.connectionErrorFriendly;
   }
 
   @override
@@ -2294,6 +2311,7 @@ class _TutorScreenState extends State<TutorScreen> {
                 compact: compact,
                 onHistoryTap: () =>
                     setState(() => _showHistoryPanel = !_showHistoryPanel),
+                onReportTap: _showTutorReportSheet,
               ),
               Expanded(
                 child: isPhone
@@ -2350,10 +2368,10 @@ class _TutorScreenState extends State<TutorScreen> {
                               top: false,
                               child: Padding(
                                 padding: const EdgeInsets.fromLTRB(
-                                  14,
-                                  8,
-                                  14,
                                   12,
+                                  4,
+                                  12,
+                                  8,
                                 ),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
@@ -2832,7 +2850,10 @@ class _TutorScreenState extends State<TutorScreen> {
         const SizedBox(height: 8),
       ],
       if (_isLoading) ...[
-        _TutorLoadingControls(onCancel: _cancelActiveTurn),
+        _TutorLoadingControls(
+          status: _voiceStatus,
+          onCancel: _cancelActiveTurn,
+        ),
         const SizedBox(height: 8),
       ],
       if (_isTranscribingVoice) ...[
@@ -3382,12 +3403,14 @@ class TutorPresenceBar extends StatelessWidget {
     this.stageState,
     this.compact = false,
     this.onHistoryTap,
+    this.onReportTap,
   });
 
   final LearningContext? learningContext;
   final String? stageState;
   final bool compact;
   final VoidCallback? onHistoryTap;
+  final VoidCallback? onReportTap;
 
   @override
   Widget build(BuildContext context) {
@@ -3396,8 +3419,8 @@ class TutorPresenceBar extends StatelessWidget {
     return Container(
       key: const Key('tutor-presence-bar'),
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 20 : 24,
-        vertical: compact ? 14 : 16,
+        horizontal: compact ? 12 : 24,
+        vertical: compact ? 8 : 16,
       ),
       decoration: VisualTutorDecorations.presenceBar(),
       child: Row(
@@ -3406,7 +3429,7 @@ class TutorPresenceBar extends StatelessWidget {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              ReanAvatar(size: compact ? 42 : 48),
+              ReanAvatar(size: compact ? 36 : 48),
               Positioned(
                 bottom: 1,
                 right: 1,
@@ -3543,6 +3566,26 @@ class TutorPresenceBar extends StatelessWidget {
               ),
               itemBuilder: (context) => [
                 PopupMenuItem<String>(
+                  value: 'how_it_works',
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.help_outline_rounded,
+                        size: 16,
+                        color: VisualTutorColors.cyan,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        AppLocalizations.of(context).firstRunTitle,
+                        style: const TextStyle(
+                          color: VisualTutorColors.text,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
                   value: 'report',
                   child: Row(
                     children: [
@@ -3563,7 +3606,21 @@ class TutorPresenceBar extends StatelessWidget {
                   ),
                 ),
               ],
-              onSelected: (_) {},
+              onSelected: (value) {
+                if (value == 'how_it_works') {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (sheetContext) => FirstRunExplainerSheet(
+                      onStart: () => Navigator.of(sheetContext).pop(),
+                      onSkip: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  );
+                } else if (value == 'report') {
+                  onReportTap?.call();
+                }
+              },
             ),
           ),
         ],
@@ -3833,7 +3890,7 @@ class TutorSpeechQuotePanel extends StatelessWidget {
     return Container(
       key: const Key('tutor-speech-quote-panel'),
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(14, compact ? 12 : 14, 8, compact ? 12 : 14),
+      padding: EdgeInsets.fromLTRB(12, compact ? 8 : 14, 8, compact ? 8 : 14),
       decoration: VisualTutorDecorations.speechPanel(),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3858,7 +3915,7 @@ class TutorSpeechQuotePanel extends StatelessWidget {
             child: Text(
               '"$speechText"',
               key: const Key('tutor-speech-text'),
-              maxLines: compact ? 3 : 4,
+              maxLines: compact ? 2 : 4,
               overflow: TextOverflow.ellipsis,
               style: VisualTutorTypography.tutorSpeech.copyWith(
                 color: VisualTutorColors.textSubtle,
@@ -3963,12 +4020,20 @@ class _VerificationFeedbackPanel extends StatelessWidget {
 }
 
 class _TutorLoadingControls extends StatelessWidget {
-  const _TutorLoadingControls({required this.onCancel});
+  const _TutorLoadingControls({
+    required this.onCancel,
+    this.status,
+  });
 
   final VoidCallback onCancel;
+  final String? status;
 
   @override
   Widget build(BuildContext context) {
+    final effectiveStatus = (status != null && status!.trim().isNotEmpty)
+        ? status!
+        : AppLocalizations.of(context).tutorThinkingAndDrawing;
+
     return Container(
       key: const Key('tutor-loading-controls'),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -3990,7 +4055,7 @@ class _TutorLoadingControls extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              AppLocalizations.of(context).tutorThinkingAndDrawing,
+              effectiveStatus,
               style: const TextStyle(
                 color: VisualTutorColors.text,
                 fontSize: 13,
@@ -6173,12 +6238,6 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
     });
   }
 
-  void _contactSupport() {
-    setState(() {
-      _answerLockNotice =
-          'Support contact is not connected in this demo build yet.';
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -6192,7 +6251,17 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
         compact: widget.compact,
         notice: _answerLockNotice,
         onTryAnother: widget.onReset,
-        onContactSupport: _contactSupport,
+        onSelectProblem: (problem) {
+          widget.onSubmit(
+            VisualTutorStudentSubmission(
+              message: problem,
+              intent: 'new_problem',
+              action: 'submit_problem',
+              inputType: 'quick_action',
+              metadata: const {'entry_point': 'unsupported_problem_chip'},
+            ),
+          );
+        },
       );
     }
     if (_isFinalVerified) {
@@ -6696,17 +6765,22 @@ class _UnsupportedActionPanel extends StatelessWidget {
     required this.compact,
     required this.notice,
     required this.onTryAnother,
-    required this.onContactSupport,
+    this.onSelectProblem,
   });
 
   final String prompt;
   final bool compact;
   final String? notice;
   final VoidCallback onTryAnother;
-  final VoidCallback onContactSupport;
+  final ValueChanged<String>? onSelectProblem;
+
+  static const String sampleLimits = r'\lim_{x \to 3} \frac{x^2 - 9}{x - 3}';
+  static const String samplePhysics = 'v = u + at, u=0, a=2, t=5';
+  static const String sampleChemistry = r'2H_2 + O_2 \to 2H_2O';
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Container(
       key: const Key('unsupported-action-panel'),
       padding: EdgeInsets.all(compact ? 12 : 16),
@@ -6762,48 +6836,50 @@ class _UnsupportedActionPanel extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: 14),
+          Text(
+            loc.supportedGrade12TopicsPrompt,
+            style: const TextStyle(
+              color: VisualTutorColors.cyan,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ActionChip(
+                key: const Key('unsupported-chip-limits'),
+                avatar: const Text('📐'),
+                label: const Text(r'lim x→3 (x²-9)/(x-3)'),
+                onPressed: () => onSelectProblem?.call(sampleLimits),
+              ),
+              ActionChip(
+                key: const Key('unsupported-chip-physics'),
+                avatar: const Text('⚡'),
+                label: const Text('v = u + at, u=0, a=2, t=5'),
+                onPressed: () => onSelectProblem?.call(samplePhysics),
+              ),
+              ActionChip(
+                key: const Key('unsupported-chip-chemistry'),
+                avatar: const Text('🧪'),
+                label: const Text('2H₂ + O₂ → 2H₂O'),
+                onPressed: () => onSelectProblem?.call(sampleChemistry),
+              ),
+            ],
+          ),
           SizedBox(height: compact ? 14 : 18),
           FilledButton(
             key: const Key('unsupported-try-another-button'),
             onPressed: onTryAnother,
             style: VisualTutorButtonStyles.primary().copyWith(
               minimumSize: WidgetStatePropertyAll(
-                Size.fromHeight(compact ? 48 : 56),
+                Size.fromHeight(compact ? 48 : 54),
               ),
             ),
-            child: Text(AppLocalizations.of(context).tryAnotherProblem),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            key: const Key('unsupported-contact-support-button'),
-            onPressed: onContactSupport,
-            icon: const Icon(Icons.headset_mic_rounded, size: 18),
-            label: Text(AppLocalizations.of(context).contactSupport),
-            style: VisualTutorButtonStyles.darkCard().copyWith(
-              minimumSize: WidgetStatePropertyAll(
-                Size.fromHeight(compact ? 46 : 54),
-              ),
-            ),
-          ),
-          SizedBox(height: compact ? 12 : 18),
-          Align(
-            alignment: Alignment.center,
-            child: SizedBox(
-              width: compact ? 58 : 66,
-              height: compact ? 58 : 66,
-              child: FilledButton(
-                key: const Key('unsupported-disabled-mic-button'),
-                onPressed: null,
-                style: FilledButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  disabledBackgroundColor: VisualTutorColors.textMuted
-                      .withValues(alpha: .18),
-                  disabledForegroundColor: VisualTutorColors.textMuted,
-                  shape: const CircleBorder(),
-                ),
-                child: const Icon(Icons.mic_rounded, size: 30),
-              ),
-            ),
+            child: Text(loc.tryAnotherProblem),
           ),
         ],
       ),

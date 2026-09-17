@@ -259,6 +259,59 @@ class AppLocalizations {
   String get languageKhmer => 'ខ្មែរ';
   String get languageEnglish => 'English';
 
+  // ── First-Run Explainer & Starter Chips ─────────────────────────────────────
+  String get firstRunTitle => isKhmer
+      ? 'របៀបរៀនជាមួយ Rean AI គ្រូបង្រៀនរូបភាព'
+      : 'How Rean AI Visual Tutor Works';
+  String get firstRunSubtitle => isKhmer
+      ? 'គ្រូបង្រៀនឆ្លាតវៃថ្នាក់ទី១២ សម្រាប់គណិតវិទ្យា រូបវិទ្យា និងគីមីវិទ្យា'
+      : 'Your Grade 12 AI Visual Tutor for Math, Physics, and Chemistry';
+  String get firstRunBenefit1Title =>
+      isKhmer ? 'ក្តារខៀនគំនូរជីវចល' : 'Animated Whiteboard';
+  String get firstRunBenefit1Body => isKhmer
+      ? 'សរសេរដំណោះស្រាយពេញលេញ រូបមន្ត និងដ្យាក្រាមលើក្តារខៀនផ្ទាល់។'
+      : 'Watch full worked solutions, formulas, and diagrams drawn live.';
+  String get firstRunBenefit2Title =>
+      isKhmer ? 'សួរជាភាសាខ្មែរ ឬអង់គ្លេស' : 'Bilingual (Khmer & English)';
+  String get firstRunBenefit2Body => isKhmer
+      ? 'វាយ ឬនិយាយសំណួរគណិត រូបវិទ្យា ឬគីមីជាភាសាខ្មែរ ឬអង់គ្លេស។'
+      : 'Type or speak math, physics, or chemistry problems in either language.';
+  String get firstRunBenefit3Title =>
+      isKhmer ? 'សួរបន្ថែមអំពីគ្រប់ជំហាន' : 'Ask About Any Step';
+  String get firstRunBenefit3Body => isKhmer
+      ? 'មិនទាន់យល់ច្បាស់? សួរបំភ្លឺគ្រប់ជំហាន ឬឱ្យគ្រូពន្យល់តាមរបៀបផ្សេង។'
+      : 'Don’t understand? Ask follow-up questions about any step on the board.';
+  String get trySampleProblem =>
+      isKhmer ? 'សាកល្បងលំហាត់គំរូ៖' : 'Try a sample problem:';
+  String get startLearning => isKhmer ? 'ចាប់ផ្តើមរៀន' : 'Start Learning';
+
+  // ── Supported Topics & Error Recovery ───────────────────────────────────────
+  String get supportedGrade12TopicsPrompt => isKhmer
+      ? 'អ្នកអាចសួរខ្ញុំអំពីប្រធានបទថ្នាក់ទី១២ ទាំងនេះបាន៖'
+      : 'Here are Grade 12 topics you can ask me right now:';
+  String get askTutorAQuestion =>
+      isKhmer ? 'សួរសំណួរទៅកាន់គ្រូ' : 'Ask Tutor a Question';
+  String get emptyCatalogDescription => isKhmer
+      ? 'មេរៀនថ្នាក់ទី១២ លើគណិតវិទ្យា រូបវិទ្យា និងគីមីវិទ្យាកំពុងត្រូវបានរៀបចំ។ អ្នកអាចសួរសំណួរផ្ទាល់ខ្លួនរបស់អ្នកទៅកាន់គ្រូបានភ្លាមៗ!'
+      : 'Grade 12 STEM lessons for Math, Physics, and Chemistry are being prepared. You can ask the visual tutor your own question right now!';
+  String get connectionErrorFriendly => isKhmer
+      ? 'មិនអាចភ្ជាប់ទៅកាន់គ្រូបង្រៀនបានទេ។ សូមពិនិត្យមើលអ៊ីនធឺណិតរបស់អ្នក រួចព្យាយាមម្តងទៀត។'
+      : 'Could not connect to your tutor. Please check your internet connection and try again.';
+  String get requestTimedOutFriendly => isKhmer
+      ? 'ការរង់ចាំចំណាយពេលយូរជាងធម្មតា។ សូមចុចសាកល្បងម្តងទៀត ដើម្បីបន្ត។'
+      : 'The tutor took longer than expected. Tap retry to continue.';
+  String get boardConflictFriendly => isKhmer
+      ? 'ក្តារខៀនត្រូវបានធ្វើបច្ចុប្បន្នភាពជាមួយជំហានថ្មី។ សូមចុចសាកល្បងម្តងទៀត។'
+      : 'Your whiteboard was updated with the latest step. Tap retry to continue.';
+
+  // ── Waiting States ─────────────────────────────────────────────────────────
+  String get waitConnecting =>
+      isKhmer ? 'កំពុងភ្ជាប់ទៅកាន់គ្រូ...' : 'Connecting to tutor...';
+  String get waitAnalyzing =>
+      isKhmer ? 'កំពុងវិភាគលំហាត់ និងរៀបចំជំហាន...' : 'Analyzing problem & planning steps...';
+  String get waitSolvingAndDrawing =>
+      isKhmer ? 'កំពុងដោះស្រាយ និងសរសេរលើក្តារ...' : 'Solving and drawing on whiteboard...';
+
   String localizedSubject(String subject) {
     switch (subject.toLowerCase()) {
       case 'mathematics':

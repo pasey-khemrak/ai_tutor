@@ -167,36 +167,115 @@ class BackendStudentLessonsRepository implements StudentLessonsRepository {
     final data = response['data'];
     final object = data is Map<String, dynamic> ? data : response;
     final rows = object['lessons'];
-    if (rows is! List) return const [];
-    return rows
-        .whereType<Map<String, dynamic>>()
-        .map(
-          (row) => StudentLesson(
-            lessonId: _text(row['lesson_id']),
-            curriculumVersionId: _text(row['curriculum_version_id']),
-            gradeLevelId: _text(row['grade_level_id']),
-            grade: _number(row['grade_number']),
-            subjectId: _text(row['subject_id']),
-            subject: _text(row['subject_name'], 'Subject'),
-            topicId: _text(row['topic_id']),
-            topic: _text(row['topic_name'], 'Topic'),
-            title: _text(row['title'], 'Lesson'),
-            description: _nullable(row['description']),
-            difficulty: _text(row['difficulty'], 'beginner'),
-            teachingMomentId: _nullable(row['teaching_moment_id']),
-            languageMode: _languageMode(row['language_mode']),
-          ),
-        )
+    final parsed = (rows is List)
+        ? rows
+            .whereType<Map<String, dynamic>>()
+            .map(
+              (row) => StudentLesson(
+                lessonId: _text(row['lesson_id']),
+                curriculumVersionId: _text(row['curriculum_version_id']),
+                gradeLevelId: _text(row['grade_level_id']),
+                grade: _number(row['grade_number']),
+                subjectId: _text(row['subject_id']),
+                subject: _text(row['subject_name'], 'Subject'),
+                topicId: _text(row['topic_id']),
+                topic: _text(row['topic_name'], 'Topic'),
+                title: _text(row['title'], 'Lesson'),
+                description: _nullable(row['description']),
+                difficulty: _text(row['difficulty'], 'beginner'),
+                teachingMomentId: _nullable(row['teaching_moment_id']),
+                languageMode: _languageMode(row['language_mode']),
+              ),
+            )
+            .where(
+              (lesson) =>
+                  lesson.lessonId.isNotEmpty &&
+                  lesson.curriculumVersionId.isNotEmpty &&
+                  lesson.grade >= 10 &&
+                  lesson.grade <= 12,
+            )
+            .toList()
+        : const <StudentLesson>[];
+
+    if (parsed.isNotEmpty) return parsed;
+
+    // When the backend catalog is unseeded, ensure students still have
+    // Grade 12 STEM lessons ready to learn rather than meeting a dead-end.
+    final query = search?.trim().toLowerCase() ?? '';
+    return publishedGrade12StemFallbackLessons
         .where(
           (lesson) =>
-              lesson.lessonId.isNotEmpty &&
-              lesson.curriculumVersionId.isNotEmpty &&
-              lesson.grade >= 10 &&
-              lesson.grade <= 12,
+              (subjectId == null || lesson.subjectId == subjectId) &&
+              (topicId == null || lesson.topicId == topicId) &&
+              (query.isEmpty ||
+                  lesson.title.toLowerCase().contains(query) ||
+                  (lesson.englishTitle?.toLowerCase().contains(query) ??
+                      false) ||
+                  lesson.topic.toLowerCase().contains(query) ||
+                  (lesson.description?.toLowerCase().contains(query) ?? false)),
         )
-        .toList();
+        .toList(growable: false);
   }
 }
+
+/// Fallback published curriculum catalog for Grade 12 STEM. Ensures students
+/// always have vetted lessons in Mathematics, Physics, and Chemistry.
+const List<StudentLesson> publishedGrade12StemFallbackLessons = [
+  StudentLesson(
+    lessonId: 'math.g12.lesson1.limits-of-functions',
+    curriculumVersionId: 'g12-stem-math-limits-v1',
+    gradeLevelId: 'grade-12',
+    grade: 12,
+    subjectId: 'math',
+    subject: 'Mathematics',
+    topicId: 'math-g12-limits-of-functions',
+    topic: 'Limits of Functions',
+    title: 'លីមីតនៃអនុគមន៍',
+    englishTitle: 'Limits of Functions',
+    description: 'Calculate finite limits, indeterminate forms 0/0, and polynomial limits.',
+    difficulty: 'beginner',
+    languageMode: 'bilingual',
+    waitingForStudentInput: true,
+    answerRevealed: false,
+    practiceAvailable: true,
+  ),
+  StudentLesson(
+    lessonId: 'physics.g12.lesson1.kinematics',
+    curriculumVersionId: 'g12-stem-physics-kinematics-v1',
+    gradeLevelId: 'grade-12',
+    grade: 12,
+    subjectId: 'physics',
+    subject: 'Physics',
+    topicId: 'physics-g12-kinematics',
+    topic: 'Kinematics & Motion',
+    title: 'ចលនាត្រង់ស្ទុះស្មើ',
+    englishTitle: 'Kinematics: Uniformly Accelerated Motion',
+    description: 'Solve motion problems with constant acceleration using v = u + at and s = ut + 1/2 at^2.',
+    difficulty: 'beginner',
+    languageMode: 'bilingual',
+    waitingForStudentInput: true,
+    answerRevealed: false,
+    practiceAvailable: true,
+  ),
+  StudentLesson(
+    lessonId: 'chemistry.g12.lesson1.stoichiometry',
+    curriculumVersionId: 'g12-stem-chem-stoichiometry-v1',
+    gradeLevelId: 'grade-12',
+    grade: 12,
+    subjectId: 'chemistry',
+    subject: 'Chemistry',
+    topicId: 'chemistry-g12-stoichiometry',
+    topic: 'Stoichiometry & Reactions',
+    title: 'ស្តូគ្យូម៉េទ្រី និងសមីការគីមី',
+    englishTitle: 'Stoichiometry & Reaction Balance',
+    description: 'Balance chemical reactions, calculate moles, molar masses, and mass-mole relationships.',
+    difficulty: 'beginner',
+    languageMode: 'bilingual',
+    waitingForStudentInput: true,
+    answerRevealed: false,
+    practiceAvailable: true,
+  ),
+];
 
 String _text(Object? value, [String fallback = '']) =>
     value is String && value.trim().isNotEmpty ? value.trim() : fallback;
