@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/network/api_client.dart';
 import '../../features/quizzes/quiz_catalog.dart';
 import '../../features/quizzes/quiz_models.dart';
 import '../../features/quizzes/quiz_repository.dart';
@@ -12,11 +13,16 @@ import 'quiz_result_screen.dart';
 import 'quiz_submit_screen.dart';
 
 class QuizzesScreen extends StatefulWidget {
-  QuizzesScreen({super.key, QuizRepository? repository, this.catalogRepository})
-    : repository = repository ?? buildDefaultQuizRepository();
+  QuizzesScreen({
+    super.key,
+    QuizRepository? repository,
+    this.catalogRepository,
+    this.targetedPractice,
+  }) : repository = repository ?? buildDefaultQuizRepository();
 
   final QuizRepository repository;
   final QuizCatalogRepository? catalogRepository;
+  final TargetedPracticeContext? targetedPractice;
 
   @override
   State<QuizzesScreen> createState() => _QuizzesScreenState();
@@ -33,6 +39,30 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
   String? _loadError;
   String? _submitError;
   final Map<String, QuizAnswerSubmissionEntity> _answers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final practice = widget.targetedPractice;
+    if (practice == null) return;
+    _selectedQuiz = QuizCatalogItem(
+      id: 'targeted-${practice.tutorSessionId}',
+      title: 'Targeted practice',
+      subtitle: 'A short practice set based on your Visual Tutor session.',
+      questionCount: 3,
+      durationLabel: '5 min',
+      level: 'Adaptive',
+      progress: 0,
+      icon: Icons.quiz_outlined,
+      iconColor: Colors.cyan,
+      progressColor: Colors.cyan,
+      backendTopicId: practice.topicId,
+      backendSubjectId: practice.subjectId,
+      backendGradeLevelId: practice.gradeLevelId,
+    );
+    _step = 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadQuiz());
+  }
 
   void _goTo(int step) => setState(() => _step = step);
 
@@ -66,16 +96,36 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
       _loadError = null;
     });
     try {
+      final practice = widget.targetedPractice;
       final loaded = await widget.repository.loadTopicQuiz(
         topicId: selectedQuiz.backendTopicId,
         subjectId: selectedQuiz.backendSubjectId,
         gradeLevelId: selectedQuiz.backendGradeLevelId,
+        tutorSessionId: practice?.tutorSessionId,
+        skillTags: practice?.skillTags ?? const [],
+        learningGoals: practice?.learningGoals ?? const [],
+        misconceptions: practice?.misconceptions ?? const [],
+        hintCount: practice?.hintCount ?? 0,
+        stuckCount: practice?.stuckCount ?? 0,
+        verificationResults: practice?.verificationResults ?? const [],
+        priorMastery: practice?.priorMastery,
+        priorQuizScore: practice?.priorQuizScore,
       );
       if (!mounted) return;
       setState(() => _activeQuiz = loaded);
-    } catch (error) {
+    } on ApiException catch (error) {
       if (!mounted) return;
-      setState(() => _loadError = 'Could not load quiz. $error');
+      setState(() {
+        _loadError = error.statusCode == 422
+            ? 'Targeted practice is not available for this topic yet.'
+            : 'Could not load practice right now. Please try again.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(
+        () =>
+            _loadError = 'Could not load practice right now. Please try again.',
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoadingQuiz = false);

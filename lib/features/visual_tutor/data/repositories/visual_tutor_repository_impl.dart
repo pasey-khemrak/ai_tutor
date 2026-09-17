@@ -3,7 +3,11 @@ import '../../domain/repositories/visual_tutor_repository.dart';
 import '../datasources/visual_tutor_remote_data_source.dart';
 import '../models/visual_tutor_models.dart';
 
-class VisualTutorRepositoryImpl implements VisualTutorRepository {
+class VisualTutorRepositoryImpl
+    implements
+        VisualTutorRepository,
+        VisualTutorStreamingRepository,
+        VisualTutorStepRepository {
   const VisualTutorRepositoryImpl({required this.remote});
 
   final VisualTutorRemoteDataSource remote;
@@ -42,6 +46,7 @@ class VisualTutorRepositoryImpl implements VisualTutorRepository {
         message: request.message,
         inputType: request.inputType,
         locale: request.locale,
+        languageMode: request.languageMode,
         action: request.action,
         studentIntent: request.studentIntent,
         currentState: request.currentState,
@@ -49,6 +54,49 @@ class VisualTutorRepositoryImpl implements VisualTutorRepository {
         studentSubmittedStep: request.studentSubmittedStep,
         allowFinalAnswer: request.allowFinalAnswer,
         idempotencyKey: request.idempotencyKey,
+        metadata: request.metadata,
+      ),
+    );
+  }
+
+  @override
+  Stream<VisualTutorStreamEventEntity> streamTurn(
+    VisualTutorTurnRequestEntity request,
+  ) {
+    return remote.streamTurn(
+      VisualTutorTurnRequestModel(
+        userId: request.userId,
+        sessionId: request.sessionId,
+        subject: request.subject,
+        topic: request.topic,
+        message: request.message,
+        inputType: request.inputType,
+        locale: request.locale,
+        languageMode: request.languageMode,
+        action: request.action,
+        studentIntent: request.studentIntent,
+        currentState: request.currentState,
+        hintCount: request.hintCount,
+        studentSubmittedStep: request.studentSubmittedStep,
+        allowFinalAnswer: request.allowFinalAnswer,
+        idempotencyKey: request.idempotencyKey,
+        metadata: request.metadata,
+      ),
+    );
+  }
+
+  @override
+  Future<VisualTutorStepTurnResponseEntity> submitStepResponse(
+    VisualTutorStepTurnRequestEntity request,
+  ) {
+    return remote.submitStepResponse(
+      VisualTutorStepTurnRequestModel(
+        userId: request.userId,
+        sessionId: request.sessionId,
+        subject: request.subject,
+        stepId: request.stepId,
+        message: request.message,
+        action: request.action,
         metadata: request.metadata,
       ),
     );

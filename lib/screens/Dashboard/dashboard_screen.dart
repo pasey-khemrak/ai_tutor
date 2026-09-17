@@ -7,26 +7,41 @@ import '../../shared/state_widgets/app_error_state.dart';
 import '../../shared/state_widgets/app_loading_state.dart';
 import 'dashboard_repository.dart';
 
+/// The student home. It renders persisted progress only; it never invents
+/// learning statistics or writes progress on the device.
 class DashboardScreen extends StatelessWidget {
   DashboardScreen({
     super.key,
     DashboardRepository? repository,
     required this.onResumeLearning,
     this.onResumeLearningWithData,
+    this.onAskQuestion,
+    this.onScanQuestion,
+    this.onVoiceQuestion,
+    this.onStartDailyPractice,
+    this.onCompleteProfile,
   }) : repository = repository ?? buildDefaultDashboardRepository();
 
   final DashboardRepository repository;
   final VoidCallback onResumeLearning;
   final ValueChanged<StudentDashboardData>? onResumeLearningWithData;
+  final ValueChanged<String>? onAskQuestion;
+  final VoidCallback? onScanQuestion;
+  final VoidCallback? onVoiceQuestion;
+  final ValueChanged<StudentDashboardData>? onStartDailyPractice;
+  final VoidCallback? onCompleteProfile;
 
   @override
-  Widget build(BuildContext context) {
-    return _DashboardLoader(
-      repository: repository,
-      onResumeLearning: onResumeLearning,
-      onResumeLearningWithData: onResumeLearningWithData,
-    );
-  }
+  Widget build(BuildContext context) => _DashboardLoader(
+    repository: repository,
+    onResumeLearning: onResumeLearning,
+    onResumeLearningWithData: onResumeLearningWithData,
+    onAskQuestion: onAskQuestion,
+    onScanQuestion: onScanQuestion,
+    onVoiceQuestion: onVoiceQuestion,
+    onStartDailyPractice: onStartDailyPractice,
+    onCompleteProfile: onCompleteProfile,
+  );
 }
 
 class _DashboardLoader extends StatefulWidget {
@@ -34,388 +49,760 @@ class _DashboardLoader extends StatefulWidget {
     required this.repository,
     required this.onResumeLearning,
     required this.onResumeLearningWithData,
+    required this.onAskQuestion,
+    required this.onScanQuestion,
+    required this.onVoiceQuestion,
+    required this.onStartDailyPractice,
+    required this.onCompleteProfile,
   });
-
   final DashboardRepository repository;
   final VoidCallback onResumeLearning;
   final ValueChanged<StudentDashboardData>? onResumeLearningWithData;
+  final ValueChanged<String>? onAskQuestion;
+  final VoidCallback? onScanQuestion;
+  final VoidCallback? onVoiceQuestion;
+  final ValueChanged<StudentDashboardData>? onStartDailyPractice;
+  final VoidCallback? onCompleteProfile;
 
   @override
   State<_DashboardLoader> createState() => _DashboardLoaderState();
 }
 
 class _DashboardLoaderState extends State<_DashboardLoader> {
-  late Future<StudentDashboardData?> _dashboardFuture;
-
+  late Future<StudentDashboardData?> _future;
   @override
   void initState() {
     super.initState();
-    _dashboardFuture = widget.repository.loadDashboard();
+    _future = widget.repository.loadDashboard();
   }
 
-  void _retry() {
-    setState(() {
-      _dashboardFuture = widget.repository.loadDashboard();
-    });
+  Future<void> _refresh() async {
+    final next = widget.repository.loadDashboard();
+    setState(() => _future = next);
+    await next;
   }
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<StudentDashboardData?>(
-      future: _dashboardFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const AppLoadingState(message: 'Loading dashboard...');
-        }
-
-        if (snapshot.hasError) {
-          return AppErrorState(
-            message: 'Could not load your dashboard.',
-            onRetry: _retry,
-          );
-        }
-
-        final data = snapshot.data;
-        if (data == null || data.isEmpty) {
-          return const AppEmptyState(
-            title: 'No learning activity yet',
-            message: 'Start a tutor session to see your progress here.',
-            icon: Icons.school_outlined,
-          );
-        }
-
-        return _DashboardContent(
-          data: data,
-          onResumeLearning: () {
-            final handler = widget.onResumeLearningWithData;
-            if (handler == null) {
-              widget.onResumeLearning();
-            } else {
-              handler(data);
-            }
-          },
+  Widget build(BuildContext context) => FutureBuilder<StudentDashboardData?>(
+    future: _future,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const AppLoadingState(
+          message: 'Preparing your learning space...',
         );
-      },
-    );
-  }
+      }
+      if (snapshot.hasError) {
+        return AppErrorState(
+          message: 'Could not load your dashboard.',
+          onRetry: _refresh,
+        );
+      }
+      final data = snapshot.data;
+      if (data == null || data.isEmpty) {
+        return const AppEmptyState(
+          title: 'Your learning space is ready',
+          message: 'Start a tutor session to see your progress here.',
+          icon: Icons.school_outlined,
+        );
+      }
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        color: AppColors.cyan,
+        child: _DashboardContent(
+          data: data,
+          onResume: () {
+            final resume = widget.onResumeLearningWithData;
+            resume == null ? widget.onResumeLearning() : resume(data);
+          },
+          onAskQuestion: widget.onAskQuestion,
+          onScanQuestion: widget.onScanQuestion,
+          onVoiceQuestion: widget.onVoiceQuestion,
+          onStartDailyPractice: widget.onStartDailyPractice,
+          onCompleteProfile: widget.onCompleteProfile,
+        ),
+      );
+    },
+  );
 }
 
-class _DashboardContent extends StatelessWidget {
-  const _DashboardContent({required this.data, required this.onResumeLearning});
-
+class _DashboardContent extends StatefulWidget {
+  const _DashboardContent({
+    required this.data,
+    required this.onResume,
+    required this.onAskQuestion,
+    required this.onScanQuestion,
+    required this.onVoiceQuestion,
+    required this.onStartDailyPractice,
+    required this.onCompleteProfile,
+  });
   final StudentDashboardData data;
-  final VoidCallback onResumeLearning;
+  final VoidCallback onResume;
+  final ValueChanged<String>? onAskQuestion;
+  final VoidCallback? onScanQuestion;
+  final VoidCallback? onVoiceQuestion;
+  final ValueChanged<StudentDashboardData>? onStartDailyPractice;
+  final VoidCallback? onCompleteProfile;
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      key: const Key('dashboard-scroll-view'),
-      padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _WelcomeCard(data: data, onResumeLearning: onResumeLearning),
-          const SizedBox(height: 14),
-          _SummaryGrid(data: data),
-          const SizedBox(height: 14),
-          if (data.completedPractice > 0) ...[
-            _Panel(
-              child: Text(
-                '${data.completedPractice} practice ${data.completedPractice == 1 ? 'set' : 'sets'} completed',
-              ),
+  State<_DashboardContent> createState() => _DashboardContentState();
+}
+
+class _DashboardContentState extends State<_DashboardContent> {
+  final _question = TextEditingController();
+  @override
+  void dispose() {
+    _question.dispose();
+    super.dispose();
+  }
+
+  void _ask() {
+    final value = _question.text.trim();
+    if (value.isNotEmpty) widget.onAskQuestion?.call(value);
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final wide = constraints.maxWidth >= 760;
+      final padding = wide ? 36.0 : 22.0;
+      return SingleChildScrollView(
+        key: const Key('dashboard-scroll-view'),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(padding, 26, padding, 32),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Greeting(data: widget.data),
+                const SizedBox(height: 26),
+                if (_needsLearningProfile(widget.data)) ...[
+                  _ProfileCompletionCard(onComplete: widget.onCompleteProfile),
+                  const SizedBox(height: 20),
+                ],
+                _AskAnythingCard(
+                  controller: _question,
+                  onAsk: widget.onAskQuestion == null ? null : _ask,
+                  onScan: widget.onScanQuestion,
+                  onVoice: widget.onVoiceQuestion,
+                ),
+                const SizedBox(height: 30),
+                const _Heading('Continue Learning'),
+                const SizedBox(height: 14),
+                _ContinueCard(data: widget.data, onTap: widget.onResume),
+                const SizedBox(height: 22),
+                _Metrics(data: widget.data),
+                const SizedBox(height: 30),
+                _DailyPractice(
+                  data: widget.data,
+                  onStart: () {
+                    final start = widget.onStartDailyPractice;
+                    if (start != null) {
+                      start(widget.data);
+                    } else {
+                      widget.onResume();
+                    }
+                  },
+                ),
+                if (widget.data.subjectProgress.isNotEmpty) ...[
+                  const SizedBox(height: 30),
+                  const _Heading('Your progress'),
+                  const SizedBox(height: 12),
+                  _ProgressPreview(progress: widget.data.subjectProgress),
+                ],
+              ],
             ),
-            const SizedBox(height: 14),
-          ],
-          if (data.weakTopic != null) ...[
-            _WeakTopicCard(topic: data.weakTopic!),
-            const SizedBox(height: 14),
-          ],
-          if (data.practiceRecommendations.isNotEmpty) ...[
-            _PracticeRecommendations(items: data.practiceRecommendations),
-            const SizedBox(height: 14),
-          ],
-          _ProgressSection(progress: data.subjectProgress),
-          const SizedBox(height: 14),
-          _RecentActivitySection(activities: data.recentActivity),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+bool _needsLearningProfile(StudentDashboardData data) =>
+    data.gradeLabel.trim().isEmpty ||
+    data.gradeLabel == 'Not selected' ||
+    data.subjects.isEmpty;
+
+class _ProfileCompletionCard extends StatelessWidget {
+  const _ProfileCompletionCard({required this.onComplete});
+  final VoidCallback? onComplete;
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Complete your learning profile',
+    child: Container(
+      key: const Key('dashboard-profile-completion-card'),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF171333),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0xFF8A52FF).withValues(alpha: .6),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.school_rounded, color: Color(0xFF9C69FF), size: 30),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Complete your learning profile',
+                  style: TextStyle(
+                    color: AdaptiveColors.text(context),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 17,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                const Text(
+                  'Choose your grade, language, and subjects for the right lessons.',
+                  style: TextStyle(color: Color(0xFFB4BEF2), fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            key: const Key('dashboard-complete-profile-button'),
+            onPressed: onComplete,
+            child: const Text('Set up'),
+          ),
         ],
       ),
+    ),
+  );
+}
+
+class _Greeting extends StatelessWidget {
+  const _Greeting({required this.data});
+  final StudentDashboardData data;
+  @override
+  Widget build(BuildContext context) {
+    final needsProfile = _needsLearningProfile(data);
+    final greeting = needsProfile || data.studentName == 'Learner'
+        ? 'Welcome 👋'
+        : 'Hello, ${data.studentName} 👋';
+    final subtitle = needsProfile
+        ? 'Let’s set up your learning path.'
+        : '${data.gradeLabel} • Ready to learn?';
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                greeting,
+                key: const Key('dashboard-greeting'),
+                style: TextStyle(
+                  color: AdaptiveColors.text(context),
+                  fontSize: 31,
+                  height: 1.08,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -.8,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: Color(0xFFB4BEF2),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          width: 66,
+          height: 66,
+          decoration: BoxDecoration(
+            color: const Color(0xFF11182A),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.cyan.withValues(alpha: .22)),
+          ),
+          child: const Icon(
+            Icons.calculate_rounded,
+            color: Color(0xFFFFC33D),
+            size: 36,
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _PracticeRecommendations extends StatelessWidget {
-  const _PracticeRecommendations({required this.items});
-  final List<PracticeRecommendation> items;
+class _AskAnythingCard extends StatelessWidget {
+  const _AskAnythingCard({
+    required this.controller,
+    required this.onAsk,
+    required this.onScan,
+    required this.onVoice,
+  });
+  final TextEditingController controller;
+  final VoidCallback? onAsk;
+  final VoidCallback? onScan;
+  final VoidCallback? onVoice;
   @override
-  Widget build(BuildContext context) => _Section(
-    title: 'Recommended practice',
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(26),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+        colors: [Color(0xFF073F4A), Color(0xFF121C45)],
+      ),
+      borderRadius: BorderRadius.circular(42),
+      border: Border.all(
+        color: AppColors.cyan.withValues(alpha: .37),
+        width: 1.4,
+      ),
+      boxShadow: [
+        BoxShadow(color: AppColors.cyan.withValues(alpha: .08), blurRadius: 28),
+      ],
+    ),
     child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final item in items)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(
-              Icons.auto_awesome_outlined,
-              color: AppColors.cyan,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Ask anything',
+                style: TextStyle(
+                  color: AdaptiveColors.text(context),
+                  fontSize: 31,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -.8,
+                ),
+              ),
             ),
-            title: Text(item.topic),
-            subtitle: Text(item.reason),
+            const Icon(
+              Icons.functions_rounded,
+              color: Color(0xFFFFBE37),
+              size: 42,
+            ),
+          ],
+        ),
+        const SizedBox(height: 9),
+        const Text(
+          'Your visual tutor is ready to solve any problem step-by-step.',
+          style: TextStyle(
+            color: AppColors.cyan,
+            fontSize: 18,
+            height: 1.45,
+            fontWeight: FontWeight.w600,
           ),
+        ),
+        const SizedBox(height: 24),
+        TextField(
+          key: const Key('dashboard-question-field'),
+          controller: controller,
+          enabled: onAsk != null,
+          onSubmitted: (_) => onAsk?.call(),
+          style: TextStyle(color: AdaptiveColors.text(context), fontSize: 18),
+          decoration: InputDecoration(
+            hintText: 'Type your question…',
+            hintStyle: const TextStyle(color: Color(0xFFB9C0EC)),
+            prefixIcon: const Icon(
+              Icons.chat_bubble_rounded,
+              color: Color(0xFF526DFF),
+            ),
+            filled: true,
+            fillColor: const Color(0xCC050A17),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 20,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(27),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final scan = _EntryButton(
+              key: const Key('dashboard-scan-button'),
+              icon: Icons.photo_camera_rounded,
+              label: 'Scan',
+              primary: true,
+              onPressed: onScan,
+            );
+            final voice = _EntryButton(
+              key: const Key('dashboard-voice-button'),
+              icon: Icons.mic_rounded,
+              label: 'Voice',
+              onPressed: onVoice,
+            );
+            return constraints.maxWidth < 400
+                ? Column(children: [scan, const SizedBox(height: 12), voice])
+                : Row(
+                    children: [
+                      Expanded(child: scan),
+                      const SizedBox(width: 16),
+                      Expanded(child: voice),
+                    ],
+                  );
+          },
+        ),
       ],
     ),
   );
 }
 
-class _WelcomeCard extends StatelessWidget {
-  const _WelcomeCard({required this.data, required this.onResumeLearning});
+class _EntryButton extends StatelessWidget {
+  const _EntryButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.primary = false,
+    this.onPressed,
+  });
+  final IconData icon;
+  final String label;
+  final bool primary;
+  final VoidCallback? onPressed;
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 76,
+    child: FilledButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 27),
+      label: Text(label),
+      style: FilledButton.styleFrom(
+        backgroundColor: primary ? AppColors.cyan : const Color(0xFF19283D),
+        foregroundColor: primary
+            ? const Color(0xFF071222)
+            : AdaptiveColors.text(context),
+        disabledBackgroundColor: primary
+            ? AppColors.cyan.withValues(alpha: .35)
+            : const Color(0xFF19283D),
+        disabledForegroundColor: AdaptiveColors.muted(context),
+        textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+          side: BorderSide(
+            color: primary ? Colors.transparent : const Color(0xFF3A4960),
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: TextStyle(
+      color: AdaptiveColors.text(context),
+      fontSize: 27,
+      fontWeight: FontWeight.w900,
+      letterSpacing: -.5,
+    ),
+  );
+}
+
+class _ContinueCard extends StatelessWidget {
+  const _ContinueCard({required this.data, required this.onTap});
   final StudentDashboardData data;
-  final VoidCallback onResumeLearning;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Continue learning ${data.resumeTitle}',
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const Key('dashboard-resume-learning-button'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(33),
+        child: Ink(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: const Color(0xFF15182B),
+            borderRadius: BorderRadius.circular(33),
+            border: Border.all(color: const Color(0xFF2B3048)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: AppColors.cyan.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(
+                  Icons.auto_stories_rounded,
+                  color: AppColors.cyan,
+                  size: 37,
+                ),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data.resumeTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AdaptiveColors.text(context),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      data.resumeSubtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFFADB6E8),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF7784BA),
+                size: 35,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
+class _Metrics extends StatelessWidget {
+  const _Metrics({required this.data});
+  final StudentDashboardData data;
   @override
   Widget build(BuildContext context) {
-    return _Panel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Welcome back, ${data.studentName}',
-            style: TextStyle(
-              color: AdaptiveColors.text(context),
-              fontSize: 24,
-              height: 1.1,
-              fontWeight: FontWeight.w900,
+    final mastered = data.subjectProgress
+        .where((item) => item.progress >= .8)
+        .length;
+    final cards = [
+      _Metric(
+        icon: Icons.local_fire_department_rounded,
+        color: const Color(0xFFFF6B39),
+        title: 'Daily Streak',
+        value: '${data.learningStreakDays} Days',
+        caption: data.learningStreakDays == 0
+            ? 'Start one today'
+            : 'Keep your momentum',
+      ),
+      _Metric(
+        icon: Icons.bar_chart_rounded,
+        color: AppColors.cyan,
+        title: 'Mastered',
+        value: '$mastered',
+        caption: mastered == 1 ? 'Visual topic' : 'Visual topics',
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) => constraints.maxWidth < 430
+          ? Column(
+              children: [cards.first, const SizedBox(height: 14), cards.last],
+            )
+          : Row(
+              children: [
+                Expanded(child: cards.first),
+                const SizedBox(width: 18),
+                Expanded(child: cards.last),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            data.learningGoal == null
-                ? 'Ready to continue learning?'
-                : 'Goal: ${data.learningGoal}',
-            style: TextStyle(
-              color: AdaptiveColors.muted(context),
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            key: const Key('dashboard-resume-learning-button'),
-            onPressed: onResumeLearning,
-            icon: const Icon(Icons.play_arrow_rounded),
-            label: Text(data.resumeTitle),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.blue,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 15,
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  const _Metric({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.value,
+    required this.caption,
+  });
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String value;
+  final String caption;
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 190,
+    padding: const EdgeInsets.all(22),
+    decoration: BoxDecoration(
+      color: const Color(0xFF15182A),
+      borderRadius: BorderRadius.circular(31),
+      border: Border.all(color: color.withValues(alpha: .3)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: color, size: 27),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: TextStyle(
+                color: color,
+                fontSize: 18,
                 fontWeight: FontWeight.w900,
               ),
             ),
+          ],
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: TextStyle(
+            color: AdaptiveColors.text(context),
+            fontSize: 36,
+            fontWeight: FontWeight.w900,
           ),
-          const SizedBox(height: 8),
-          Text(
-            data.resumeSubtitle,
-            style: TextStyle(
-              color: AdaptiveColors.muted(context),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          caption,
+          style: const TextStyle(
+            color: Color(0xFFADB6E8),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }
 
-class _SummaryGrid extends StatelessWidget {
-  const _SummaryGrid({required this.data});
-
+class _DailyPractice extends StatelessWidget {
+  const _DailyPractice({required this.data, required this.onStart});
   final StudentDashboardData data;
-
+  final VoidCallback onStart;
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 620;
-        final cards = [
-          _MetricCard(
-            icon: Icons.grade_rounded,
-            label: 'Grade',
-            value: data.gradeLabel,
+    final weak = data.weakTopic;
+    final recommendation = data.practiceRecommendations.isNotEmpty
+        ? data.practiceRecommendations.first
+        : null;
+    final title = weak?.title ?? recommendation?.topic ?? data.resumeTitle;
+    final reason =
+        weak?.reason ??
+        recommendation?.reason ??
+        'A short visual practice based on your current learning.';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _Heading('Daily Practice'),
+        const SizedBox(height: 13),
+        Container(
+          key: const Key('dashboard-daily-practice-card'),
+          padding: const EdgeInsets.all(25),
+          decoration: BoxDecoration(
+            color: const Color(0xFF100E29),
+            borderRadius: BorderRadius.circular(36),
+            border: Border.all(
+              color: const Color(0xFF5533BD).withValues(alpha: .62),
+              width: 1.25,
+            ),
           ),
-          _MetricCard(
-            icon: Icons.menu_book_rounded,
-            label: 'Subjects',
-            value: data.subjects.join(', '),
-          ),
-          _MetricCard(
-            icon: Icons.local_fire_department_rounded,
-            label: 'Streak',
-            value: '${data.learningStreakDays} days',
-          ),
-        ];
-
-        if (isWide) {
-          return Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (var i = 0; i < cards.length; i++) ...[
-                if (i > 0) const SizedBox(width: 10),
-                Expanded(child: cards[i]),
-              ],
+              Text(
+                '“$title”',
+                style: TextStyle(
+                  color: AdaptiveColors.text(context),
+                  fontSize: 21,
+                  height: 1.45,
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 15),
+              Text(
+                reason,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF9C69FF),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 58,
+                child: OutlinedButton(
+                  key: const Key('dashboard-start-daily-practice-button'),
+                  onPressed: onStart,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF8A52FF),
+                    side: const BorderSide(color: Color(0xFF4C2A9D)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  child: const Text('Start Challenge'),
+                ),
+              ),
             ],
-          );
-        }
-
-        return Column(
-          children: [
-            for (var i = 0; i < cards.length; i++) ...[
-              if (i > 0) const SizedBox(height: 10),
-              cards[i],
-            ],
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Panel(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.cyan, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: AdaptiveColors.muted(context),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: AdaptiveColors.text(context),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-class _WeakTopicCard extends StatelessWidget {
-  const _WeakTopicCard({required this.topic});
-
-  final WeakTopic topic;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Panel(
-      borderColor: AppColors.peach.withValues(alpha: .28),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.warning_amber_rounded, color: AppColors.peach),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Weak topic',
-                  style: TextStyle(
-                    color: AdaptiveColors.muted(context),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  topic.title,
-                  style: TextStyle(
-                    color: AdaptiveColors.text(context),
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  topic.reason,
-                  style: TextStyle(
-                    color: AdaptiveColors.subtle(context),
-                    fontSize: 13,
-                    height: 1.35,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          TextButton(onPressed: () {}, child: Text(topic.actionLabel)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressSection extends StatelessWidget {
-  const _ProgressSection({required this.progress});
-
+class _ProgressPreview extends StatelessWidget {
+  const _ProgressPreview({required this.progress});
   final List<SubjectProgress> progress;
-
   @override
-  Widget build(BuildContext context) {
-    return _Section(
-      title: 'Subject progress',
-      child: Column(
-        children: [
-          for (var i = 0; i < progress.length; i++) ...[
-            if (i > 0) const SizedBox(height: 14),
-            _ProgressRow(progress: progress[i]),
-          ],
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: const Color(0xFF15182B),
+      borderRadius: BorderRadius.circular(27),
+      border: Border.all(color: const Color(0xFF2B3048)),
+    ),
+    child: Column(
+      children: [
+        for (var i = 0; i < progress.length.clamp(0, 3); i++) ...[
+          if (i > 0) const SizedBox(height: 18),
+          _ProgressRow(progress: progress[i]),
         ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }
 
 class _ProgressRow extends StatelessWidget {
   const _ProgressRow({required this.progress});
-
   final SubjectProgress progress;
-
   @override
   Widget build(BuildContext context) {
     final percent = (progress.progress * 100).round();
@@ -431,8 +818,8 @@ class _ProgressRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: AdaptiveColors.text(context),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
@@ -440,154 +827,22 @@ class _ProgressRow extends StatelessWidget {
               '$percent%',
               style: const TextStyle(
                 color: AppColors.cyan,
-                fontSize: 13,
                 fontWeight: FontWeight.w900,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 9),
         ClipRRect(
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(20),
           child: LinearProgressIndicator(
             value: progress.progress,
-            minHeight: 8,
-            backgroundColor: AppColors.line,
+            minHeight: 9,
+            backgroundColor: const Color(0xFF262B42),
             color: AppColors.cyan,
           ),
         ),
       ],
-    );
-  }
-}
-
-class _RecentActivitySection extends StatelessWidget {
-  const _RecentActivitySection({required this.activities});
-
-  final List<DashboardActivity> activities;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Section(
-      title: 'Recent activity',
-      child: Column(
-        children: [
-          for (var i = 0; i < activities.length; i++) ...[
-            if (i > 0) const Divider(height: 22, color: AppColors.line),
-            _ActivityRow(activity: activities[i]),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({required this.activity});
-
-  final DashboardActivity activity;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(Icons.history_rounded, color: AppColors.cyan, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                activity.title,
-                style: TextStyle(
-                  color: AdaptiveColors.text(context),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                activity.subtitle,
-                style: TextStyle(
-                  color: AdaptiveColors.muted(context),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          activity.timeLabel,
-          style: TextStyle(
-            color: AdaptiveColors.muted(context),
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Panel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: AdaptiveColors.text(context),
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 14),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _Panel extends StatelessWidget {
-  const _Panel({
-    required this.child,
-    this.padding = const EdgeInsets.all(18),
-    this.borderColor,
-  });
-
-  final Widget child;
-  final EdgeInsetsGeometry padding;
-  final Color? borderColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: AdaptiveColors.card(context),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor ?? AdaptiveColors.line(context)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .08),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: child,
     );
   }
 }

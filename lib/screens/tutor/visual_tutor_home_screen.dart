@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../features/visual_tutor/presentation/visual_tutor_design.dart';
+import '../../features/visual_tutor/presentation/providers/step_board_provider.dart';
+import '../../features/visual_tutor/presentation/widgets/rich_media_canvas.dart';
+import '../../features/visual_tutor/presentation/widgets/step_interaction_widget.dart';
+import '../../features/visual_tutor/presentation/widgets/step_progress_indicator.dart';
 import '../../shared/rean_avatar.dart';
 import '../learning_selection/learning_selection_repository.dart';
 
@@ -13,6 +17,8 @@ class VisualTutorHomeScreen extends StatelessWidget {
     required this.onStuck,
     required this.onContinueLearning,
     required this.onScanProblem,
+    this.onOpenLessons,
+    this.stepBoard,
   });
 
   final VoidCallback onBack;
@@ -21,28 +27,14 @@ class VisualTutorHomeScreen extends StatelessWidget {
   final VoidCallback onStuck;
   final ValueChanged<LearningContext> onContinueLearning;
   final VoidCallback onScanProblem;
+  final VoidCallback? onOpenLessons;
 
-  static const _recentLessons = [
-    _RecentTutorLesson(
-      title: 'Quadratic Equations',
-      subject: 'Mathematics',
-      grade: 11,
-      progress: 98,
-      icon: Icons.science_outlined,
-      accent: VisualTutorColors.success,
-    ),
-    _RecentTutorLesson(
-      title: 'Organic Chemistry',
-      subject: 'Chemistry',
-      grade: 11,
-      progress: 45,
-      icon: Icons.bubble_chart_outlined,
-      accent: VisualTutorColors.orange,
-    ),
-  ];
+  /// When a confirmed expert lesson is active, this replaces the landing menu.
+  final StepBoardProvider? stepBoard;
 
   @override
   Widget build(BuildContext context) {
+    if (stepBoard != null) return _StepTeachingHome(provider: stepBoard!);
     return ColoredBox(
       key: const Key('visual-tutor-home-screen'),
       color: VisualTutorColors.shell,
@@ -96,21 +88,9 @@ class VisualTutorHomeScreen extends StatelessWidget {
                     const SizedBox(height: VisualTutorSpacing.xxl),
                     _StuckCard(onStart: onStuck),
                     const SizedBox(height: VisualTutorSpacing.xxl),
-                    _ContinueLearningHeader(onSeeAll: onTypeQuestion),
+                    _ContinueLearningHeader(onSeeAll: onOpenLessons ?? onBack),
                     const SizedBox(height: VisualTutorSpacing.md),
-                    for (final lesson in _recentLessons) ...[
-                      _RecentLessonCard(
-                        lesson: lesson,
-                        onTap: () => onContinueLearning(
-                          LearningContext(
-                            grade: lesson.grade,
-                            subject: lesson.subject,
-                            topic: lesson.title,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: VisualTutorSpacing.md),
-                    ],
+                    _PublishedLessonsPrompt(onTap: onOpenLessons ?? onBack),
                   ],
                 ),
               ),
@@ -121,6 +101,105 @@ class VisualTutorHomeScreen extends StatelessWidget {
     );
   }
 }
+
+class _StepTeachingHome extends StatelessWidget {
+  const _StepTeachingHome({required this.provider});
+  final StepBoardProvider provider;
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: provider,
+    builder: (context, _) {
+      final step = provider.currentStep;
+      if (step == null) return const Center(child: CircularProgressIndicator());
+      final objective =
+          step.content['learning_objective'] as String? ??
+          step.visualizationType.replaceAll('_', ' ');
+      final feedback =
+          provider.response?.evaluation?['feedback_message'] as String?;
+      return SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              StepProgressIndicator(
+                currentStep: provider.currentStepNumber,
+                totalSteps: provider.totalSteps,
+                learningObjective: objective,
+              ),
+              const SizedBox(height: 18),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                child: SizedBox(
+                  key: ValueKey(step.stepId),
+                  height: 350,
+                  child: RichMediaCanvas(
+                    mediaChildren: [
+                      Center(
+                        child: _VisualizationCaption(
+                          stepType: step.visualizationType,
+                          content: step.content,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              StepInteractionWidget(
+                responseType: step.expectedResponseType,
+                question:
+                    '${step.studentQuestion}\n${step.studentQuestionKhmer}',
+                choices: _choices(step.content),
+                isLoading: provider.isLoading,
+                feedback: feedback ?? provider.error,
+                onSubmit: provider.submit,
+                onHint: provider.requestHint,
+                onSkip: provider.skip,
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _VisualizationCaption extends StatelessWidget {
+  const _VisualizationCaption({required this.stepType, required this.content});
+  final String stepType;
+  final Map<String, dynamic> content;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(24),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(_iconFor(stepType), size: 56, color: VisualTutorColors.cyan),
+        const SizedBox(height: 12),
+        Text(
+          stepType.replaceAll('_', ' '),
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        if (content['equation'] is String) Text(content['equation'] as String),
+      ],
+    ),
+  );
+}
+
+IconData _iconFor(String type) => switch (type) {
+  'free_body_diagram' || 'vector_analysis' => Icons.arrow_outward_rounded,
+  'motion_graphs' || 'graph' => Icons.show_chart_rounded,
+  'molecule' || 'molecular_structure' => Icons.hub_rounded,
+  'geometry' => Icons.change_history_rounded,
+  _ => Icons.auto_awesome_rounded,
+};
+
+List<String> _choices(Map<String, dynamic> content) =>
+    (content['choices'] as List? ?? const []).whereType<String>().toList(
+      growable: false,
+    );
 
 class _VisualTutorHomeHeader extends StatelessWidget {
   const _VisualTutorHomeHeader({required this.onBack});
@@ -293,10 +372,9 @@ class _ContinueLearningHeader extends StatelessWidget {
   }
 }
 
-class _RecentLessonCard extends StatelessWidget {
-  const _RecentLessonCard({required this.lesson, required this.onTap});
+class _PublishedLessonsPrompt extends StatelessWidget {
+  const _PublishedLessonsPrompt({required this.onTap});
 
-  final _RecentTutorLesson lesson;
   final VoidCallback onTap;
 
   @override
@@ -307,9 +385,7 @@ class _RecentLessonCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(VisualTutorRadius.lg),
         child: Container(
-          key: Key(
-            'continue-${lesson.title.toLowerCase().replaceAll(' ', '-')}',
-          ),
+          key: const Key('tutor-open-lessons-prompt'),
           padding: const EdgeInsets.all(VisualTutorSpacing.md),
           decoration: VisualTutorDecorations.raisedPanel(
             radius: VisualTutorRadius.lg,
@@ -323,7 +399,11 @@ class _RecentLessonCard extends StatelessWidget {
                   color: VisualTutorColors.shellElevated,
                   borderRadius: BorderRadius.circular(VisualTutorRadius.md),
                 ),
-                child: Icon(lesson.icon, color: lesson.accent, size: 28),
+                child: const Icon(
+                  Icons.menu_book_outlined,
+                  color: VisualTutorColors.cyan,
+                  size: 28,
+                ),
               ),
               const SizedBox(width: VisualTutorSpacing.md),
               Expanded(
@@ -331,7 +411,7 @@ class _RecentLessonCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      lesson.title,
+                      'Browse published lessons',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -342,41 +422,16 @@ class _RecentLessonCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      '${lesson.subject} • Grade ${lesson.grade}',
+                    const Text(
+                      'Choose a lesson from the Lessons tab, then continue here.',
                       style: VisualTutorTypography.khmerSubtitle,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: VisualTutorSpacing.md),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${lesson.progress}%',
-                    style: TextStyle(
-                      color: lesson.accent,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  SizedBox(
-                    width: 42,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(
-                        VisualTutorRadius.pill,
-                      ),
-                      child: LinearProgressIndicator(
-                        value: lesson.progress / 100,
-                        minHeight: 4,
-                        backgroundColor: VisualTutorColors.border,
-                        color: lesson.accent,
-                      ),
-                    ),
-                  ),
-                ],
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: VisualTutorColors.textMuted,
               ),
             ],
           ),
@@ -384,22 +439,4 @@ class _RecentLessonCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _RecentTutorLesson {
-  const _RecentTutorLesson({
-    required this.title,
-    required this.subject,
-    required this.grade,
-    required this.progress,
-    required this.icon,
-    required this.accent,
-  });
-
-  final String title;
-  final String subject;
-  final int grade;
-  final int progress;
-  final IconData icon;
-  final Color accent;
 }

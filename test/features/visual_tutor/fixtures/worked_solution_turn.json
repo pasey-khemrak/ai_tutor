@@ -1,0 +1,316 @@
+{
+  "schema_version": 2,
+  "session_id": "92355f80-f3f4-4f34-b19f-1ac92ecf65cc",
+  "turn_id": "edeef4d7-d1c5-497a-9257-7fe5f873d7f8",
+  "board_version": 1,
+  "base_board_version": 0,
+  "board_update_mode": "replace",
+  "lesson_state": {
+    "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+    "lesson_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de",
+    "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+    "current_step_index": 0,
+    "expected_student_action_id": "ws-next-14",
+    "teaching_stage": null,
+    "lesson_state": null,
+    "final_answer_locked": false,
+    "board_version": 1,
+    "base_board_version": 0
+  },
+  "tutor_status": "Waiting for you",
+  "teaching_plan": {
+    "schema_version": 1,
+    "representation": "worked_example",
+    "learning_objective": "Understand every step of finding this limit, and why each step is allowed.",
+    "teaching_message": "Here is the full solution, step by step. The limit is 6. Ask me about any step you want me to explain.",
+    "visible_board_actions": [
+      {
+        "id": "ws-step-read-0",
+        "type": "write_text",
+        "sequence_index": 0,
+        "duration_ms": 450,
+        "section_id": "step-read",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "Step 1 · Understand the question. We want to know what value f(x) gets closer and closer to as x gets closer to 3. x does not have to equal 3 — we look at values near it.",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-read-0"
+      },
+      {
+        "id": "ws-step-read-1",
+        "type": "write_equation",
+        "sequence_index": 1,
+        "duration_ms": 550,
+        "section_id": "step-read",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\lim_{x \\to 3} \\frac{x^{2} - 9}{x - 3}",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-read-1"
+      },
+      {
+        "id": "ws-step-try-2",
+        "type": "write_text",
+        "sequence_index": 2,
+        "duration_ms": 450,
+        "section_id": "step-try",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "Step 2 · Try substituting first. Putting x = 3 in gives 0/0. This is called an indeterminate form. It does not mean the answer is 0 — it tells us to simplify the expression before substituting.",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-try-2"
+      },
+      {
+        "id": "ws-step-try-3",
+        "type": "write_equation",
+        "sequence_index": 3,
+        "duration_ms": 550,
+        "section_id": "step-try",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\frac{3^{2} - 9}{3 - 3} = \\frac{0}{0}",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-try-3"
+      },
+      {
+        "id": "ws-step-factor-4",
+        "type": "write_text",
+        "sequence_index": 4,
+        "duration_ms": 450,
+        "section_id": "step-factor",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "Step 3 · Factor the top and bottom. x² − 9 is a difference of squares: a² − b² = (a − b)(a + b). Both parts share the factor (x − 3), which is exactly what makes 0/0.",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-factor-4"
+      },
+      {
+        "id": "ws-step-factor-5",
+        "type": "write_equation",
+        "sequence_index": 5,
+        "duration_ms": 550,
+        "section_id": "step-factor",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\frac{x^{2} - 9}{x - 3} = \\frac{\\left(x - 3\\right) \\left(x + 3\\right)}{x - 3}",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-factor-5"
+      },
+      {
+        "id": "ws-step-cancel-6",
+        "type": "write_text",
+        "sequence_index": 6,
+        "duration_ms": 450,
+        "section_id": "step-cancel",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "Step 4 · Cancel the common factor. We can cancel (x − 3) because x only gets close to 3 and never equals it, so (x − 3) is never zero.",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-cancel-6"
+      },
+      {
+        "id": "ws-step-cancel-7",
+        "type": "write_equation",
+        "sequence_index": 7,
+        "duration_ms": 550,
+        "section_id": "step-cancel",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\frac{x^{2} - 9}{x - 3} = x + 3, \\quad x \\neq 3",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-cancel-7"
+      },
+      {
+        "id": "ws-step-substitute-8",
+        "type": "write_text",
+        "sequence_index": 8,
+        "duration_ms": 450,
+        "section_id": "step-substitute",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "Step 5 · Substitute into the simpler expression. The simplified expression has no problem at x = 3, so now substitution works.",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-substitute-8"
+      },
+      {
+        "id": "ws-step-substitute-9",
+        "type": "write_equation",
+        "sequence_index": 9,
+        "duration_ms": 550,
+        "section_id": "step-substitute",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\lim_{x \\to 3} \\left(x + 3\\right) = 3 + 3 = 6",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-substitute-9"
+      },
+      {
+        "id": "ws-step-check-10",
+        "type": "write_text",
+        "sequence_index": 10,
+        "duration_ms": 450,
+        "section_id": "step-check",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "Step 6 · Check with a table of values. From the left and from the right of x = 3, f(x) gets closer to 6 — both sides agree.",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-check-10"
+      },
+      {
+        "id": "ws-step-check-11",
+        "type": "show_table",
+        "sequence_index": 11,
+        "duration_ms": 700,
+        "section_id": "step-check",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "table": {
+          "columns": [
+            "x",
+            "f(x)"
+          ],
+          "rows": [
+            [
+              "2.9",
+              "5.9"
+            ],
+            [
+              "2.99",
+              "5.99"
+            ],
+            [
+              "2.999",
+              "5.999"
+            ],
+            [
+              "3",
+              "undefined"
+            ],
+            [
+              "3.001",
+              "6.001"
+            ],
+            [
+              "3.01",
+              "6.01"
+            ],
+            [
+              "3.1",
+              "6.1"
+            ]
+          ]
+        },
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-check-11"
+      },
+      {
+        "id": "ws-answer-12",
+        "type": "write_text",
+        "sequence_index": 12,
+        "duration_ms": 450,
+        "section_id": "answer",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "Answer · The limit is 6.",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-answer-12"
+      },
+      {
+        "id": "ws-answer-13",
+        "type": "write_equation",
+        "sequence_index": 13,
+        "duration_ms": 600,
+        "section_id": "answer",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\lim_{x \\to 3} \\frac{x^{2} - 9}{x - 3} = 6",
+        "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+        "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-answer-13"
+      }
+    ],
+    "active_student_task": {
+      "id": "ws-next-14",
+      "type": "student_task",
+      "sequence_index": 14,
+      "section_id": "next",
+      "layout_zone": "student_task",
+      "layout_flow": "vertical",
+      "text": "Ask me about any step you'd like explained, or try another limit.",
+      "requires_student_response": true,
+      "task_type": "conceptual_operation",
+      "problem_instance_id": "problem-ad8bae3e315c4a07beec9325d03b55de",
+      "active_step_id": "lesson-problem-ad8bae3e315c4a07beec9325d03b55de:step-0:ws-next-14",
+      "board_version": 1,
+      "base_board_version": 0,
+      "action_id": "ws-next-14"
+    },
+    "allowed_student_actions": [
+      "submit_answer",
+      "explain_differently",
+      "request_hint"
+    ],
+    "hidden_answer_policy": {
+      "mode": "reveal_allowed",
+      "deterministic_policy_permits_final_reveal": true
+    },
+    "next_state_policy": {
+      "correct": "continue",
+      "invalid": "reteach",
+      "incomplete": "ask_for_work",
+      "stuck": "reteach",
+      "hint": "continue",
+      "explain_differently": "reteach"
+    }
+  },
+  "verification": {
+    "status": "correct",
+    "verified": true,
+    "concise_evidence": "Verified",
+    "student_facing_feedback": "Checked two ways: the algebra and a table of values agree."
+  },
+  "recovery": {
+    "state": "ready"
+  }
+}

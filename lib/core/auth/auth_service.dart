@@ -27,9 +27,12 @@ class AuthService {
   FirebaseAuth get _auth => _firebaseAuth ?? FirebaseAuth.instance;
 
   Future<bool> restoreSession() async {
-    if (_hasFirebase && _auth.currentUser != null) {
-      session.markSignedIn();
-      return true;
+    if (_hasFirebase) {
+      final user = await _auth.authStateChanges().first;
+      if (user != null) {
+        session.markSignedIn();
+        return true;
+      }
     }
     if (config.shouldUseDemoData && session.isAuthenticated) {
       return true;

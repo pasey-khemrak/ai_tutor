@@ -27,28 +27,31 @@ void main() {
     );
     await tester.pump();
 
+    expect(find.text('Grade 8'), findsOneWidget);
+    expect(find.text('Grade 9'), findsOneWidget);
     expect(find.text('Grade 10'), findsOneWidget);
-    expect(find.text('Grade 11'), findsOneWidget);
-    expect(find.text('Grade 12'), findsOneWidget);
     expect(find.text('Mathematics'), findsOneWidget);
+    expect(find.text('Integer, Fraction & Decimal Arithmetic'), findsOneWidget);
+    expect(find.text('Percentages'), findsOneWidget);
     expect(find.text('Linear Equations'), findsOneWidget);
-    expect(find.text('Coordinate Plane'), findsOneWidget);
-    expect(find.text('Slope'), findsOneWidget);
-    expect(find.text('Equation of a Line'), findsOneWidget);
-    expect(find.text('Functions'), findsOneWidget);
-    expect(find.text('Quadratic Functions'), findsOneWidget);
+    expect(find.text('Slope from Two Points'), findsNothing);
+    expect(find.text('Basic Quadratic Graphs'), findsNothing);
 
-    await tester.tap(find.byKey(const Key('grade-11-option')));
+    await tester.tap(find.byKey(const Key('grade-9-option')));
+    await tester.pump();
+    expect(find.text('Integer, Fraction & Decimal Arithmetic'), findsNothing);
+    expect(find.text('Slope from Two Points'), findsOneWidget);
+    expect(find.text('Straight-Line Graphs'), findsOneWidget);
     await tester.tap(find.byKey(const Key('subject-Mathematics-option')));
-    await tester.ensureVisible(find.byKey(const Key('topic-Slope-option')));
-    await tester.tap(find.byKey(const Key('topic-Slope-option')));
+    await tester.ensureVisible(find.byKey(const Key('topic-Slope from Two Points-option')));
+    await tester.tap(find.byKey(const Key('topic-Slope from Two Points-option')));
     await tester.ensureVisible(find.byKey(const Key('join-class-button')));
     await tester.tap(find.byKey(const Key('join-class-button')));
     await tester.pump();
 
-    expect(selectedContext?.grade, 11);
+    expect(selectedContext?.grade, 9);
     expect(selectedContext?.subject, 'Mathematics');
-    expect(selectedContext?.topic, 'Slope');
+    expect(selectedContext?.topic, 'Slope from Two Points');
   });
 
   testWidgets('Tutor shell home opens live tutor with default context', (

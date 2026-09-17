@@ -28,6 +28,38 @@ abstract class QuizRepository {
   });
 }
 
+/// The safe, student-facing signals used to request a short practice set after
+/// a Visual Tutor session. Answer keys and verifier evidence stay server-side.
+class TargetedPracticeContext {
+  const TargetedPracticeContext({
+    required this.topicId,
+    required this.subjectId,
+    required this.gradeLevelId,
+    required this.tutorSessionId,
+    this.skillTags = const [],
+    this.learningGoals = const [],
+    this.misconceptions = const [],
+    this.hintCount = 0,
+    this.stuckCount = 0,
+    this.verificationResults = const [],
+    this.priorMastery,
+    this.priorQuizScore,
+  });
+
+  final String topicId;
+  final String subjectId;
+  final String gradeLevelId;
+  final String tutorSessionId;
+  final List<String> skillTags;
+  final List<String> learningGoals;
+  final List<String> misconceptions;
+  final int hintCount;
+  final int stuckCount;
+  final List<String> verificationResults;
+  final double? priorMastery;
+  final int? priorQuizScore;
+}
+
 class QuizRemoteRepository implements QuizRepository {
   QuizRemoteRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 

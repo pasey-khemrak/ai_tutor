@@ -12,6 +12,12 @@ Future<void> main() async {
 }
 
 Future<void> _initializeFirebaseIfConfigured() async {
+  // Local demo mode deliberately has no Firebase dependency. Waiting for the
+  // web SDK here can leave the first frame blank when the local browser is
+  // offline or Firebase is unavailable.
+  if (AppConfig.current.shouldUseDemoData) {
+    return;
+  }
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,

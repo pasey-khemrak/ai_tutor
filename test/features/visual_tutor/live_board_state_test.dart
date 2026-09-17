@@ -30,6 +30,39 @@ void main() {
       isTrue,
     );
   });
+
+  test('rejects unsafe identifiers and unbounded timeline durations', () {
+    expect(
+      isValidBoardAction(
+        const VisualTutorBoardActionEntity(
+          id: 'answer=x=5',
+          type: 'write_text',
+          text: 'Unsafe identifier',
+        ),
+      ),
+      isFalse,
+    );
+    expect(
+      isValidBoardAction(
+        const VisualTutorBoardActionEntity(
+          id: 'long-pause',
+          type: 'pause_marker',
+          durationMs: 999999,
+        ),
+      ),
+      isFalse,
+    );
+    expect(
+      isValidBoardAction(
+        const VisualTutorBoardActionEntity(
+          id: 'speech-with-delay',
+          type: 'speak_marker',
+          durationMs: 400,
+        ),
+      ),
+      isFalse,
+    );
+  });
   const base = [
     VisualTutorBoardActionEntity(
       id: 'a',

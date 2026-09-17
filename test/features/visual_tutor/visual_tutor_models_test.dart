@@ -2,8 +2,198 @@ import 'package:ai_tutor/features/visual_tutor/data/models/visual_tutor_models.d
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test(
+    'parses compact public tutor turns without legacy board or private metadata',
+    () {
+      final response = VisualTutorTurnResponseModel.fromJson({
+        'schema_version': 1,
+        'session_id': 'session-public',
+        'turn_id': 'turn-public',
+        'board_version': 4,
+        'tutor_status': 'Waiting for you',
+        'teaching_plan': {
+          'schema_version': 1,
+          'representation': 'equation_transformation',
+          'learning_objective': 'Use an inverse operation.',
+          'teaching_message': 'Balance both sides.',
+          'visible_board_actions': [
+            {
+              'id': 'equation',
+              'type': 'write_equation',
+              'sequence_index': 0,
+              'latex': '2x - 5 = 20',
+            },
+          ],
+          'active_student_task': {
+            'id': 'task',
+            'type': 'student_task',
+            'sequence_index': 1,
+            'text': 'What operation cancels -5?',
+            'requires_student_response': true,
+            'task_type': 'conceptual_operation',
+            'accepted_answer_forms': ['operation words'],
+          },
+          'allowed_student_actions': ['submit_answer', 'request_hint'],
+          'hidden_answer_policy': {
+            'mode': 'hidden',
+            'deterministic_policy_permits_final_reveal': false,
+          },
+          'next_state_policy': {
+            'correct': 'continue',
+            'invalid': 'reteach',
+            'incomplete': 'ask_for_work',
+            'stuck': 'reteach',
+            'hint': 'ask_for_work',
+            'explain_differently': 'reteach',
+          },
+        },
+        'verification': {
+          'status': 'correct',
+          'verified': true,
+          'concise_evidence': 'The operation keeps both sides equal.',
+          'student_facing_feedback': 'Correct. Add 5 to both sides.',
+        },
+      });
+
+      expect(response.boardActions, hasLength(2));
+      expect(response.boardActions.first.latex, '2x - 5 = 20');
+      expect(response.boardActions.last.text, 'What operation cancels -5?');
+      expect(response.canvasActions, isEmpty);
+      expect(response.verification?.status, 'correct');
+      expect(response.metadata['solver_facts'], isNull);
+    },
+  );
+
+  test('retains public schema-v2 lesson state for the next tutor turn', () {
+    final valid = _compactPublicTurn();
+    final lessonState = {
+      'problem_instance_id': 'problem-1',
+      'lesson_id': 'lesson-problem-1',
+      'active_step_id': 'lesson-problem-1:step-1:task',
+      'current_step_index': 1,
+      'expected_student_action_id': 'task',
+      'teaching_stage': 'waiting_for_student',
+      'lesson_state': 'ask',
+      'final_answer_locked': true,
+      'board_version': 2,
+      'base_board_version': 1,
+    };
+    final response = VisualTutorTurnResponseModel.fromJson({
+      ...valid,
+      'schema_version': 2,
+      'board_version': 2,
+      'base_board_version': 1,
+      'board_update_mode': 'replace',
+      'lesson_state': lessonState,
+      'teaching_plan': {
+        ...(valid['teaching_plan'] as Map<String, dynamic>),
+        'visible_board_actions': [
+          {
+            ...(valid['teaching_plan']
+                    as Map<String, dynamic>)['visible_board_actions'][0]
+                as Map<String, dynamic>,
+            'problem_instance_id': 'problem-1',
+            'active_step_id': lessonState['active_step_id'],
+            'action_id': 'equation',
+            'board_version': 2,
+            'base_board_version': 1,
+          },
+        ],
+        'active_student_task': {
+          ...(valid['teaching_plan']
+                  as Map<String, dynamic>)['active_student_task']
+              as Map<String, dynamic>,
+          'problem_instance_id': 'problem-1',
+          'active_step_id': lessonState['active_step_id'],
+          'action_id': 'task',
+          'board_version': 2,
+          'base_board_version': 1,
+        },
+      },
+    });
+
+    final state =
+        response.metadata['authoritative_lesson_state'] as Map<String, dynamic>;
+    expect(state['current_step_index'], 1);
+    expect(state['active_step_id'], lessonState['active_step_id']);
+    expect(response.metadata['board_version'], 2);
+    expect(response.metadata['base_board_version'], 1);
+  });
+
+  test(
+    'production public response rejects legacy and private top-level fields',
+    () {
+      final valid = _compactPublicTurn();
+
+      expect(
+        () => VisualTutorTurnResponseModel.fromJson({
+          ...valid,
+          'board_actions': [
+            {'id': 'legacy', 'type': 'write_text', 'text': 'Never render this'},
+          ],
+        }),
+        throwsFormatException,
+      );
+      expect(
+        () => VisualTutorTurnResponseModel.fromJson({
+          ...valid,
+          'metadata': {
+            'solver_facts': {'solution_set': 'x = 5'},
+          },
+        }),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test(
+    'legacy response parsing requires explicit compatibility version zero',
+    () {
+      expect(
+        () => VisualTutorTurnResponseModel.fromJson({
+          'session_id': 'legacy-session',
+          'turn_id': 'legacy-turn',
+          'display_text': 'Old response',
+          'spoken_text': 'Old response',
+          'teaching_mode': 'guided_question',
+          'board': {'type': 'equation'},
+        }),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test(
+    'production public response recovers an invalid action without discarding the turn',
+    () {
+      final valid = _compactPublicTurn();
+      final plan = Map<String, dynamic>.from(valid['teaching_plan'] as Map);
+      final actions = List<Map<String, dynamic>>.from(
+        (plan['visible_board_actions'] as List).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+      actions[0]['arbitrary_widget'] = 'InjectedWidget()';
+      plan['visible_board_actions'] = actions;
+
+      final response = VisualTutorTurnResponseModel.fromJson({
+        ...valid,
+        'teaching_plan': plan,
+      });
+      expect(
+        response.boardActions!.map((action) => action.type),
+        contains('show_feedback'),
+      );
+      expect(
+        response.boardActions!.where((action) => action.type == 'student_task'),
+        hasLength(1),
+      );
+    },
+  );
+
   test('VisualTutorTurnResponseModel parses structured live response JSON', () {
     final response = VisualTutorTurnResponseModel.fromJson({
+      'api_compatibility_version': 0,
       'session_id': 'session-1',
       'turn_id': 'turn-1',
       'screen_state': 'speaking_writing',
@@ -90,7 +280,8 @@ void main() {
           'status': 'mathematically_valid_but_inefficient',
           'verified': true,
           'normalized_expression': 'x = 5',
-          'student_message': 'This is valid, but show the requested step first.',
+          'student_message':
+              'This is valid, but show the requested step first.',
           'evidence': {'reason': 'expected_step'},
         },
         'tutor_move': 'ask_guiding_question',
@@ -123,7 +314,10 @@ void main() {
     expect(response.metadata['response_source'], 'hybrid');
     expect(response.metadata['solver_name'], 'LinearEquationSolver');
     expect(response.metadata['board_action_ids'], ['a1', 'a2']);
-    expect(response.verification?.status, 'mathematically_valid_but_inefficient');
+    expect(
+      response.verification?.status,
+      'mathematically_valid_but_inefficient',
+    );
     expect(response.verification?.verified, isTrue);
     expect(response.verification?.normalizedExpression, 'x = 5');
   });
@@ -141,6 +335,7 @@ void main() {
 
     for (final state in states) {
       final response = VisualTutorTurnResponseModel.fromJson({
+        'api_compatibility_version': 0,
         'session_id': 'session-$state',
         'turn_id': 'turn-$state',
         'screen_state': state,
@@ -175,6 +370,7 @@ void main() {
 
   test('missing optional fields are handled safely', () {
     final response = VisualTutorTurnResponseModel.fromJson({
+      'api_compatibility_version': 0,
       'session_id': 'session-2',
       'turn_id': 'turn-2',
       'spoken_text': 'Try a hint.',
@@ -285,3 +481,54 @@ void main() {
     },
   );
 }
+
+Map<String, dynamic> _compactPublicTurn() => {
+  'schema_version': 1,
+  'session_id': 'session-public',
+  'turn_id': 'turn-public',
+  'board_version': 4,
+  'tutor_status': 'Waiting for you',
+  'teaching_plan': {
+    'schema_version': 1,
+    'representation': 'equation_transformation',
+    'learning_objective': 'Use an inverse operation.',
+    'teaching_message': 'Balance both sides.',
+    'visible_board_actions': [
+      {
+        'id': 'equation',
+        'type': 'write_equation',
+        'sequence_index': 0,
+        'latex': '2x - 5 = 20',
+      },
+    ],
+    'active_student_task': {
+      'id': 'task',
+      'type': 'student_task',
+      'sequence_index': 1,
+      'text': 'What operation cancels -5?',
+      'requires_student_response': true,
+      'task_type': 'conceptual_operation',
+      'accepted_answer_forms': ['operation words'],
+    },
+    'allowed_student_actions': ['submit_answer', 'request_hint'],
+    'hidden_answer_policy': {
+      'mode': 'hidden',
+      'deterministic_policy_permits_final_reveal': false,
+    },
+    'next_state_policy': {
+      'correct': 'continue',
+      'invalid': 'reteach',
+      'incomplete': 'ask_for_work',
+      'stuck': 'reteach',
+      'hint': 'ask_for_work',
+      'explain_differently': 'reteach',
+    },
+  },
+  'verification': {
+    'status': 'cannot_verify',
+    'verified': false,
+    'concise_evidence': 'No submitted step yet.',
+    'student_facing_feedback': 'Submit your next step.',
+  },
+  'recovery': {'state': 'ready'},
+};

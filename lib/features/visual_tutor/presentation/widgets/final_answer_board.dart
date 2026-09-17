@@ -34,11 +34,11 @@ class FinalAnswerBoard extends StatelessWidget {
     final formula =
         summary['key_formula']?.toString() ??
         _value(metadata, 'key_formula') ??
-        '∫u dv = uv - ∫v du';
+        '';
     final rule =
         summary['applied_rule']?.toString() ??
         _value(metadata, 'applied_rule') ??
-        'LIATE rule for selecting u.';
+        '';
     final workedSolution = _workedSolution(metadata);
     final masteryMessage =
         _value(metadata, 'mastery_message') ??
@@ -253,9 +253,12 @@ class FinalAnswerBoard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  _SummaryRow(label: 'Key Formula:', value: formula),
-                  const SizedBox(height: 4),
-                  _SummaryRow(label: 'Applied:', value: rule),
+                  if (formula.isNotEmpty) ...[
+                    _SummaryRow(label: 'Key Formula:', value: formula),
+                    const SizedBox(height: 4),
+                  ],
+                  if (rule.isNotEmpty)
+                    _SummaryRow(label: 'Applied:', value: rule),
                 ],
               ),
             ),

@@ -3,41 +3,47 @@ import 'package:ai_tutor/features/quizzes/quiz_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('targeted practice uses an injected repository and preserves tutor context', () async {
-    final repository = _FakeQuizRepository();
+  test(
+    'targeted practice uses an injected repository and preserves tutor context',
+    () async {
+      final repository = _FakeQuizRepository();
 
-    final quiz = await repository.loadTopicQuiz(
-      subjectId: 'math',
-      topicId: 'linear-equations',
-      gradeLevelId: 'grade-10',
-      tutorSessionId: 'session-1',
-      skillTags: const ['inverse_operations'],
-      verificationResults: const ['invalid'],
-      hintCount: 2,
-    );
+      final quiz = await repository.loadTopicQuiz(
+        subjectId: 'math',
+        topicId: 'linear-equations',
+        gradeLevelId: 'grade-10',
+        tutorSessionId: 'session-1',
+        skillTags: const ['inverse_operations'],
+        verificationResults: const ['invalid'],
+        hintCount: 2,
+      );
 
-    expect(quiz.quizId, 'practice-session-1');
-    expect(repository.requestedSessionId, 'session-1');
-    expect(repository.requestedVerificationResults, ['invalid']);
-  });
+      expect(quiz.quizId, 'practice-session-1');
+      expect(repository.requestedSessionId, 'session-1');
+      expect(repository.requestedVerificationResults, ['invalid']);
+    },
+  );
 
-  test('practice answers are submitted through the injected repository', () async {
-    final repository = _FakeQuizRepository();
-    final result = await repository.submitAnswers(
-      quizId: 'practice-session-1',
-      answers: const [
-        QuizAnswerSubmissionEntity(
-          questionId: 'practice-q1',
-          selectedOptionId: 'a',
-          answer: 'Subtract 5 from both sides',
-        ),
-      ],
-    );
+  test(
+    'practice answers are submitted through the injected repository',
+    () async {
+      final repository = _FakeQuizRepository();
+      final result = await repository.submitAnswers(
+        quizId: 'practice-session-1',
+        answers: const [
+          QuizAnswerSubmissionEntity(
+            questionId: 'practice-q1',
+            selectedOptionId: 'a',
+            answer: 'Subtract 5 from both sides',
+          ),
+        ],
+      );
 
-    expect(repository.submittedQuizId, 'practice-session-1');
-    expect(result.correctCount, 1);
-    expect(result.answers.single.feedback, 'Correct.');
-  });
+      expect(repository.submittedQuizId, 'practice-session-1');
+      expect(result.correctCount, 1);
+      expect(result.answers.single.feedback, 'Correct.');
+    },
+  );
 }
 
 class _FakeQuizRepository implements QuizRepository {
@@ -80,7 +86,11 @@ class _FakeQuizRepository implements QuizRepository {
           'question_text': 'What operation removes +5?',
           'question_type': 'multiple_choice',
           'options': [
-            {'option_id': 'a', 'label': 'A', 'text': 'Subtract 5 from both sides'},
+            {
+              'option_id': 'a',
+              'label': 'A',
+              'text': 'Subtract 5 from both sides',
+            },
           ],
         },
       ],

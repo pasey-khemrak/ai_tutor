@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../core/app_theme_controller.dart';
 import '../core/config/app_config.dart';
@@ -30,7 +31,12 @@ class AiTutorApp extends StatelessWidget {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: const [AppLocalizationsDelegate()],
+          localizationsDelegates: const [
+            AppLocalizationsDelegate(),
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           initialRoute: routeGuard.resolveInitialRoute(),
           onGenerateRoute: (settings) {
             return AppRoutes.onGenerateRoute(settings, guard: routeGuard);

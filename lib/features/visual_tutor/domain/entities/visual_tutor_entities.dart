@@ -50,6 +50,10 @@ class VisualTutorSessionEntity {
 
 class VisualTutorTurnStateEntity {
   const VisualTutorTurnStateEntity({
+    this.problemInstanceId,
+    this.lessonId,
+    this.activeStepId,
+    this.expectedStudentActionId,
     this.problemText,
     this.normalizedProblem,
     this.currentStepIndex = 0,
@@ -59,6 +63,10 @@ class VisualTutorTurnStateEntity {
     this.studentSubmittedStep = false,
   });
 
+  final String? problemInstanceId;
+  final String? lessonId;
+  final String? activeStepId;
+  final String? expectedStudentActionId;
   final String? problemText;
   final String? normalizedProblem;
   final int currentStepIndex;
@@ -77,6 +85,7 @@ class VisualTutorTurnRequestEntity {
     this.message = '',
     this.inputType = 'text',
     this.locale,
+    this.languageMode = 'english',
     this.action = 'submit_problem',
     this.studentIntent,
     this.currentState = const VisualTutorTurnStateEntity(),
@@ -94,6 +103,9 @@ class VisualTutorTurnRequestEntity {
   final String message;
   final String inputType;
   final String? locale;
+
+  /// `khmer`, `english`, or `bilingual`; math notation is not translated.
+  final String languageMode;
   final String action;
   final String? studentIntent;
   final VisualTutorTurnStateEntity currentState;
@@ -102,6 +114,67 @@ class VisualTutorTurnRequestEntity {
   final bool allowFinalAnswer;
   final String? idempotencyKey;
   final Map<String, dynamic> metadata;
+}
+
+/// One renderer-ready step returned by the subject-expert teaching endpoint.
+class VisualTutorStepEntity {
+  const VisualTutorStepEntity({
+    required this.stepId,
+    required this.visualizationType,
+    required this.content,
+    required this.studentQuestion,
+    required this.studentQuestionKhmer,
+    required this.expectedResponseType,
+  });
+
+  final String stepId;
+  final String visualizationType;
+  final Map<String, dynamic> content;
+  final String studentQuestion;
+  final String studentQuestionKhmer;
+  final String expectedResponseType;
+}
+
+class VisualTutorStepTurnRequestEntity {
+  const VisualTutorStepTurnRequestEntity({
+    required this.userId,
+    required this.sessionId,
+    required this.subject,
+    this.stepId,
+    this.message = '',
+    this.action = 'submit',
+    this.metadata = const {},
+  });
+
+  final String userId;
+  final String sessionId;
+  final String subject;
+  final String? stepId;
+  final String message;
+  final String action;
+  final Map<String, dynamic> metadata;
+}
+
+class VisualTutorStepTurnResponseEntity {
+  const VisualTutorStepTurnResponseEntity({
+    required this.sessionId,
+    required this.subject,
+    required this.currentStepIndex,
+    required this.totalSteps,
+    required this.currentStep,
+    required this.teachingSequence,
+    required this.recommendedAction,
+    this.evaluation,
+  });
+
+  final String sessionId;
+  final String subject;
+  final int currentStepIndex;
+  final int totalSteps;
+  final VisualTutorStepEntity currentStep;
+  final List<VisualTutorStepEntity> teachingSequence;
+  final String recommendedAction;
+  final Map<String, dynamic>? evaluation;
 }
 
 class VisualTutorSessionCreateRequestEntity {
@@ -276,6 +349,8 @@ class VisualTutorBoardActionEntity {
     this.requiresStudentResponse = false,
     this.groupId,
     this.sectionId,
+    this.layoutZone,
+    this.layoutFlow,
     this.x,
     this.y,
     this.width,
@@ -300,6 +375,11 @@ class VisualTutorBoardActionEntity {
   final bool requiresStudentResponse;
   final String? groupId;
   final String? sectionId;
+
+  /// Semantic placement chosen by the teaching plan. Flutter resolves the
+  /// physical coordinates for new actions; null keeps legacy x/y sessions.
+  final String? layoutZone;
+  final String? layoutFlow;
   final double? x;
   final double? y;
   final double? width;
@@ -326,6 +406,8 @@ class VisualTutorBoardActionEntity {
     bool? requiresStudentResponse,
     String? groupId,
     String? sectionId,
+    String? layoutZone,
+    String? layoutFlow,
     double? x,
     double? y,
     double? width,
@@ -351,6 +433,8 @@ class VisualTutorBoardActionEntity {
           requiresStudentResponse ?? this.requiresStudentResponse,
       groupId: groupId ?? this.groupId,
       sectionId: sectionId ?? this.sectionId,
+      layoutZone: layoutZone ?? this.layoutZone,
+      layoutFlow: layoutFlow ?? this.layoutFlow,
       x: x ?? this.x,
       y: y ?? this.y,
       width: width ?? this.width,
@@ -463,6 +547,8 @@ class VisualTutorCurriculumMetadata {
     this.formulas = const [],
     this.commonMisconceptions = const [],
     this.khmerTerms = const {},
+    this.glossarySets = const [],
+    this.glossaryGaps = const [],
   });
 
   final Object? context;
@@ -473,4 +559,8 @@ class VisualTutorCurriculumMetadata {
   final List<String> formulas;
   final List<String> commonMisconceptions;
   final Map<String, String> khmerTerms;
+  /// Provenance-only identifiers for approved Khmer terminology. The app does
+  /// not attempt to translate a missing term itself.
+  final List<Object> glossarySets;
+  final List<String> glossaryGaps;
 }

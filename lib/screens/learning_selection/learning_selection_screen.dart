@@ -65,7 +65,8 @@ class _LearningSelectionContent extends StatefulWidget {
 class _LearningSelectionContentState extends State<_LearningSelectionContent> {
   late int _selectedGrade = widget.data.grades.first;
   late String _selectedSubject = widget.data.subjects.first.name;
-  late String _selectedTopic = widget.data.subjects.first.topics.first;
+  late String _selectedTopic =
+      widget.data.subjects.first.topicsForGrade(_selectedGrade).first;
 
   LearningSubject get _currentSubject {
     return widget.data.subjects.firstWhere(
@@ -81,7 +82,17 @@ class _LearningSelectionContentState extends State<_LearningSelectionContent> {
     );
     setState(() {
       _selectedSubject = subject.name;
-      _selectedTopic = subject.topics.first;
+      _selectedTopic = subject.topicsForGrade(_selectedGrade).first;
+    });
+  }
+
+  List<String> get _currentTopics => _currentSubject.topicsForGrade(_selectedGrade);
+
+  void _selectGrade(int grade) {
+    final topics = _currentSubject.topicsForGrade(grade);
+    setState(() {
+      _selectedGrade = grade;
+      _selectedTopic = topics.first;
     });
   }
 
@@ -134,7 +145,7 @@ class _LearningSelectionContentState extends State<_LearningSelectionContent> {
                     key: Key('grade-$grade-option'),
                     label: 'Grade $grade',
                     selected: _selectedGrade == grade,
-                    onTap: () => setState(() => _selectedGrade = grade),
+                    onTap: () => _selectGrade(grade),
                   ),
               ],
             ),
@@ -161,7 +172,7 @@ class _LearningSelectionContentState extends State<_LearningSelectionContent> {
               spacing: 10,
               runSpacing: 10,
               children: [
-                for (final topic in _currentSubject.topics)
+                for (final topic in _currentTopics)
                   _ChoicePill(
                     key: Key('topic-$topic-option'),
                     label: topic,

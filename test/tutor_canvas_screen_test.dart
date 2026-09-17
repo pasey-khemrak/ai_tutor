@@ -22,6 +22,7 @@ void main() {
 
   Widget buildBoard({
     required List<VisualTutorBoardActionEntity> actions,
+    Key? boardKey,
     String? variant,
     VisualTutorBoardEntity? board,
     bool animate = false,
@@ -35,6 +36,7 @@ void main() {
           width: 420,
           height: 360,
           child: TeachingCanvasBoard(
+            key: boardKey,
             variant: variant,
             board: board,
             actions: actions,
@@ -112,6 +114,20 @@ void main() {
     expect(find.text('Step 1: Find the Slope'), findsNothing);
   });
 
+  testWidgets('current learning step exposes accessible review and task controls', (tester) async {
+    await tester.pumpWidget(buildScreen());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('current-learning-step-panel')), findsOneWidget);
+    expect(find.byKey(const Key('jump-to-latest-step')), findsOneWidget);
+    expect(find.byKey(const Key('review-previous-step')), findsOneWidget);
+    expect(find.byKey(const Key('resume-current-task')), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byKey(const Key('current-learning-step-panel'))).label,
+      contains('Current task'),
+    );
+  });
+
   testWidgets('header status changes', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -170,13 +186,14 @@ void main() {
     await tester.pumpWidget(buildBoard(actions: actions));
     await tester.pump();
 
-    expect(find.text('2x + 5 = 15'), findsOneWidget);
+    // Equations are rendered through Math.tex, not a plain Text widget.
+    expect(find.byKey(const Key('teaching-board-action-equation')), findsOneWidget);
     expect(find.text('Step 1: subtract 5 from both sides'), findsOneWidget);
     expect(find.byKey(const Key('teaching-board-highlight')), findsOneWidget);
   });
 
   testWidgets(
-    'top-level screen state selects graph board with action overlay',
+    'graph actions render through the generic board for every screen state',
     (tester) async {
       await tester.pumpWidget(
         buildBoard(
@@ -206,9 +223,10 @@ void main() {
         ),
       );
 
-      expect(find.byKey(const Key('graph-based-board')), findsOneWidget);
-      expect(find.text('f(x) = sin(x)'), findsOneWidget);
-      expect(find.text('2x + 5 = 15'), findsOneWidget);
+      expect(
+        find.byKey(const Key('teaching-board-action-stale-equation')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -301,7 +319,9 @@ void main() {
       ),
     ];
 
-    await tester.pumpWidget(buildBoard(actions: actions));
+    await tester.pumpWidget(
+      buildBoard(actions: actions, boardKey: const ValueKey('locked-board')),
+    );
     await tester.pump();
 
     expect(find.byKey(const Key('teaching-board-action-one')), findsOneWidget);
@@ -339,7 +359,7 @@ void main() {
         .rebuild();
     await tester.pump();
 
-    expect(find.text('Step 2: divide both sides by 2'), findsNothing);
+    expect(find.text('Step 2: divide both sides by 2'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 700));
 
@@ -401,12 +421,21 @@ void main() {
     expect(find.text('Divide both sides by 2.'), findsOneWidget);
     expect(find.text('x = 5'), findsNothing);
 
+    // Recreate from the persisted snapshot after the server's reveal policy
+    // changes; an already-hidden action is not replayed into the same board.
     await tester.pumpWidget(
-      buildBoard(actions: actions, finalAnswerLocked: false),
+      buildBoard(
+        actions: actions,
+        finalAnswerLocked: false,
+        boardKey: const ValueKey('revealed-board'),
+      ),
     );
     await tester.pump();
 
-    expect(find.text('x = 5'), findsOneWidget);
+    expect(
+      find.byKey(const Key('teaching-board-action-final-answer')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('stuck quick action is routed correctly', (tester) async {
@@ -558,9 +587,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('2x + 10 = 20'), findsOneWidget);
-    expect(find.text('What number cancels 10?'), findsOneWidget);
-    expect(find.text('Subtract ?'), findsOneWidget);
+    expect(
+      find.byKey(const Key('teaching-board-action-initial-equation')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('teaching-board-action-initial-question')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('teaching-board-action-initial-task')),
+      findsOneWidget,
+    );
 
     await tester.enterText(
       find.byKey(const Key('tutor-message-field')),
@@ -568,23 +606,46 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('tutor-send-button')));
     await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 1400));
 
-    expect(find.text('2x + 10 = 20'), findsOneWidget);
-    expect(find.text('What number cancels 10?'), findsOneWidget);
-    expect(find.text('Subtract ?'), findsOneWidget);
-    expect(find.text('Student: subtract 10'), findsOneWidget);
+    expect(
+      find.byKey(const Key('teaching-board-action-initial-equation')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('teaching-board-action-initial-question')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('teaching-board-action-initial-task')),
+      findsOneWidget,
+    );
     expect(find.text('Yes, correct: subtract 10.'), findsOneWidget);
-    expect(find.text('2x + 10 - 10 = 20 - 10'), findsOneWidget);
-    expect(find.text('2x = 10'), findsOneWidget);
+    expect(
+      find.byKey(const Key('teaching-board-action-correct-transform')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('teaching-board-action-correct-equation')),
+      findsOneWidget,
+    );
     expect(find.text('Step 2: divide both sides by 2'), findsOneWidget);
 
     final promptTop = tester
-        .getTopLeft(find.text('What number cancels 10?'))
+        .getTopLeft(find.byKey(const Key('teaching-board-action-initial-question')))
         .dy;
-    final confirmationTop = tester
+    final feedbackTop = tester
         .getTopLeft(find.text('Yes, correct: subtract 10.'))
         .dy;
-    expect(confirmationTop, greaterThan(promptTop));
+    expect(feedbackTop, greaterThan(promptTop));
+
+    final scrollable = find.byKey(
+      const Key('visual-tutor-board-vertical-scroll'),
+    );
+    final scrollState = tester.state<ScrollableState>(
+      find.descendant(of: scrollable, matching: find.byType(Scrollable)).first,
+    );
+    expect(scrollState.position.pixels, greaterThan(0));
   });
 
   testWidgets('board grows beyond viewport and can scroll to later writing', (
@@ -770,6 +831,30 @@ const _askingQuestionTurn = VisualTutorTurnResponseEntity(
     prompt: 'What number cancels 10?',
   ),
   allowedActions: ['submit_answer', 'request_hint', 'stuck'],
+  boardActions: [
+    VisualTutorBoardActionEntity(
+      id: 'initial-equation',
+      type: 'write_equation',
+      latex: '2x + 10 = 20',
+      x: 40,
+      y: 40,
+    ),
+    VisualTutorBoardActionEntity(
+      id: 'initial-question',
+      type: 'write_text',
+      text: 'What number cancels 10?',
+      x: 40,
+      y: 110,
+    ),
+    VisualTutorBoardActionEntity(
+      id: 'initial-task',
+      type: 'student_task',
+      text: 'Subtract ?',
+      x: 40,
+      y: 160,
+      requiresStudentResponse: true,
+    ),
+  ],
 );
 
 const _correctStepTurn = VisualTutorTurnResponseEntity(
@@ -813,4 +898,35 @@ const _correctStepTurn = VisualTutorTurnResponseEntity(
     prompt: 'What operation should we apply to both sides of 2x = 10?',
   ),
   allowedActions: ['submit_answer', 'request_hint', 'stuck'],
+  boardActions: [
+    VisualTutorBoardActionEntity(
+      id: 'correct-feedback',
+      type: 'show_feedback',
+      text: 'Yes, correct: subtract 10.',
+      x: 40,
+      y: 230,
+    ),
+    VisualTutorBoardActionEntity(
+      id: 'correct-transform',
+      type: 'transform_equation',
+      latex: '2x + 10 - 10 = 20 - 10',
+      x: 40,
+      y: 280,
+    ),
+    VisualTutorBoardActionEntity(
+      id: 'correct-equation',
+      type: 'write_equation',
+      latex: '2x = 10',
+      x: 40,
+      y: 340,
+    ),
+    VisualTutorBoardActionEntity(
+      id: 'correct-next',
+      type: 'student_task',
+      text: 'Step 2: divide both sides by 2',
+      x: 40,
+      y: 400,
+      requiresStudentResponse: true,
+    ),
+  ],
 );

@@ -52,6 +52,39 @@ class ApiClient {
     return _decodeObject(response);
   }
 
+  /// Opens an authenticated SSE response. Callers own cancellation by
+  /// cancelling their StreamSubscription; no token is ever put in a URL.
+  Future<http.StreamedResponse> postStream(
+    String path, {
+    Object? body,
+    String? lastEventId,
+  }) async {
+    final request = http.Request('POST', config.backendUri(path));
+    request.headers.addAll({
+      ...await _headers(),
+      'Accept': 'text/event-stream',
+      if (lastEventId != null && lastEventId.isNotEmpty)
+        'Last-Event-ID': lastEventId,
+    });
+    if (body != null) request.body = jsonEncode(body);
+    final response = await _httpClient.send(request);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final text = await response.stream.bytesToString();
+      Object? decoded;
+      try {
+        decoded = text.isEmpty ? null : jsonDecode(text);
+      } catch (_) {
+        decoded = null;
+      }
+      throw ApiException(
+        message: _extractErrorMessage(decoded) ?? 'Could not open tutor stream.',
+        statusCode: response.statusCode,
+        body: decoded,
+      );
+    }
+    return response;
+  }
+
   Future<Map<String, dynamic>> postBytes(
     String path, {
     required Uint8List bytes,

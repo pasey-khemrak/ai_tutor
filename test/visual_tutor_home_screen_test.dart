@@ -10,7 +10,7 @@ void main() {
     VoidCallback? onVoiceInput,
     VoidCallback? onStuck,
     VoidCallback? onScanProblem,
-    ValueChanged<LearningContext>? onContinueLearning,
+    VoidCallback? onOpenLessons,
   }) {
     return MaterialApp(
       theme: AppTheme.dark(),
@@ -21,7 +21,8 @@ void main() {
           onVoiceInput: onVoiceInput ?? () {},
           onStuck: onStuck ?? () {},
           onScanProblem: onScanProblem ?? () {},
-          onContinueLearning: onContinueLearning ?? (_) {},
+          onContinueLearning: (_) {},
+          onOpenLessons: onOpenLessons ?? () {},
         ),
       ),
     );
@@ -40,8 +41,7 @@ void main() {
     expect(find.byKey(const Key('voice-input-card')), findsOneWidget);
     expect(find.byKey(const Key('visual-tutor-stuck-card')), findsOneWidget);
     expect(find.text('Continue Learning'), findsOneWidget);
-    expect(find.text('Quadratic Equations'), findsOneWidget);
-    expect(find.text('Organic Chemistry'), findsOneWidget);
+    expect(find.text('Browse published lessons'), findsOneWidget);
   });
 
   testWidgets('action cards call navigation callbacks', (tester) async {
@@ -49,7 +49,7 @@ void main() {
     var voice = false;
     var stuck = false;
     var scanned = false;
-    LearningContext? continued;
+    var openedLessons = false;
 
     await tester.pumpWidget(
       buildScreen(
@@ -57,7 +57,7 @@ void main() {
         onVoiceInput: () => voice = true,
         onStuck: () => stuck = true,
         onScanProblem: () => scanned = true,
-        onContinueLearning: (context) => continued = context,
+        onOpenLessons: () => openedLessons = true,
       ),
     );
 
@@ -70,15 +70,15 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('start-live-help-button')));
     await tester.tap(find.byKey(const Key('start-live-help-button')));
     await tester.ensureVisible(
-      find.byKey(const Key('continue-quadratic-equations')),
+      find.byKey(const Key('tutor-open-lessons-prompt')),
     );
-    await tester.tap(find.byKey(const Key('continue-quadratic-equations')));
+    await tester.tap(find.byKey(const Key('tutor-open-lessons-prompt')));
 
     expect(typed, isTrue);
     expect(voice, isTrue);
     expect(scanned, isTrue);
     expect(stuck, isTrue);
-    expect(continued?.topic, 'Quadratic Equations');
+    expect(openedLessons, isTrue);
   });
 
   testWidgets('Visual Tutor home has no mobile overflow', (tester) async {

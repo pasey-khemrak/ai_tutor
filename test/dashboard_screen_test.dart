@@ -27,10 +27,18 @@ const _dashboardFixture = StudentDashboardData(
   resumeTitle: 'Linear Equations',
   resumeSubtitle: 'Continue your guided tutor session',
   recentActivity: [
-    DashboardActivity(title: 'Solved a linear equation', subtitle: '2x + 5 = 15', timeLabel: 'Today'),
+    DashboardActivity(
+      title: 'Solved a linear equation',
+      subtitle: '2x + 5 = 15',
+      timeLabel: 'Today',
+    ),
   ],
   subjectProgress: [
-    SubjectProgress(subject: 'Mathematics', topic: 'Linear Equations', progress: .72),
+    SubjectProgress(
+      subject: 'Mathematics',
+      topic: 'Linear Equations',
+      progress: .72,
+    ),
   ],
   weakTopic: WeakTopic(
     title: 'Slope from two points',
@@ -58,13 +66,11 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Welcome back, Khemrak'), findsOneWidget);
-    expect(find.text('Grade 10'), findsOneWidget);
-    expect(find.text('Mathematics'), findsWidgets);
-    expect(find.text('4 days'), findsOneWidget);
-    expect(find.text('Recent activity'), findsOneWidget);
-    expect(find.text('Subject progress'), findsOneWidget);
-    expect(find.text('Slope from two points'), findsOneWidget);
+    expect(find.text('Hello, Khemrak 👋'), findsOneWidget);
+    expect(find.textContaining('Grade 10'), findsOneWidget);
+    expect(find.text('4 Days'), findsOneWidget);
+    expect(find.text('Continue Learning'), findsOneWidget);
+    expect(find.text('Daily Practice'), findsOneWidget);
   });
 
   testWidgets('dashboard loads backend progress summary data', (tester) async {
@@ -143,13 +149,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome back, Dara'), findsOneWidget);
-    expect(find.text('Grade 11'), findsOneWidget);
-    expect(find.text('Physics, English'), findsOneWidget);
-    expect(find.text('5 days'), findsOneWidget);
-    expect(find.text('Linear Equations'), findsWidgets);
-    expect(find.text('Slope'), findsWidgets);
-    expect(find.text('Started tutor session'), findsOneWidget);
+    expect(find.text('Hello, Dara 👋'), findsOneWidget);
+    expect(find.textContaining('Grade 11'), findsOneWidget);
+    expect(find.text('5 Days'), findsOneWidget);
+    expect(find.text('Daily Practice'), findsOneWidget);
     client.close();
   });
 
@@ -164,12 +167,50 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('No learning activity yet'), findsOneWidget);
+    expect(find.text('Your learning space is ready'), findsOneWidget);
     expect(
       find.text('Start a tutor session to see your progress here.'),
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'dashboard gives incomplete learners a clear profile recovery action',
+    (tester) async {
+      var openedProfileSetup = false;
+      const incomplete = StudentDashboardData(
+        studentName: 'Dara',
+        gradeLabel: 'Not selected',
+        subjects: [],
+        learningStreakDays: 0,
+        recentActivity: [],
+        subjectProgress: [],
+        weakTopic: null,
+        resumeTitle: 'Start learning',
+        resumeSubtitle: 'Choose your learning preferences to begin.',
+      );
+
+      await tester.pumpWidget(
+        wrap(
+          DashboardScreen(
+            repository: const TestDashboardRepository(incomplete),
+            onResumeLearning: () {},
+            onCompleteProfile: () => openedProfileSetup = true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('dashboard-profile-completion-card')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const Key('dashboard-complete-profile-button')),
+      );
+      expect(openedProfileSetup, isTrue);
+    },
+  );
 
   testWidgets('resume learning without a persisted session opens tutor home', (
     tester,
@@ -185,8 +226,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome back, Khemrak'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('dashboard-resume-learning-button')));
+    expect(find.text('Hello, Khemrak 👋'), findsOneWidget);
+    final resume = find.byKey(const Key('dashboard-resume-learning-button'));
+    await tester.ensureVisible(resume);
+    await tester.tap(resume);
     await tester.pumpAndSettle();
 
     expect(resumed, isTrue);
@@ -206,4 +249,45 @@ void main() {
     expect(find.text('Could not load your dashboard.'), findsOneWidget);
     expect(find.byIcon(Icons.refresh), findsOneWidget);
   });
+
+  testWidgets(
+    'dashboard quick actions use callbacks and submit the typed question',
+    (tester) async {
+      String? submittedQuestion;
+      var scanned = false;
+      var voiced = false;
+      var dailyPractice = false;
+      await tester.pumpWidget(
+        wrap(
+          DashboardScreen(
+            repository: const TestDashboardRepository(_dashboardFixture),
+            onResumeLearning: () {},
+            onAskQuestion: (question) => submittedQuestion = question,
+            onScanQuestion: () => scanned = true,
+            onVoiceQuestion: () => voiced = true,
+            onStartDailyPractice: (_) => dailyPractice = true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('dashboard-question-field')),
+        'How do I solve 2x + 5 = 15?',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.tap(find.byKey(const Key('dashboard-scan-button')));
+      await tester.tap(find.byKey(const Key('dashboard-voice-button')));
+      final daily = find.byKey(
+        const Key('dashboard-start-daily-practice-button'),
+      );
+      await tester.ensureVisible(daily);
+      await tester.tap(daily);
+
+      expect(submittedQuestion, 'How do I solve 2x + 5 = 15?');
+      expect(scanned, isTrue);
+      expect(voiced, isTrue);
+      expect(dailyPractice, isTrue);
+    },
+  );
 }
