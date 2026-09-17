@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/responsive/app_breakpoints.dart';
 import '../board_pagination.dart';
 import '../visual_tutor_design.dart';
 
@@ -101,8 +102,7 @@ class BoardArrowButton extends StatelessWidget {
         tooltip: tooltip,
         iconSize: 20,
         padding: const EdgeInsets.all(6),
-        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-        visualDensity: VisualDensity.compact,
+        constraints: AppBreakpoints.touchTargetConstraints,
         icon: Icon(
           icon,
           color: enabled

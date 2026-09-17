@@ -15,6 +15,7 @@ import '../../core/config/app_config.dart';
 import '../../core/localization/app_language_controller.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/network/api_client.dart';
+import '../../core/responsive/app_breakpoints.dart';
 import '../../shared/language_switcher_button.dart';
 import '../../features/visual_tutor/data/datasources/visual_tutor_remote_data_source.dart';
 import '../../features/visual_tutor/data/client_telemetry.dart';
@@ -2279,76 +2280,172 @@ class _TutorScreenState extends State<TutorScreen> {
       color: VisualTutorColors.shell,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 720;
-          final compact = !wide;
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
-              child: Column(
-                children: [
-                  TutorPresenceBar(
-                    learningContext: widget.context,
-                    stageState: _currentTurn.teachingStage?.stageState,
-                    compact: compact,
-                    onHistoryTap: () =>
-                        setState(() => _showHistoryPanel = !_showHistoryPanel),
-                  ),
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: _teachingBoard(compact: compact),
-                        ),
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: _FloatingTutorControls(
-                            child: Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                wide ? 28 : 16,
-                                0,
-                                wide ? 28 : 16,
-                                16,
-                              ),
-                              child: Column(
-                                children: _lowerTutorControls(compact),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // ── Floating radial action button (right side) ──────
-                        Builder(
-                          builder: (ctx) {
-                            final items = _screenActionItems();
-                            if (items.isEmpty) return const SizedBox.shrink();
-                            return Positioned(
-                              right: wide ? 20 : 12,
-                              bottom: wide
-                                  ? 200
-                                  : 160, // Avoid overlapping the text input and step panel
-                              child: _FloatingRadialFab(
-                                key: const Key('floating-radial-fab'),
-                                items: items,
-                              ),
-                            );
-                          },
-                        ),
-                        if (_showHistoryPanel)
-                          Positioned.fill(
-                            child: _HistoryPanel(
-                              history: _history,
-                              onClose: () =>
-                                  setState(() => _showHistoryPanel = false),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+          final formFactor = AppBreakpoints.getFormFactor(constraints.maxWidth);
+          final isPhone = formFactor == DeviceFormFactor.phone;
+          final isDesktop = formFactor == DeviceFormFactor.desktop;
+          final compact = isPhone;
+          final fabItems = _screenActionItems();
+
+          final content = Column(
+            children: [
+              TutorPresenceBar(
+                learningContext: widget.context,
+                stageState: _currentTurn.teachingStage?.stageState,
+                compact: compact,
+                onHistoryTap: () =>
+                    setState(() => _showHistoryPanel = !_showHistoryPanel),
               ),
-            ),
+              Expanded(
+                child: isPhone
+                    ? Column(
+                        children: [
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: _teachingBoard(compact: true),
+                                ),
+                                if (fabItems.isNotEmpty)
+                                  Positioned(
+                                    right: 12,
+                                    bottom: 16,
+                                    child: _FloatingRadialFab(
+                                      key: const Key('floating-radial-fab'),
+                                      items: fabItems,
+                                    ),
+                                  ),
+                                if (_showHistoryPanel)
+                                  Positioned.fill(
+                                    child: _HistoryPanel(
+                                      history: _history,
+                                      onClose: () => setState(
+                                        () => _showHistoryPanel = false,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            key: const Key('tutor-phone-dock'),
+                            decoration: BoxDecoration(
+                              color: VisualTutorColors.shell,
+                              border: Border(
+                                top: BorderSide(
+                                  color: VisualTutorColors.cyan.withValues(
+                                    alpha: .18,
+                                  ),
+                                  width: 1,
+                                ),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: .4),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, -4),
+                                ),
+                              ],
+                            ),
+                            child: SafeArea(
+                              top: false,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  14,
+                                  8,
+                                  14,
+                                  12,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: _lowerTutorControls(true),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: _teachingBoard(compact: false),
+                                ),
+                                if (fabItems.isNotEmpty)
+                                  Positioned(
+                                    right: 16,
+                                    bottom: 24,
+                                    child: _FloatingRadialFab(
+                                      key: const Key('floating-radial-fab'),
+                                      items: fabItems,
+                                    ),
+                                  ),
+                                if (_showHistoryPanel)
+                                  Positioned.fill(
+                                    child: _HistoryPanel(
+                                      history: _history,
+                                      onClose: () => setState(
+                                        () => _showHistoryPanel = false,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            key: const Key('tutor-side-panel'),
+                            width: isDesktop
+                                ? AppBreakpoints.sidePanelWidthDesktop
+                                : AppBreakpoints.sidePanelWidthTablet,
+                            decoration: BoxDecoration(
+                              color: VisualTutorColors.shell,
+                              border: Border(
+                                left: BorderSide(
+                                  color: VisualTutorColors.cyan.withValues(
+                                    alpha: .2,
+                                  ),
+                                  width: 1.2,
+                                ),
+                              ),
+                            ),
+                            child: SafeArea(
+                              top: false,
+                              child: Scrollbar(
+                                child: SingleChildScrollView(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    12,
+                                    16,
+                                    20,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: _lowerTutorControls(false),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
           );
+
+          if (isDesktop) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: AppBreakpoints.maxContentWidthDesktop,
+                ),
+                child: content,
+              ),
+            );
+          }
+
+          return content;
         },
       ),
     );
@@ -3504,31 +3601,6 @@ class TutorPresenceBar extends StatelessWidget {
       'listening' => const _TutorStatusText('Listening...', 'កំពុងស្តាប់...'),
       _ => const _TutorStatusText('Waiting for you', 'រង់ចាំអ្នក'),
     };
-  }
-}
-
-class _FloatingTutorControls extends StatelessWidget {
-  const _FloatingTutorControls({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            VisualTutorColors.shell.withValues(alpha: 0),
-            VisualTutorColors.shell.withValues(alpha: .88),
-            VisualTutorColors.shell,
-          ],
-          stops: const [0, .15, .35],
-        ),
-      ),
-      child: SafeArea(top: false, child: child),
-    );
   }
 }
 
@@ -4850,7 +4922,7 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
           // InteractiveViewer swallow the taps and the switcher would pan away
           // with the board.
           Positioned(
-            top: MediaQuery.sizeOf(context).width < 430 ? 56 : 8,
+            top: AppBreakpoints.isPhone(context) ? 56 : 8,
             left: 8,
             child: _StudentBoardControls(
               drawingMode: _drawingMode,
@@ -4968,7 +5040,7 @@ class _BoardPlaybackControls extends StatelessWidget {
             tooltip: l10n.replayBoard,
             icon: const Icon(Icons.replay_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            visualDensity: VisualDensity.compact,
+            constraints: AppBreakpoints.touchTargetConstraints,
             onPressed: reducedMotion ? null : onReplay,
           ),
           IconButton(
@@ -4976,7 +5048,7 @@ class _BoardPlaybackControls extends StatelessWidget {
             tooltip: l10n.jumpToCurrentStep,
             icon: const Icon(Icons.my_location_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            visualDensity: VisualDensity.compact,
+            constraints: AppBreakpoints.touchTargetConstraints,
             onPressed: onJumpToCurrentStep,
           ),
           Semantics(
@@ -4991,7 +5063,7 @@ class _BoardPlaybackControls extends StatelessWidget {
                   size: 18,
                 ),
                 color: VisualTutorColors.cyan,
-                visualDensity: VisualDensity.compact,
+                constraints: AppBreakpoints.touchTargetConstraints,
                 onPressed: reducedMotion ? null : onTogglePlayback,
               ),
             ),
@@ -5088,7 +5160,7 @@ class _StudentBoardControls extends StatelessWidget {
             tooltip: l10n.resetBoardView,
             icon: const Icon(Icons.fit_screen_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            visualDensity: VisualDensity.compact,
+            constraints: AppBreakpoints.touchTargetConstraints,
             onPressed: onResetToFit,
           ),
           IconButton(
@@ -5100,7 +5172,7 @@ class _StudentBoardControls extends StatelessWidget {
               color: drawingMode ? VisualTutorColors.cyan : null,
             ),
             color: VisualTutorColors.cyan,
-            visualDensity: VisualDensity.compact,
+            constraints: AppBreakpoints.touchTargetConstraints,
             onPressed: onToggleDrawing,
           ),
           IconButton(
@@ -5112,7 +5184,7 @@ class _StudentBoardControls extends StatelessWidget {
               color: erasing ? VisualTutorColors.cyan : null,
             ),
             color: VisualTutorColors.cyan,
-            visualDensity: VisualDensity.compact,
+            constraints: AppBreakpoints.touchTargetConstraints,
             onPressed: onToggleErase,
           ),
           IconButton(
@@ -5120,7 +5192,7 @@ class _StudentBoardControls extends StatelessWidget {
             tooltip: l10n.undoInk,
             icon: const Icon(Icons.undo_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            visualDensity: VisualDensity.compact,
+            constraints: AppBreakpoints.touchTargetConstraints,
             onPressed: canUndo ? onUndo : null,
           ),
           IconButton(
@@ -5128,7 +5200,7 @@ class _StudentBoardControls extends StatelessWidget {
             tooltip: l10n.redoInk,
             icon: const Icon(Icons.redo_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            visualDensity: VisualDensity.compact,
+            constraints: AppBreakpoints.touchTargetConstraints,
             onPressed: canRedo ? onRedo : null,
           ),
           IconButton(
@@ -5136,7 +5208,7 @@ class _StudentBoardControls extends StatelessWidget {
             tooltip: l10n.clearInk,
             icon: const Icon(Icons.delete_outline_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            visualDensity: VisualDensity.compact,
+            constraints: AppBreakpoints.touchTargetConstraints,
             onPressed: canUndo ? onClear : null,
           ),
         ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/responsive/app_breakpoints.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/language_switcher_button.dart';
 import '../../shared/state_widgets/app_empty_state.dart';
@@ -158,7 +159,7 @@ class _DashboardContentState extends State<_DashboardContent> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final wide = constraints.maxWidth >= 760;
+      final wide = AppBreakpoints.isWide(constraints.maxWidth);
       final padding = wide ? 36.0 : 22.0;
       return SingleChildScrollView(
         key: const Key('dashboard-scroll-view'),
@@ -166,7 +167,7 @@ class _DashboardContentState extends State<_DashboardContent> {
         padding: EdgeInsets.fromLTRB(padding, 26, padding, 32),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
+            constraints: const BoxConstraints(maxWidth: AppBreakpoints.maxReadingWidth),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -439,7 +440,7 @@ class _AskAnythingCard extends StatelessWidget {
               label: 'Voice',
               onPressed: onVoice,
             );
-            return constraints.maxWidth < 400
+            return AppBreakpoints.isPhoneWidth(constraints.maxWidth)
                 ? Column(children: [ask, const SizedBox(height: 12), voice])
                 : Row(
                     children: [
@@ -616,10 +617,11 @@ class _Metrics extends StatelessWidget {
       ),
     ];
     return LayoutBuilder(
-      builder: (context, constraints) => constraints.maxWidth < 430
-          ? Column(
-              children: [cards.first, const SizedBox(height: 14), cards.last],
-            )
+      builder: (context, constraints) =>
+          AppBreakpoints.isPhoneWidth(constraints.maxWidth)
+              ? Column(
+                  children: [cards.first, const SizedBox(height: 14), cards.last],
+                )
           : Row(
               children: [
                 Expanded(child: cards.first),

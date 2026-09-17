@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/responsive/app_breakpoints.dart';
 import '../../shared/state_widgets/app_error_state.dart';
 import '../../shared/state_widgets/app_loading_state.dart';
 import '../../shared/student_design_system.dart';
@@ -143,7 +144,8 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen> {
             else
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final columns = constraints.maxWidth >= 820 ? 2 : 1;
+                  final columns =
+                      AppBreakpoints.isPhoneWidth(constraints.maxWidth) ? 1 : 2;
                   return GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),

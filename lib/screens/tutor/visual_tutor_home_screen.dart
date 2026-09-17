@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/localization/app_localizations.dart';
+import '../../core/responsive/app_breakpoints.dart';
 import '../../features/visual_tutor/presentation/visual_tutor_design.dart';
 import '../../features/visual_tutor/presentation/providers/step_board_provider.dart';
 import '../../features/visual_tutor/presentation/widgets/rich_media_canvas.dart';
@@ -43,7 +44,7 @@ class VisualTutorHomeScreen extends StatelessWidget {
         bottom: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final compact = constraints.maxWidth < 430;
+            final compact = AppBreakpoints.isPhoneWidth(constraints.maxWidth);
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 VisualTutorSpacing.xl,
@@ -51,9 +52,10 @@ class VisualTutorHomeScreen extends StatelessWidget {
                 VisualTutorSpacing.xl,
                 VisualTutorSpacing.xl,
               ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Column(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _VisualTutorHomeHeader(onBack: onBack),
@@ -85,6 +87,7 @@ class VisualTutorHomeScreen extends StatelessWidget {
                     _PublishedLessonsPrompt(onTap: onOpenLessons ?? onBack),
                   ],
                 ),
+              ),
               ),
             );
           },
