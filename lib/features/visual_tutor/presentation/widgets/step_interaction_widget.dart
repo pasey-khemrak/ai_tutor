@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/app_localizations.dart';
+
 /// Accessible response controls for a single Socratic teaching step.
 class StepInteractionWidget extends StatefulWidget {
   const StepInteractionWidget({
@@ -91,12 +93,12 @@ class _StepInteractionWidgetState extends State<StepInteractionWidget> {
             children: [
               TextButton(
                 onPressed: widget.isLoading ? null : widget.onHint,
-                child: const Text('Hint'),
+                child: Text(AppLocalizations.of(context).hint),
               ),
               const Spacer(),
               TextButton(
                 onPressed: widget.isLoading ? null : widget.onSkip,
-                child: const Text('Skip'),
+                child: Text(AppLocalizations.of(context).skip),
               ),
               const SizedBox(width: 8),
               FilledButton(
@@ -108,7 +110,7 @@ class _StepInteractionWidgetState extends State<StepInteractionWidget> {
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Submit'),
+                    : Text(AppLocalizations.of(context).submit),
               ),
             ],
           ),

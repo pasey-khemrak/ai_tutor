@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_localizations.dart';
 import '../../features/visual_tutor/presentation/visual_tutor_design.dart';
 import '../../features/visual_tutor/presentation/providers/step_board_provider.dart';
 import '../../features/visual_tutor/presentation/widgets/rich_media_canvas.dart';
 import '../../features/visual_tutor/presentation/widgets/step_interaction_widget.dart';
 import '../../features/visual_tutor/presentation/widgets/step_progress_indicator.dart';
+import '../../shared/language_switcher_button.dart';
 import '../../shared/rean_avatar.dart';
 import '../learning_selection/learning_selection_repository.dart';
 
@@ -33,6 +35,7 @@ class VisualTutorHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (stepBoard != null) return _StepTeachingHome(provider: stepBoard!);
+    final localizations = AppLocalizations.of(context);
     return ColoredBox(
       key: const Key('visual-tutor-home-screen'),
       color: VisualTutorColors.shell,
@@ -61,8 +64,8 @@ class VisualTutorHomeScreen extends StatelessWidget {
                       key: const Key('type-question-card'),
                       icon: Icons.keyboard_rounded,
                       iconBackground: VisualTutorColors.typeIconBackground,
-                      title: 'Type a Question',
-                      subtitle: 'សរសេរសំណួររបស់អ្នក',
+                      title: localizations.typeQuestionTitle,
+                      subtitle: localizations.typeQuestionSubtitle,
                       onTap: onTypeQuestion,
                     ),
                     const SizedBox(height: VisualTutorSpacing.md),
@@ -70,8 +73,8 @@ class VisualTutorHomeScreen extends StatelessWidget {
                       key: const Key('voice-input-card'),
                       icon: Icons.mic_rounded,
                       iconBackground: VisualTutorColors.voiceIconBackground,
-                      title: 'Voice Input',
-                      subtitle: 'ប្រើសំឡេងដើម្បីសួរ',
+                      title: localizations.voiceInputTitle,
+                      subtitle: localizations.voiceInputSubtitle,
                       onTap: onVoiceInput,
                     ),
                     const SizedBox(height: VisualTutorSpacing.xxl),
@@ -197,6 +200,7 @@ class _VisualTutorHomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Row(
       children: [
         SizedBox.square(
@@ -215,19 +219,24 @@ class _VisualTutorHomeHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: VisualTutorSpacing.md),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Rean AI Visual Tutor', style: VisualTutorTypography.header),
-              SizedBox(height: 3),
               Text(
-                'រៀនជាមួយគ្រូ AI',
+                localizations.visualTutorHeader,
+                style: VisualTutorTypography.header,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                localizations.tutorPresenceTitle,
                 style: VisualTutorTypography.khmerSubtitle,
               ),
             ],
           ),
         ),
+        const LanguageSwitcherButton(compact: true),
+        const SizedBox(width: VisualTutorSpacing.sm),
         const ReanAvatar(size: 52),
       ],
     );
@@ -239,6 +248,7 @@ class _WelcomePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Container(
       key: const Key('visual-tutor-welcome-panel'),
       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
@@ -260,14 +270,14 @@ class _WelcomePanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: VisualTutorSpacing.xl),
-          const Text(
-            'How can I help you\ntoday?',
+          Text(
+            localizations.howCanIHelpToday,
             textAlign: TextAlign.center,
             style: VisualTutorTypography.welcomeTitle,
           ),
           const SizedBox(height: VisualTutorSpacing.md),
-          const Text(
-            'តើខ្ញុំអាចជួយអ្នកបានយ៉ាងដូចម្តេច?',
+          Text(
+            localizations.howCanIHelpTodaySub,
             textAlign: TextAlign.center,
             style: VisualTutorTypography.khmerSubtitle,
           ),
@@ -284,6 +294,7 @@ class _StuckCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Container(
       key: const Key('visual-tutor-stuck-card'),
       padding: const EdgeInsets.all(VisualTutorSpacing.xl),
@@ -291,26 +302,27 @@ class _StuckCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: Text(
-                  "I'm Stuck!",
-                  style: TextStyle(
+                  localizations.imStuckTitle,
+                  style: const TextStyle(
                     color: VisualTutorColors.shell,
                     fontSize: 21,
                     fontWeight: FontWeight.w900,
+                    height: 1.35,
                     fontFamilyFallback: VisualTutorTypography.fontFallback,
                   ),
                 ),
               ),
-              Icon(Icons.menu_book_rounded, color: VisualTutorColors.shell),
+              const Icon(Icons.menu_book_rounded, color: VisualTutorColors.shell),
             ],
           ),
           const SizedBox(height: VisualTutorSpacing.md),
-          const Text(
-            'Get immediate step-by-step guidance on\nyour current lesson.',
-            style: TextStyle(
+          Text(
+            localizations.imStuckSubtitle,
+            style: const TextStyle(
               color: VisualTutorColors.shell,
               fontSize: 14,
               height: 1.45,
@@ -323,7 +335,7 @@ class _StuckCard extends StatelessWidget {
             key: const Key('start-live-help-button'),
             onPressed: onStart,
             style: VisualTutorButtonStyles.stuckCardCta(),
-            child: const Text('Start Live Help'),
+            child: Text(localizations.startLiveHelp),
           ),
         ],
       ),

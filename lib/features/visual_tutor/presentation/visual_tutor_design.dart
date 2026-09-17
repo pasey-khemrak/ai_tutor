@@ -78,7 +78,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.text,
     fontSize: 18,
     fontWeight: FontWeight.w900,
-    height: 1.15,
+    height: 1.40,
     fontFamilyFallback: fontFallback,
   );
 
@@ -86,7 +86,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.text,
     fontSize: 18,
     fontWeight: FontWeight.w900,
-    height: 1.2,
+    height: 1.40,
     fontFamilyFallback: fontFallback,
   );
 
@@ -94,7 +94,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.text,
     fontSize: 25,
     fontWeight: FontWeight.w900,
-    height: 1.1,
+    height: 1.35,
     fontFamilyFallback: fontFallback,
   );
 
@@ -102,7 +102,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.text,
     fontSize: 16,
     fontWeight: FontWeight.w900,
-    height: 1.25,
+    height: 1.40,
     fontFamilyFallback: fontFallback,
   );
 
@@ -110,7 +110,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.textMuted,
     fontSize: 12,
     fontWeight: FontWeight.w700,
-    height: 1.35,
+    height: 1.45,
     fontFamilyFallback: fontFallback,
   );
 
@@ -118,7 +118,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.text,
     fontSize: 15,
     fontWeight: FontWeight.w800,
-    height: 1.45,
+    height: 1.55,
     fontStyle: FontStyle.italic,
     fontFamilyFallback: fontFallback,
   );
@@ -127,7 +127,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.text,
     fontSize: 15,
     fontWeight: FontWeight.w900,
-    height: 1.35,
+    height: 1.50,
     fontFamilyFallback: fontFallback,
   );
 
@@ -135,7 +135,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.blackInk,
     fontSize: 28,
     fontWeight: FontWeight.w900,
-    height: 1.1,
+    height: 1.20,
     fontFamilyFallback: fontFallback,
   );
 
@@ -143,7 +143,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.blueInk,
     fontSize: 19,
     fontWeight: FontWeight.w800,
-    height: 1.15,
+    height: 1.45,
     fontStyle: FontStyle.italic,
     fontFamilyFallback: fontFallback,
   );
@@ -151,6 +151,7 @@ class VisualTutorTypography {
   static const quickAction = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w900,
+    height: 1.35,
     fontFamilyFallback: fontFallback,
   );
 
@@ -158,7 +159,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.cyan,
     fontSize: 12,
     fontWeight: FontWeight.w900,
-    height: 1.1,
+    height: 1.35,
     fontFamilyFallback: fontFallback,
   );
 
@@ -166,7 +167,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.boardTextMuted,
     fontSize: 14,
     fontWeight: FontWeight.w700,
-    height: 1.45,
+    height: 1.50,
     fontFamilyFallback: fontFallback,
   );
 
@@ -176,6 +177,7 @@ class VisualTutorTypography {
     fontSize: 11,
     fontWeight: FontWeight.w900,
     letterSpacing: 1.1,
+    height: 1.35,
     fontFamilyFallback: fontFallback,
   );
 
@@ -183,7 +185,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.text,
     fontSize: 17,
     fontWeight: FontWeight.w900,
-    height: 1.2,
+    height: 1.40,
     fontFamilyFallback: fontFallback,
   );
 
@@ -191,7 +193,7 @@ class VisualTutorTypography {
     color: Colors.white,
     fontSize: 17,
     fontWeight: FontWeight.w900,
-    height: 1.1,
+    height: 1.35,
     fontFamilyFallback: fontFallback,
   );
 
@@ -199,7 +201,7 @@ class VisualTutorTypography {
     color: VisualTutorColors.cyan,
     fontSize: 11,
     fontWeight: FontWeight.w700,
-    height: 1.3,
+    height: 1.40,
     fontFamilyFallback: fontFallback,
   );
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../shared/state_widgets/app_error_state.dart';
 import '../../shared/state_widgets/app_loading_state.dart';
 import '../../shared/student_design_system.dart';
@@ -79,13 +80,13 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const StudentSectionTitle('Lessons'),
+            StudentSectionTitle(AppLocalizations.of(context).navLessons),
             const SizedBox(height: StudentSpace.xs),
             Text(
               _repository is LocalDemoStudentLessonsRepository
                   ? 'Choose the local curriculum demo and learn with the visual tutor.'
-                  : 'Choose a published lesson, learn with the visual tutor, then practise.',
-              style: TextStyle(color: Color(0xFFB4BEF2), fontSize: 16),
+                  : AppLocalizations.of(context).publishedLessonsSubtitle,
+              style: const TextStyle(color: Color(0xFFB4BEF2), fontSize: 16),
             ),
             const SizedBox(height: StudentSpace.lg),
             TextField(
@@ -94,9 +95,9 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen> {
               onSubmitted: (_) => _reload(),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
-                hintText: 'Search lessons or topics',
+                hintText: AppLocalizations.of(context).searchLessonsHint,
                 suffixIcon: IconButton(
-                  tooltip: 'Search lessons',
+                  tooltip: AppLocalizations.of(context).searchLessonsHint,
                   onPressed: _reload,
                   icon: const Icon(Icons.arrow_forward),
                 ),
@@ -108,7 +109,7 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen> {
               child: Row(
                 children: [
                   ChoiceChip(
-                    label: const Text('All subjects'),
+                    label: Text(AppLocalizations.of(context).allSubjects),
                     selected: _subjectId == null,
                     onSelected: (_) {
                       setState(() => _subjectId = null);
@@ -179,7 +180,7 @@ class _NoPublishedLessons extends StatelessWidget {
         const Icon(Icons.menu_book_outlined, color: AppColors.cyan, size: 40),
         const SizedBox(height: 12),
         Text(
-          'No lessons are available yet',
+          AppLocalizations.of(context).noLessonsAvailable,
           style: TextStyle(
             color: AdaptiveColors.text(context),
             fontSize: 21,
@@ -190,10 +191,13 @@ class _NoPublishedLessons extends StatelessWidget {
         Text(
           message ??
               'Your school has not published a lesson for this selection. Try again later or ask your tutor a question.',
-          style: TextStyle(color: AppColors.muted),
+          style: const TextStyle(color: AppColors.muted),
         ),
         const SizedBox(height: 16),
-        OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
+        OutlinedButton(
+          onPressed: onRetry,
+          child: Text(AppLocalizations.of(context).retry),
+        ),
       ],
     ),
   );
@@ -290,7 +294,7 @@ class _LessonDetail extends StatelessWidget {
         TextButton.icon(
           onPressed: onBack,
           icon: const Icon(Icons.arrow_back),
-          label: const Text('All lessons'),
+          label: Text(AppLocalizations.of(context).allLessons),
         ),
         const SizedBox(height: StudentSpace.md),
         StudentCard(
@@ -345,7 +349,7 @@ class _LessonDetail extends StatelessWidget {
                         key: const Key('lesson-start-button'),
                         onPressed: onStart,
                         icon: const Icon(Icons.play_arrow),
-                        label: const Text('Start with Tutor'),
+                        label: Text(AppLocalizations.of(context).startWithTutor),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -353,7 +357,7 @@ class _LessonDetail extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: onPractice,
                         icon: const Icon(Icons.quiz_outlined),
-                        label: const Text('Practice'),
+                        label: Text(AppLocalizations.of(context).practice),
                       ),
                     ),
                   ],
@@ -363,7 +367,7 @@ class _LessonDetail extends StatelessWidget {
                   key: const Key('lesson-start-button'),
                   onPressed: onStart,
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text('Start with Tutor'),
+                  label: Text(AppLocalizations.of(context).startWithTutor),
                 ),
             ],
           ),

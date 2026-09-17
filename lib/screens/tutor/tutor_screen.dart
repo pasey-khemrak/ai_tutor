@@ -12,7 +12,10 @@ import 'package:audioplayers/audioplayers.dart';
 import '../../core/app_colors.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/config/app_config.dart';
+import '../../core/localization/app_language_controller.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../core/network/api_client.dart';
+import '../../shared/language_switcher_button.dart';
 import '../../features/visual_tutor/data/datasources/visual_tutor_remote_data_source.dart';
 import '../../features/visual_tutor/data/client_telemetry.dart';
 import '../../features/visual_tutor/data/voice_tutor_repository.dart';
@@ -221,7 +224,11 @@ class _TutorScreenState extends State<TutorScreen> {
       ? widget.context!.topic
       : null;
 
-  String get _requestLanguageMode => widget.context?.languageMode ?? 'english';
+  String get _requestLanguageMode {
+    final explicit = widget.context?.languageMode;
+    if (explicit != null && explicit.isNotEmpty) return explicit;
+    return AppLanguageController.isKhmer ? 'khmer' : 'english';
+  }
 
   bool get _isLocalCurriculumDemo => isLocalMvpLimitsScope(
     grade: widget.context?.grade ?? 0,
@@ -2973,7 +2980,7 @@ class _CurrentLearningStepPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'STEP $stepNumber · CURRENT',
+            AppLocalizations.of(context).stepCurrent(stepNumber),
             style: const TextStyle(
               color: VisualTutorColors.cyan,
               fontSize: 12,
@@ -2995,7 +3002,7 @@ class _CurrentLearningStepPanel extends StatelessWidget {
             Semantics(
               label: 'Current student task: $task',
               child: Text(
-                'Your task: $task',
+                AppLocalizations.of(context).yourTask(task),
                 style: const TextStyle(
                   color: VisualTutorColors.textSubtle,
                   fontWeight: FontWeight.w800,
@@ -3012,19 +3019,19 @@ class _CurrentLearningStepPanel extends StatelessWidget {
                 key: const Key('review-previous-step'),
                 onPressed: onReviewPrevious,
                 icon: const Icon(Icons.arrow_upward_rounded, size: 17),
-                label: const Text('Review previous'),
+                label: Text(AppLocalizations.of(context).reviewPrevious),
               ),
               TextButton.icon(
                 key: const Key('jump-to-latest-step'),
                 onPressed: onJumpToLatest,
                 icon: const Icon(Icons.south_rounded, size: 17),
-                label: const Text('Jump to latest'),
+                label: Text(AppLocalizations.of(context).jumpToLatest),
               ),
               TextButton.icon(
                 key: const Key('resume-current-task'),
                 onPressed: onResumeTask,
                 icon: const Icon(Icons.play_arrow_rounded, size: 17),
-                label: const Text('Resume task'),
+                label: Text(AppLocalizations.of(context).resumeTask),
               ),
             ],
           ),
@@ -3103,7 +3110,7 @@ class _CompactStepPanel extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            'STEP $stepNumber',
+                            AppLocalizations.of(context).stepNumber(stepNumber),
                             style: const TextStyle(
                               color: VisualTutorColors.cyan,
                               fontSize: 10,
@@ -3157,7 +3164,7 @@ class _CompactStepPanel extends StatelessWidget {
                       if (task.trim().isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(
-                          'Your task: $task',
+                          AppLocalizations.of(context).yourTask(task),
                           style: const TextStyle(
                             color: VisualTutorColors.textSubtle,
                             fontSize: 12,
@@ -3181,9 +3188,9 @@ class _CompactStepPanel extends StatelessWidget {
                               Icons.arrow_upward_rounded,
                               size: 14,
                             ),
-                            label: const Text(
-                              'Review previous',
-                              style: TextStyle(fontSize: 12),
+                            label: Text(
+                              AppLocalizations.of(context).reviewPrevious,
+                              style: const TextStyle(fontSize: 12),
                             ),
                           ),
                           TextButton.icon(
@@ -3194,9 +3201,9 @@ class _CompactStepPanel extends StatelessWidget {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             icon: const Icon(Icons.south_rounded, size: 14),
-                            label: const Text(
-                              'Jump to latest',
-                              style: TextStyle(fontSize: 12),
+                            label: Text(
+                              AppLocalizations.of(context).jumpToLatest,
+                              style: const TextStyle(fontSize: 12),
                             ),
                           ),
                           TextButton.icon(
@@ -3210,9 +3217,9 @@ class _CompactStepPanel extends StatelessWidget {
                               Icons.play_arrow_rounded,
                               size: 14,
                             ),
-                            label: const Text(
-                              'Resume task',
-                              style: TextStyle(fontSize: 12),
+                            label: Text(
+                              AppLocalizations.of(context).resumeTask,
+                              style: const TextStyle(fontSize: 12),
                             ),
                           ),
                         ],
@@ -3330,8 +3337,8 @@ class TutorPresenceBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Rean AI Tutor',
+                Text(
+                  AppLocalizations.of(context).tutorPresenceTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: VisualTutorTypography.presenceTitle,
@@ -3341,7 +3348,9 @@ class TutorPresenceBar extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        status.english,
+                        AppLocalizations.of(context).isKhmer
+                            ? status.khmer
+                            : status.english,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: VisualTutorTypography.presenceStatus,
@@ -3350,7 +3359,9 @@ class TutorPresenceBar extends StatelessWidget {
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        status.khmer,
+                        AppLocalizations.of(context).isKhmer
+                            ? status.english
+                            : status.khmer,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: VisualTutorTypography.presenceStatus.copyWith(
@@ -3382,13 +3393,16 @@ class TutorPresenceBar extends StatelessWidget {
                     color: VisualTutorColors.cyan,
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: .8,
-                    fontFamilyFallback: VisualTutorTypography.fontFallback,
+                    letterSpacing: .5,
                   ),
                 ),
               ),
             ),
-          // ── History + menu buttons ───────────────────────────────────────
+          // ── Language switcher button ────────────────────────────────────
+          const Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: LanguageSwitcherButton(compact: true),
+          ),
           Container(
             width: compact ? 36 : 40,
             height: compact ? 36 : 40,
@@ -3398,7 +3412,7 @@ class TutorPresenceBar extends StatelessWidget {
               border: Border.all(color: VisualTutorColors.border),
             ),
             child: IconButton(
-              tooltip: 'Conversation history',
+              tooltip: AppLocalizations.of(context).conversationHistory,
               onPressed: onHistoryTap,
               padding: EdgeInsets.zero,
               icon: const Icon(
@@ -3418,7 +3432,7 @@ class TutorPresenceBar extends StatelessWidget {
               border: Border.all(color: VisualTutorColors.border),
             ),
             child: PopupMenuButton<String>(
-              tooltip: 'Tutor menu',
+              tooltip: AppLocalizations.of(context).tutorMenu,
               padding: EdgeInsets.zero,
               icon: const Icon(
                 Icons.more_horiz_rounded,
@@ -3430,20 +3444,20 @@ class TutorPresenceBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(VisualTutorRadius.md),
                 side: BorderSide(color: VisualTutorColors.border),
               ),
-              itemBuilder: (_) => const [
+              itemBuilder: (context) => [
                 PopupMenuItem<String>(
                   value: 'report',
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.flag_outlined,
                         size: 16,
                         color: VisualTutorColors.textMuted,
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Text(
-                        'Report explanation',
-                        style: TextStyle(
+                        AppLocalizations.of(context).reportExplanation,
+                        style: const TextStyle(
                           color: VisualTutorColors.text,
                           fontSize: 13,
                         ),
@@ -3577,10 +3591,10 @@ class _HistoryPanel extends StatelessWidget {
                         size: 18,
                       ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Conversation History',
-                          style: TextStyle(
+                          AppLocalizations.of(context).conversationHistory,
+                          style: const TextStyle(
                             color: VisualTutorColors.text,
                             fontWeight: FontWeight.w700,
                             fontSize: 14,
@@ -3595,7 +3609,7 @@ class _HistoryPanel extends StatelessWidget {
                           size: 20,
                         ),
                         padding: const EdgeInsets.all(6),
-                        tooltip: 'Close history',
+                        tooltip: AppLocalizations.of(context).closeHistory,
                       ),
                     ],
                   ),
@@ -3603,10 +3617,10 @@ class _HistoryPanel extends StatelessWidget {
                 // Messages list
                 Expanded(
                   child: history.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
-                            'No conversation yet.',
-                            style: TextStyle(
+                            AppLocalizations.of(context).noConversationYet,
+                            style: const TextStyle(
                               color: VisualTutorColors.textMuted,
                               fontSize: 13,
                             ),
@@ -3818,30 +3832,31 @@ class _VerificationFeedbackPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final status = verification.status;
     final (label, color, icon) = switch (status) {
       'correct' => (
-        'Verified correct',
+        l10n.verifiedCorrect,
         VisualTutorColors.cyan,
         Icons.verified_outlined,
       ),
       'mathematically_valid_but_inefficient' => (
-        'Valid — show the requested step',
+        l10n.validShowRequestedStep,
         VisualTutorColors.orange,
         Icons.route_outlined,
       ),
       'invalid' => (
-        'This step needs a correction',
+        l10n.stepNeedsCorrection,
         VisualTutorColors.orange,
         Icons.error_outline,
       ),
       'incomplete' => (
-        'More of this step is needed',
+        l10n.moreOfStepNeeded,
         VisualTutorColors.textSubtle,
         Icons.pending_outlined,
       ),
       _ => (
-        'Math check unavailable',
+        l10n.mathCheckUnavailable,
         VisualTutorColors.textSubtle,
         Icons.info_outline,
       ),
@@ -3901,10 +3916,10 @@ class _TutorLoadingControls extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Tutor is thinking and drawing...',
-              style: TextStyle(
+              AppLocalizations.of(context).tutorThinkingAndDrawing,
+              style: const TextStyle(
                 color: VisualTutorColors.text,
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
@@ -3915,7 +3930,7 @@ class _TutorLoadingControls extends StatelessWidget {
             key: const Key('cancel-tutor-turn-button'),
             onPressed: onCancel,
             icon: const Icon(Icons.close_rounded, size: 18),
-            label: const Text('Cancel'),
+            label: Text(AppLocalizations.of(context).cancel),
           ),
         ],
       ),
@@ -4933,11 +4948,12 @@ class _BoardPlaybackControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final playLabel = waitingForStudent
-        ? 'Continue after student checkpoint'
+        ? l10n.resumeTask
         : isPaused
-        ? 'Play board timeline'
-        : 'Pause board timeline';
+        ? l10n.playBoardTimeline
+        : l10n.pauseBoardTimeline;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: VisualTutorColors.panel.withValues(alpha: .9),
@@ -4949,7 +4965,7 @@ class _BoardPlaybackControls extends StatelessWidget {
         children: [
           IconButton(
             key: const Key('visual-tutor-board-replay'),
-            tooltip: 'Replay board timeline',
+            tooltip: l10n.replayBoard,
             icon: const Icon(Icons.replay_rounded, size: 18),
             color: VisualTutorColors.cyan,
             visualDensity: VisualDensity.compact,
@@ -4957,7 +4973,7 @@ class _BoardPlaybackControls extends StatelessWidget {
           ),
           IconButton(
             key: const Key('visual-tutor-board-jump-current'),
-            tooltip: 'Jump to current teaching step',
+            tooltip: l10n.jumpToCurrentStep,
             icon: const Icon(Icons.my_location_rounded, size: 18),
             color: VisualTutorColors.cyan,
             visualDensity: VisualDensity.compact,
@@ -5056,74 +5072,77 @@ class _StudentBoardControls extends StatelessWidget {
   final VoidCallback onClear;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: VisualTutorColors.panel.withValues(alpha: .9),
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: VisualTutorColors.cyan.withValues(alpha: .45)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          key: const Key('visual-tutor-board-reset-fit'),
-          tooltip: 'Reset board view',
-          icon: const Icon(Icons.fit_screen_rounded, size: 18),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: onResetToFit,
-        ),
-        IconButton(
-          key: const Key('student-ink-pen'),
-          tooltip: drawingMode ? 'Stop drawing' : 'Draw on board',
-          icon: Icon(
-            Icons.edit_rounded,
-            size: 18,
-            color: drawingMode ? VisualTutorColors.cyan : null,
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: VisualTutorColors.panel.withValues(alpha: .9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: VisualTutorColors.cyan.withValues(alpha: .45)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            key: const Key('visual-tutor-board-reset-fit'),
+            tooltip: l10n.resetBoardView,
+            icon: const Icon(Icons.fit_screen_rounded, size: 18),
+            color: VisualTutorColors.cyan,
+            visualDensity: VisualDensity.compact,
+            onPressed: onResetToFit,
           ),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: onToggleDrawing,
-        ),
-        IconButton(
-          key: const Key('student-ink-erase'),
-          tooltip: erasing ? 'Stop erasing' : 'Erase ink stroke',
-          icon: Icon(
-            Icons.auto_fix_normal_rounded,
-            size: 18,
-            color: erasing ? VisualTutorColors.cyan : null,
+          IconButton(
+            key: const Key('student-ink-pen'),
+            tooltip: drawingMode ? l10n.stopDrawing : l10n.drawOnBoard,
+            icon: Icon(
+              Icons.edit_rounded,
+              size: 18,
+              color: drawingMode ? VisualTutorColors.cyan : null,
+            ),
+            color: VisualTutorColors.cyan,
+            visualDensity: VisualDensity.compact,
+            onPressed: onToggleDrawing,
           ),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: onToggleErase,
-        ),
-        IconButton(
-          key: const Key('student-ink-undo'),
-          tooltip: 'Undo ink',
-          icon: const Icon(Icons.undo_rounded, size: 18),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: canUndo ? onUndo : null,
-        ),
-        IconButton(
-          key: const Key('student-ink-redo'),
-          tooltip: 'Redo ink',
-          icon: const Icon(Icons.redo_rounded, size: 18),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: canRedo ? onRedo : null,
-        ),
-        IconButton(
-          key: const Key('student-ink-clear'),
-          tooltip: 'Clear student ink',
-          icon: const Icon(Icons.delete_outline_rounded, size: 18),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: canUndo ? onClear : null,
-        ),
-      ],
-    ),
-  );
+          IconButton(
+            key: const Key('student-ink-erase'),
+            tooltip: erasing ? l10n.stopErasing : l10n.eraseInk,
+            icon: Icon(
+              Icons.auto_fix_normal_rounded,
+              size: 18,
+              color: erasing ? VisualTutorColors.cyan : null,
+            ),
+            color: VisualTutorColors.cyan,
+            visualDensity: VisualDensity.compact,
+            onPressed: onToggleErase,
+          ),
+          IconButton(
+            key: const Key('student-ink-undo'),
+            tooltip: l10n.undoInk,
+            icon: const Icon(Icons.undo_rounded, size: 18),
+            color: VisualTutorColors.cyan,
+            visualDensity: VisualDensity.compact,
+            onPressed: canUndo ? onUndo : null,
+          ),
+          IconButton(
+            key: const Key('student-ink-redo'),
+            tooltip: l10n.redoInk,
+            icon: const Icon(Icons.redo_rounded, size: 18),
+            color: VisualTutorColors.cyan,
+            visualDensity: VisualDensity.compact,
+            onPressed: canRedo ? onRedo : null,
+          ),
+          IconButton(
+            key: const Key('student-ink-clear'),
+            tooltip: l10n.clearInk,
+            icon: const Icon(Icons.delete_outline_rounded, size: 18),
+            color: VisualTutorColors.cyan,
+            visualDensity: VisualDensity.compact,
+            onPressed: canUndo ? onClear : null,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _BoardStatusCluster extends StatelessWidget {
@@ -5134,6 +5153,7 @@ class _BoardStatusCluster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : 10,
@@ -5171,7 +5191,7 @@ class _BoardStatusCluster extends StatelessWidget {
           if (!compact) ...[
             const SizedBox(width: 6),
             Text(
-              locked ? 'guided mode' : 'answer ready',
+              locked ? l10n.guidedMode : l10n.answerReady,
               style: TextStyle(
                 color: locked
                     ? VisualTutorColors.orange
@@ -5182,6 +5202,63 @@ class _BoardStatusCluster extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CheckWorkHeader extends StatelessWidget {
+  const _CheckWorkHeader({
+    required this.onRetry,
+    required this.compact,
+  });
+
+  final VoidCallback onRetry;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 12 : 16,
+        vertical: compact ? 8 : 10,
+      ),
+      decoration: BoxDecoration(
+        color: VisualTutorColors.panelRaised,
+        borderRadius: BorderRadius.circular(VisualTutorRadius.md),
+        border: Border.all(color: VisualTutorColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.task_alt_rounded,
+            color: VisualTutorColors.cyan,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context).isKhmer
+                  ? 'ពិនិត្យជំហានរបស់អ្នក'
+                  : 'Check your step',
+              style: TextStyle(
+                color: VisualTutorColors.text,
+                fontSize: compact ? 13 : 14,
+                fontWeight: FontWeight.w800,
+                fontFamilyFallback: VisualTutorTypography.fontFallback,
+              ),
+            ),
+          ),
+          Semantics(
+            button: true,
+            label: 'Retry the submitted tutor work',
+            child: OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: Text(AppLocalizations.of(context).retry),
+            ),
+          ),
         ],
       ),
     );
@@ -5233,7 +5310,7 @@ class _TutorApiErrorBanner extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Retry'),
+                label: Text(AppLocalizations.of(context).retry),
               ),
             ),
           ],
@@ -6089,7 +6166,7 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
                 key: const Key('voice-cancel-recording'),
                 onPressed: widget.onCancelRecording,
                 icon: const Icon(Icons.close_rounded, size: 18),
-                label: const Text('Cancel recording'),
+                label: Text(AppLocalizations.of(context).cancelRecording),
               ),
             ),
           ],
@@ -6327,7 +6404,7 @@ class _CheckWorkBottomActions extends StatelessWidget {
             key: const Key('check-work-try-again'),
             onPressed: onTryAgain,
             icon: const Icon(Icons.replay_rounded, size: 17),
-            label: const Text('Try again'),
+            label: Text(AppLocalizations.of(context).tryAgain),
             style:
                 FilledButton.styleFrom(
                   backgroundColor: VisualTutorColors.cyan,
@@ -6355,7 +6432,7 @@ class _CheckWorkBottomActions extends StatelessWidget {
             key: const Key('check-work-show-me-why'),
             onPressed: onShowWhy,
             icon: const Icon(Icons.help_outline_rounded, size: 17),
-            label: const Text('Show me why'),
+            label: Text(AppLocalizations.of(context).showMeWhy),
             style: FilledButton.styleFrom(
               backgroundColor: VisualTutorColors.panelRaised,
               foregroundColor: VisualTutorColors.text,
@@ -6465,7 +6542,7 @@ class _FinalVerifiedActionPanel extends StatelessWidget {
                 child: _FinalPanelButton(
                   key: const Key('final-repeat-button'),
                   icon: Icons.repeat_rounded,
-                  label: 'Repeat',
+                  label: AppLocalizations.of(context).repeat,
                   onPressed: onRepeat,
                 ),
               ),
@@ -6474,7 +6551,7 @@ class _FinalVerifiedActionPanel extends StatelessWidget {
                 child: _FinalPanelButton(
                   key: const Key('final-show-summary-button'),
                   icon: Icons.menu_book_rounded,
-                  label: 'Show Summary',
+                  label: AppLocalizations.of(context).showSummary,
                   onPressed: onShowSummary,
                 ),
               ),
@@ -6490,7 +6567,7 @@ class _FinalVerifiedActionPanel extends StatelessWidget {
                 Size.fromHeight(compact ? 50 : 56),
               ),
             ),
-            child: const Text('Next Practice Problem  →'),
+            child: Text(AppLocalizations.of(context).nextPracticeProblem),
           ),
           const SizedBox(height: 8),
           // ── Back to Home (secondary) ─────────────────────────────────────────
@@ -6502,7 +6579,7 @@ class _FinalVerifiedActionPanel extends StatelessWidget {
                 Size.fromHeight(compact ? 46 : 52),
               ),
             ),
-            child: const Text('Back to Home'),
+            child: Text(AppLocalizations.of(context).backToHome),
           ),
           SizedBox(height: compact ? 14 : 18),
           // ── Centered cyan mic FAB ───────────────────────────────────────────────
@@ -6622,14 +6699,14 @@ class _UnsupportedActionPanel extends StatelessWidget {
                 Size.fromHeight(compact ? 48 : 56),
               ),
             ),
-            child: const Text('Try Another Problem'),
+            child: Text(AppLocalizations.of(context).tryAnotherProblem),
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
             key: const Key('unsupported-contact-support-button'),
             onPressed: onContactSupport,
             icon: const Icon(Icons.headset_mic_rounded, size: 18),
-            label: const Text('Contact Support'),
+            label: Text(AppLocalizations.of(context).contactSupport),
             style: VisualTutorButtonStyles.darkCard().copyWith(
               minimumSize: WidgetStatePropertyAll(
                 Size.fromHeight(compact ? 46 : 54),
@@ -6834,7 +6911,7 @@ class _InteractionInput extends StatelessWidget {
                           color: VisualTutorColors.cyan,
                           size: 20,
                         ),
-                        tooltip: 'Submit your answer',
+                        tooltip: AppLocalizations.of(context).submit,
                       )
                     : null,
               ),
@@ -6844,11 +6921,11 @@ class _InteractionInput extends StatelessWidget {
         const SizedBox(width: 10),
         if (voiceMode) ...[
           Semantics(
-            label: 'Close keyboard',
+            label: AppLocalizations.of(context).closeKeyboard,
             button: true,
             child: IconButton(
               key: const Key('voice-close-keyboard'),
-              tooltip: 'Close keyboard',
+              tooltip: AppLocalizations.of(context).closeKeyboard,
               onPressed: onKeyboardToggle,
               icon: const Icon(
                 Icons.keyboard_hide_rounded,
@@ -6920,15 +6997,17 @@ class _VoiceFirstDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final muteLabel = muted ? l10n.unmuteAudio : l10n.muteAudio;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Semantics(
-          label: muted ? 'Unmute tutor audio' : 'Mute tutor audio',
+          label: muteLabel,
           button: true,
           child: IconButton.filledTonal(
             key: const Key('voice-mute-button'),
-            tooltip: muted ? 'Unmute tutor audio' : 'Mute tutor audio',
+            tooltip: muteLabel,
             onPressed: onMuteToggle,
             icon: Icon(
               muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
@@ -6959,11 +7038,11 @@ class _VoiceFirstDock extends StatelessWidget {
           ),
         ),
         Semantics(
-          label: 'Open keyboard',
+          label: l10n.openKeyboard,
           button: true,
           child: IconButton.filledTonal(
             key: const Key('voice-open-keyboard'),
-            tooltip: 'Open keyboard',
+            tooltip: l10n.openKeyboard,
             onPressed: onOpenKeyboard,
             icon: const Icon(Icons.keyboard_rounded),
           ),
@@ -7975,7 +8054,7 @@ class TutorPanel extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Explain another way',
+                  tooltip: AppLocalizations.of(context).explainDifferently,
                   onPressed: onExplainAgain,
                   icon: const Icon(
                     Icons.help_outline_rounded,
@@ -8235,11 +8314,18 @@ class ChatInput extends StatelessWidget {
                 style: const TextStyle(
                   color: AppColors.text,
                   fontSize: 16,
+                  height: 1.45,
                   fontWeight: FontWeight.w600,
+                  fontFamilyFallback: VisualTutorTypography.fontFallback,
                 ),
-                decoration: const InputDecoration(
-                  hintText: 'Ask Rean any question!',
-                  hintStyle: TextStyle(color: Color(0xFF777C91), fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: AppLocalizations.of(context).askAnyQuestionHint,
+                  hintStyle: const TextStyle(
+                    color: Color(0xFF777C91),
+                    fontSize: 16,
+                    height: 1.40,
+                    fontFamilyFallback: VisualTutorTypography.fontFallback,
+                  ),
                   border: InputBorder.none,
                   isCollapsed: true,
                 ),

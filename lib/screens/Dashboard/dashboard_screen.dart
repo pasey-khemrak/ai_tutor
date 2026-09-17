@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../core/adaptive_colors.dart';
 import '../../core/app_colors.dart';
+import '../../core/localization/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
+import '../../shared/language_switcher_button.dart';
 import '../../shared/state_widgets/app_empty_state.dart';
 import '../../shared/state_widgets/app_error_state.dart';
 import '../../shared/state_widgets/app_loading_state.dart';
@@ -179,7 +182,7 @@ class _DashboardContentState extends State<_DashboardContent> {
                   onVoice: widget.onVoiceQuestion,
                 ),
                 const SizedBox(height: 30),
-                const _Heading('Continue Learning'),
+                _Heading(AppLocalizations.of(context).continueLearning),
                 const SizedBox(height: 14),
                 _ContinueCard(data: widget.data, onTap: widget.onResume),
                 const SizedBox(height: 22),
@@ -198,7 +201,7 @@ class _DashboardContentState extends State<_DashboardContent> {
                 ),
                 if (widget.data.subjectProgress.isNotEmpty) ...[
                   const SizedBox(height: 30),
-                  const _Heading('Your progress'),
+                  _Heading(AppLocalizations.of(context).yourProgress),
                   const SizedBox(height: 12),
                   _ProgressPreview(progress: widget.data.subjectProgress),
                 ],
@@ -242,7 +245,7 @@ class _ProfileCompletionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Complete your learning profile',
+                  AppLocalizations.of(context).completeProfile,
                   style: TextStyle(
                     color: AdaptiveColors.text(context),
                     fontWeight: FontWeight.w900,
@@ -250,9 +253,9 @@ class _ProfileCompletionCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 3),
-                const Text(
-                  'Choose your grade, language, and subjects for the right lessons.',
-                  style: TextStyle(color: Color(0xFFB4BEF2), fontSize: 13),
+                Text(
+                  AppLocalizations.of(context).completeProfileDesc,
+                  style: const TextStyle(color: Color(0xFFB4BEF2), fontSize: 13),
                 ),
               ],
             ),
@@ -260,7 +263,7 @@ class _ProfileCompletionCard extends StatelessWidget {
           TextButton(
             key: const Key('dashboard-complete-profile-button'),
             onPressed: onComplete,
-            child: const Text('Set up'),
+            child: Text(AppLocalizations.of(context).setUp),
           ),
         ],
       ),
@@ -273,13 +276,14 @@ class _Greeting extends StatelessWidget {
   final StudentDashboardData data;
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     final needsProfile = _needsLearningProfile(data);
     final greeting = needsProfile || data.studentName == 'Learner'
-        ? 'Welcome 👋'
-        : 'Hello, ${data.studentName} 👋';
+        ? localizations.welcomeLearner
+        : localizations.helloUser(data.studentName);
     final subtitle = needsProfile
-        ? 'Let’s set up your learning path.'
-        : '${data.gradeLabel} • Ready to learn?';
+        ? localizations.setUpLearningPath
+        : '${data.gradeLabel} • ${localizations.readyToLearn}';
     return Row(
       children: [
         Expanded(
@@ -292,9 +296,10 @@ class _Greeting extends StatelessWidget {
                 style: TextStyle(
                   color: AdaptiveColors.text(context),
                   fontSize: 31,
-                  height: 1.08,
+                  height: 1.35,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -.8,
+                  fontFamilyFallback: AppTheme.fontFallback,
                 ),
               ),
               const SizedBox(height: 7),
@@ -303,12 +308,16 @@ class _Greeting extends StatelessWidget {
                 style: const TextStyle(
                   color: Color(0xFFB4BEF2),
                   fontSize: 18,
+                  height: 1.40,
                   fontWeight: FontWeight.w600,
+                  fontFamilyFallback: AppTheme.fontFallback,
                 ),
               ),
             ],
           ),
         ),
+        const LanguageSwitcherButton(compact: true),
+        const SizedBox(width: 12),
         Container(
           width: 66,
           height: 66,
@@ -379,9 +388,9 @@ class _AskAnythingCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 9),
-        const Text(
-          'Your visual tutor is ready to solve any problem step-by-step.',
-          style: TextStyle(
+        Text(
+          AppLocalizations.of(context).visualTutorReady,
+          style: const TextStyle(
             color: AppColors.cyan,
             fontSize: 18,
             height: 1.45,
@@ -584,6 +593,7 @@ class _Metrics extends StatelessWidget {
   final StudentDashboardData data;
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final mastered = data.subjectProgress
         .where((item) => item.progress >= .8)
         .length;
@@ -591,18 +601,18 @@ class _Metrics extends StatelessWidget {
       _Metric(
         icon: Icons.local_fire_department_rounded,
         color: const Color(0xFFFF6B39),
-        title: 'Daily Streak',
-        value: '${data.learningStreakDays} Days',
+        title: l10n.dailyStreak,
+        value: l10n.days(data.learningStreakDays),
         caption: data.learningStreakDays == 0
-            ? 'Start one today'
-            : 'Keep your momentum',
+            ? l10n.startStreakToday
+            : l10n.keepMomentum,
       ),
       _Metric(
         icon: Icons.bar_chart_rounded,
         color: AppColors.cyan,
-        title: 'Mastered',
+        title: l10n.mastered,
         value: '$mastered',
-        caption: mastered == 1 ? 'Visual topic' : 'Visual topics',
+        caption: l10n.visualTopics(mastered),
       ),
     ];
     return LayoutBuilder(
@@ -650,12 +660,16 @@ class _Metric extends StatelessWidget {
           children: [
             Icon(icon, color: color, size: 27),
             const SizedBox(width: 10),
-            Text(
-              title,
-              style: TextStyle(
-                color: color,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],
@@ -697,11 +711,11 @@ class _DailyPractice extends StatelessWidget {
     final reason =
         weak?.reason ??
         recommendation?.reason ??
-        'A short visual practice based on your current learning.';
+        AppLocalizations.of(context).defaultPracticeReason;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _Heading('Daily Practice'),
+        _Heading(AppLocalizations.of(context).dailyPractice),
         const SizedBox(height: 13),
         Container(
           key: const Key('dashboard-daily-practice-card'),
@@ -756,7 +770,7 @@ class _DailyPractice extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  child: const Text('Start Challenge'),
+                  child: Text(AppLocalizations.of(context).startChallenge),
                 ),
               ),
             ],
