@@ -32,7 +32,6 @@ class VisualTutorColors {
   static const boardTextMuted = Color(0xFF647087);
   static const boardTextDark = Color(0xFF253044);
 
-  static const scanIconBackground = Color(0xFF063B45);
   static const typeIconBackground = Color(0xFF2E1D52);
   static const voiceIconBackground = Color(0xFF06372F);
 

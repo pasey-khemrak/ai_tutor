@@ -49,7 +49,7 @@ class LearningContext {
   /// `khmer`, `english`, or `bilingual` for the public Tutor contract.
   final String languageMode;
 
-  /// False for free questions, voice, and scan routes. In that case the
+  /// False for free question and voice routes. In that case the
   /// backend classifies the learner request without false curriculum metadata.
   final bool isCurriculumScoped;
 

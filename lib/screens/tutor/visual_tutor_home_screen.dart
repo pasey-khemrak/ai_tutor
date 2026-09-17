@@ -16,7 +16,6 @@ class VisualTutorHomeScreen extends StatelessWidget {
     required this.onVoiceInput,
     required this.onStuck,
     required this.onContinueLearning,
-    required this.onScanProblem,
     this.onOpenLessons,
     this.stepBoard,
   });
@@ -26,7 +25,6 @@ class VisualTutorHomeScreen extends StatelessWidget {
   final VoidCallback onVoiceInput;
   final VoidCallback onStuck;
   final ValueChanged<LearningContext> onContinueLearning;
-  final VoidCallback onScanProblem;
   final VoidCallback? onOpenLessons;
 
   /// When a confirmed expert lesson is active, this replaces the landing menu.
@@ -59,15 +57,6 @@ class VisualTutorHomeScreen extends StatelessWidget {
                     const SizedBox(height: VisualTutorSpacing.xl),
                     const _WelcomePanel(),
                     const SizedBox(height: VisualTutorSpacing.xl),
-                    VisualTutorActionCard(
-                      key: const Key('scan-problem-card'),
-                      icon: Icons.camera_alt_rounded,
-                      iconBackground: VisualTutorColors.scanIconBackground,
-                      title: 'Scan a Problem',
-                      subtitle: 'ថតរូបលំហាត់គណិតវិទ្យា',
-                      onTap: onScanProblem,
-                    ),
-                    const SizedBox(height: VisualTutorSpacing.md),
                     VisualTutorActionCard(
                       key: const Key('type-question-card'),
                       icon: Icons.keyboard_rounded,

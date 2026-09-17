@@ -16,7 +16,6 @@ class DashboardScreen extends StatelessWidget {
     required this.onResumeLearning,
     this.onResumeLearningWithData,
     this.onAskQuestion,
-    this.onScanQuestion,
     this.onVoiceQuestion,
     this.onStartDailyPractice,
     this.onCompleteProfile,
@@ -26,7 +25,6 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback onResumeLearning;
   final ValueChanged<StudentDashboardData>? onResumeLearningWithData;
   final ValueChanged<String>? onAskQuestion;
-  final VoidCallback? onScanQuestion;
   final VoidCallback? onVoiceQuestion;
   final ValueChanged<StudentDashboardData>? onStartDailyPractice;
   final VoidCallback? onCompleteProfile;
@@ -37,7 +35,6 @@ class DashboardScreen extends StatelessWidget {
     onResumeLearning: onResumeLearning,
     onResumeLearningWithData: onResumeLearningWithData,
     onAskQuestion: onAskQuestion,
-    onScanQuestion: onScanQuestion,
     onVoiceQuestion: onVoiceQuestion,
     onStartDailyPractice: onStartDailyPractice,
     onCompleteProfile: onCompleteProfile,
@@ -50,7 +47,6 @@ class _DashboardLoader extends StatefulWidget {
     required this.onResumeLearning,
     required this.onResumeLearningWithData,
     required this.onAskQuestion,
-    required this.onScanQuestion,
     required this.onVoiceQuestion,
     required this.onStartDailyPractice,
     required this.onCompleteProfile,
@@ -59,7 +55,6 @@ class _DashboardLoader extends StatefulWidget {
   final VoidCallback onResumeLearning;
   final ValueChanged<StudentDashboardData>? onResumeLearningWithData;
   final ValueChanged<String>? onAskQuestion;
-  final VoidCallback? onScanQuestion;
   final VoidCallback? onVoiceQuestion;
   final ValueChanged<StudentDashboardData>? onStartDailyPractice;
   final VoidCallback? onCompleteProfile;
@@ -115,7 +110,6 @@ class _DashboardLoaderState extends State<_DashboardLoader> {
             resume == null ? widget.onResumeLearning() : resume(data);
           },
           onAskQuestion: widget.onAskQuestion,
-          onScanQuestion: widget.onScanQuestion,
           onVoiceQuestion: widget.onVoiceQuestion,
           onStartDailyPractice: widget.onStartDailyPractice,
           onCompleteProfile: widget.onCompleteProfile,
@@ -130,7 +124,6 @@ class _DashboardContent extends StatefulWidget {
     required this.data,
     required this.onResume,
     required this.onAskQuestion,
-    required this.onScanQuestion,
     required this.onVoiceQuestion,
     required this.onStartDailyPractice,
     required this.onCompleteProfile,
@@ -138,7 +131,6 @@ class _DashboardContent extends StatefulWidget {
   final StudentDashboardData data;
   final VoidCallback onResume;
   final ValueChanged<String>? onAskQuestion;
-  final VoidCallback? onScanQuestion;
   final VoidCallback? onVoiceQuestion;
   final ValueChanged<StudentDashboardData>? onStartDailyPractice;
   final VoidCallback? onCompleteProfile;
@@ -184,7 +176,6 @@ class _DashboardContentState extends State<_DashboardContent> {
                 _AskAnythingCard(
                   controller: _question,
                   onAsk: widget.onAskQuestion == null ? null : _ask,
-                  onScan: widget.onScanQuestion,
                   onVoice: widget.onVoiceQuestion,
                 ),
                 const SizedBox(height: 30),
@@ -341,12 +332,10 @@ class _AskAnythingCard extends StatelessWidget {
   const _AskAnythingCard({
     required this.controller,
     required this.onAsk,
-    required this.onScan,
     required this.onVoice,
   });
   final TextEditingController controller;
   final VoidCallback? onAsk;
-  final VoidCallback? onScan;
   final VoidCallback? onVoice;
   @override
   Widget build(BuildContext context) => Container(
@@ -428,12 +417,12 @@ class _AskAnythingCard extends StatelessWidget {
         const SizedBox(height: 18),
         LayoutBuilder(
           builder: (context, constraints) {
-            final scan = _EntryButton(
-              key: const Key('dashboard-scan-button'),
-              icon: Icons.photo_camera_rounded,
-              label: 'Scan',
+            final ask = _EntryButton(
+              key: const Key('dashboard-ask-button'),
+              icon: Icons.arrow_forward_rounded,
+              label: 'Ask',
               primary: true,
-              onPressed: onScan,
+              onPressed: onAsk,
             );
             final voice = _EntryButton(
               key: const Key('dashboard-voice-button'),
@@ -442,10 +431,10 @@ class _AskAnythingCard extends StatelessWidget {
               onPressed: onVoice,
             );
             return constraints.maxWidth < 400
-                ? Column(children: [scan, const SizedBox(height: 12), voice])
+                ? Column(children: [ask, const SizedBox(height: 12), voice])
                 : Row(
                     children: [
-                      Expanded(child: scan),
+                      Expanded(child: ask),
                       const SizedBox(width: 16),
                       Expanded(child: voice),
                     ],

@@ -14,7 +14,6 @@ import '../screens/lessons/student_lessons_repository.dart';
 import '../screens/profile/student_profile_setup_sheet.dart';
 import '../features/quizzes/quiz_repository.dart';
 import '../screens/tutor/tutor_screen.dart';
-import '../screens/tutor/scan_problem_screen.dart';
 import '../screens/tutor/visual_tutor_home_screen.dart';
 import '../shared/app_bottom_navigation.dart';
 import '../shared/app_header.dart';
@@ -251,23 +250,6 @@ class _TutorShellState extends State<TutorShell> {
     );
   }
 
-  Future<void> _scanProblem() async {
-    final text = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const ScanProblemScreen()),
-    );
-    if (!mounted || text == null || text.trim().isEmpty) return;
-    _openLiveTutor(
-      context: _askQuestionContext,
-      initialSubmission: VisualTutorStudentSubmission(
-        message: text.trim(),
-        intent: 'new_problem',
-        action: 'submit_problem',
-        inputType: 'image',
-        metadata: const {'entry_point': 'scan_problem'},
-      ),
-    );
-  }
-
   Future<void> _logout() async {
     await appAuthService.signOut();
     if (!mounted) return;
@@ -291,7 +273,6 @@ class _TutorShellState extends State<TutorShell> {
             metadata: const {'entry_point': 'dashboard_ask_anything'},
           ),
         ),
-        onScanQuestion: _scanProblem,
         onVoiceQuestion: _openVoiceTutor,
         onStartDailyPractice: _startDashboardDailyPractice,
         onCompleteProfile: _completeLearningProfile,
@@ -303,7 +284,6 @@ class _TutorShellState extends State<TutorShell> {
                 onTypeQuestion: () => _openLiveTutor(),
                 onVoiceInput: _openVoiceTutor,
                 onStuck: _openStuckTutor,
-                onScanProblem: _scanProblem,
                 onOpenLessons: () => setState(() => _selectedIndex = 3),
                 onContinueLearning: (context) =>
                     _openLiveTutor(context: context),
@@ -368,7 +348,7 @@ class _TutorShellState extends State<TutorShell> {
 }
 
 /// A selected lesson is the only source of curriculum identifiers passed to
-/// the Tutor. Free question, voice, and scan paths use `askQuestion()`.
+/// the Tutor. Free question and voice paths use `askQuestion()`.
 LearningContext learningContextForLesson(StudentLesson lesson) =>
     LearningContext(
       grade: lesson.grade,

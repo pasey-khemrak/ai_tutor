@@ -83,7 +83,7 @@ void main() {
   });
 
   testWidgets(
-    'dashboard, scan, and voice entry requests remain unscoped instead of relabelling a question as a lesson',
+    'dashboard and voice entry requests remain unscoped instead of relabelling a question as a lesson',
     (tester) async {
       const entryPoints = <String, VisualTutorStudentSubmission>{
         'dashboard_ask_anything': VisualTutorStudentSubmission(
@@ -92,13 +92,6 @@ void main() {
           action: 'submit_problem',
           inputType: 'text',
           metadata: {'entry_point': 'dashboard_ask_anything'},
-        ),
-        'scan_problem': VisualTutorStudentSubmission(
-          message: '៥ ជាចំនួនបឋម។',
-          intent: 'new_problem',
-          action: 'submit_problem',
-          inputType: 'image',
-          metadata: {'entry_point': 'scan_problem'},
         ),
         'voice_question': VisualTutorStudentSubmission(
           message: 'Explain a statement',

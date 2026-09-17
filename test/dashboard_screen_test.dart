@@ -254,7 +254,6 @@ void main() {
     'dashboard quick actions use callbacks and submit the typed question',
     (tester) async {
       String? submittedQuestion;
-      var scanned = false;
       var voiced = false;
       var dailyPractice = false;
       await tester.pumpWidget(
@@ -263,7 +262,6 @@ void main() {
             repository: const TestDashboardRepository(_dashboardFixture),
             onResumeLearning: () {},
             onAskQuestion: (question) => submittedQuestion = question,
-            onScanQuestion: () => scanned = true,
             onVoiceQuestion: () => voiced = true,
             onStartDailyPractice: (_) => dailyPractice = true,
           ),
@@ -271,12 +269,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.byKey(const Key('dashboard-scan-button')), findsNothing);
+      expect(find.byKey(const Key('dashboard-ask-button')), findsOneWidget);
+
       await tester.enterText(
         find.byKey(const Key('dashboard-question-field')),
         'How do I solve 2x + 5 = 15?',
       );
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.tap(find.byKey(const Key('dashboard-scan-button')));
+      await tester.tap(find.byKey(const Key('dashboard-ask-button')));
       await tester.tap(find.byKey(const Key('dashboard-voice-button')));
       final daily = find.byKey(
         const Key('dashboard-start-daily-practice-button'),
@@ -285,7 +285,6 @@ void main() {
       await tester.tap(daily);
 
       expect(submittedQuestion, 'How do I solve 2x + 5 = 15?');
-      expect(scanned, isTrue);
       expect(voiced, isTrue);
       expect(dailyPractice, isTrue);
     },
