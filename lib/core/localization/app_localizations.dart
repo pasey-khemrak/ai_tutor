@@ -172,7 +172,18 @@ class AppLocalizations {
   String get subjectMath => isKhmer ? 'គណិតវិទ្យា' : 'Mathematics';
   String get subjectPhysics => isKhmer ? 'រូបវិទ្យា' : 'Physics';
   String get subjectChemistry => isKhmer ? 'គីមីវិទ្យា' : 'Chemistry';
-  String gradeLevel(int grade) => isKhmer ? 'ថ្នាក់ទី $grade' : 'Grade $grade';
+  String gradeLevel(int grade) =>
+      isKhmer ? 'ថ្នាក់ទី ${_toKhmerDigits(grade)}' : 'Grade $grade';
+  String number(int n) => isKhmer ? _toKhmerDigits(n) : '$n';
+  String get lessonAvailable => isKhmer ? 'អាចរៀនបាន' : 'Available';
+  String get lessonComingSoon => isKhmer ? 'មិនទាន់មាននៅឡើយ' : 'Coming Soon';
+  String get lessonComingSoonTitle =>
+      isKhmer ? 'មេរៀននេះកំពុងរៀបចំ' : 'Lesson Under Preparation';
+  String get lessonComingSoonDesc => isKhmer
+      ? 'មេរៀន និងលំហាត់សម្រាប់ប្រធានបទនេះកំពុងត្រូវបានរៀបចំ។ អ្នកនៅតែអាចសួរគ្រូបង្រៀន AI អំពីប្រធានបទនេះបានដោយផ្ទាល់!'
+      : 'Lessons and exercises for this topic are being prepared. You can still ask the AI tutor about this topic directly!';
+  String get askTutorAboutTopic =>
+      isKhmer ? 'សួរគ្រូអំពីប្រធានបទនេះ' : 'Ask Tutor About This Topic';
 
   String get reportExplanation =>
       isKhmer ? 'រាយការណ៍ការពន្យល់' : 'Report explanation';
@@ -246,6 +257,145 @@ class AppLocalizations {
   String get defaultPracticeReason => isKhmer
       ? 'ការអនុវត្តរូបភាពខ្លីដោយផ្អែកលើការរៀនបច្ចុប្បន្នរបស់អ្នក។'
       : 'A short visual practice based on your current learning.';
+
+  // ── Dashboard Home ─────────────────────────────────────────────────────────
+  String get dashboardLoading =>
+      isKhmer ? 'កំពុងរៀបចំកន្លែងរៀនរបស់អ្នក...' : 'Preparing your learning space...';
+  String get dashboardLoadError =>
+      isKhmer ? 'មិនអាចផ្ទុកទំព័រដើមរបស់អ្នកបានទេ។' : 'Could not load your dashboard.';
+  String get learningSpaceReady =>
+      isKhmer ? 'កន្លែងរៀនរបស់អ្នករួចរាល់ហើយ' : 'Your learning space is ready';
+  String get learningSpaceReadyDesc => isKhmer
+      ? 'ចាប់ផ្តើមជាមួយគ្រូ AI ដើម្បីមើលវឌ្ឍនភាពរបស់អ្នកនៅទីនេះ។'
+      : 'Start a tutor session to see your progress here.';
+  String get askAnything => isKhmer ? 'សួរអ្វីក៏បាន' : 'Ask anything';
+  String get askAction => isKhmer ? 'សួរ' : 'Ask';
+  String get voiceAction => isKhmer ? 'និយាយ' : 'Voice';
+  String get tryAnExample => isKhmer ? 'សាកល្បងឧទាហរណ៍៖' : 'Try an example:';
+  String get exampleMath => isKhmer
+      ? 'រកលីមីតនៃ (x^2-4)/(x-2) ពេល x ខិតទៅ 2'
+      : 'Find the limit of (x^2-4)/(x-2) as x approaches 2';
+  String get examplePhysics => isKhmer
+      ? 'ឡានមួយចេញដំណើរពីស្ងៀម ហើយបង្កើនល្បឿន 2 m/s^2 រយៈពេល 5 s។ រកល្បឿនចុងក្រោយ។'
+      : 'A car starts from rest and accelerates at 2 m/s^2 for 5 s. Find its final velocity.';
+  String get exampleChemistry => isKhmer
+      ? 'តើទឹកប៉ុន្មានក្រាមកើតឡើង ពេលអ៊ីដ្រូសែន 4 g ប្រតិកម្មទាំងស្រុងជាមួយអុកស៊ីសែន?'
+      : 'How many grams of water form when 4 g of hydrogen reacts completely with oxygen?';
+  String get resumeAction => isKhmer ? 'បន្ត' : 'Resume';
+  String get startLearningAction => isKhmer ? 'ចាប់ផ្តើម' : 'Start';
+  String get recentActivity => isKhmer ? 'សកម្មភាពថ្មីៗ' : 'Recent activity';
+  String get practiceDone => isKhmer ? 'លំហាត់បានធ្វើ' : 'Practice done';
+  String exercises(int n) => isKhmer
+      ? '${_toKhmerDigits(n)} លំហាត់'
+      : (n == 1 ? '1 exercise' : '$n exercises');
+  String get yourStats => isKhmer ? 'ស្ថិតិរបស់អ្នក' : 'Your stats';
+  String percent(int n) => isKhmer ? '${_toKhmerDigits(n)}%' : '$n%';
+  String get focusNext => isKhmer ? 'ផ្តោតបន្ទាប់' : 'Focus next';
+  String get startLearningTitle => isKhmer ? 'ចាប់ផ្តើមរៀន' : 'Start learning';
+  String get resumeLatestActivity => isKhmer
+      ? 'បន្តសកម្មភាពចុងក្រោយជាមួយគ្រូ AI'
+      : 'Resume your latest tutor activity';
+  String get chooseGoalToBegin => isKhmer
+      ? 'ជ្រើសរើសគោលដៅសិក្សាដើម្បីចាប់ផ្តើម។'
+      : 'Choose a learning goal to begin.';
+  // ── Tutor Curriculum ───────────────────────────────────────────────────────
+  String get curriculumTitle => isKhmer ? 'កម្មវិធីសិក្សា' : 'Curriculum';
+  String get curriculumSubtitle => isKhmer
+      ? 'ជ្រើសរើសប្រធានបទ ហើយគ្រូ AI នឹងបង្រៀនជំហានម្តងៗលើក្តារ។'
+      : 'Pick a topic and your tutor teaches it step by step on the whiteboard.';
+  String get searchTopicsHint =>
+      isKhmer ? 'ស្វែងរកប្រធានបទ…' : 'Search topics…';
+  String get allGrades => isKhmer ? 'គ្រប់ថ្នាក់' : 'All grades';
+  String get allFilter => isKhmer ? 'ទាំងអស់' : 'All';
+  String topicsCount(int n) => isKhmer
+      ? '${_toKhmerDigits(n)} ប្រធានបទ'
+      : (n == 1 ? '1 topic' : '$n topics');
+  String problemsCount(int n) => isKhmer
+      ? '${_toKhmerDigits(n)} លំហាត់'
+      : (n == 1 ? '1 problem' : '$n problems');
+  String readyTopicsCount(int n) => isKhmer
+      ? '${_toKhmerDigits(n)} រួចរាល់សម្រាប់គ្រូ AI'
+      : '$n ready with the tutor';
+  String get topicReady => isKhmer ? 'រួចរាល់' : 'Ready';
+  String get difficultyBeginner => isKhmer ? 'កម្រិតដំបូង' : 'Beginner';
+  String get difficultyIntermediate => isKhmer ? 'កម្រិតមធ្យម' : 'Intermediate';
+  String get difficultyAdvanced => isKhmer ? 'កម្រិតខ្ពស់' : 'Advanced';
+  String get learnThisTopic => isKhmer ? 'រៀនប្រធានបទនេះ' : 'Learn this topic';
+  String get starterProblemLabel => isKhmer ? 'លំហាត់ចាប់ផ្តើម' : 'Starter problem';
+  String get curriculumLoadError =>
+      isKhmer ? 'មិនអាចផ្ទុកកម្មវិធីសិក្សាបានទេ។' : 'Could not load the curriculum.';
+  String get noTopicsFound => isKhmer
+      ? 'រកមិនឃើញប្រធានបទដែលត្រូវនឹងការស្វែងរកទេ។'
+      : 'No topics match your search.';
+  String get cantFindTopic =>
+      isKhmer ? 'រកមិនឃើញប្រធានបទរបស់អ្នក?' : "Can't find your topic?";
+  String get cantFindTopicDesc => isKhmer
+      ? 'សរសេរ ឬនិយាយលំហាត់របស់អ្នក ហើយគ្រូ AI នឹងដោះស្រាយវាជាមួយអ្នក។'
+      : 'Type or say your own problem and the tutor will solve it with you.';
+  String get askOwnProblem =>
+      isKhmer ? 'សួរលំហាត់ផ្ទាល់ខ្លួន' : 'Ask your own problem';
+  // ── Lessons Library ────────────────────────────────────────────────────────
+  String lessonsCount(int n) => isKhmer
+      ? '${_toKhmerDigits(n)} មេរៀន'
+      : (n == 1 ? '1 lesson' : '$n lessons');
+  String get topicLabel => isKhmer ? 'ប្រធានបទ' : 'Topic';
+  String get lessonsLoadError => isKhmer
+      ? 'មិនអាចផ្ទុកមេរៀនបានទេ។ សូមពិនិត្យការតភ្ជាប់ ហើយព្យាយាមម្តងទៀត។'
+      : 'Could not load lessons. Check your connection and try again.';
+  String get noLessonsMatch => isKhmer
+      ? 'គ្មានមេរៀនដែលត្រូវនឹងតម្រងទាំងនេះទេ។'
+      : 'No lessons match these filters.';
+  String get clearFilters => isKhmer ? 'សម្អាតតម្រង' : 'Clear filters';
+  String get howThisLessonWorks =>
+      isKhmer ? 'របៀបដែលមេរៀននេះដំណើរការ' : 'How this lesson works';
+  String get lessonStepWatch => isKhmer
+      ? 'មើលគ្រូ AI ដោះស្រាយលំហាត់ជំហានម្តងៗលើក្តារ។'
+      : 'Watch the tutor solve the problem step by step on the whiteboard.';
+  String get lessonStepAsk => isKhmer
+      ? 'សួរអំពីជំហានណាមួយដែលអ្នកមិនទាន់យល់។'
+      : 'Ask about any step you do not understand yet.';
+  String get lessonStepPractice => isKhmer
+      ? 'អនុវត្តលំហាត់ស្រដៀងគ្នា ដើម្បីធ្វើឱ្យស្ទាត់។'
+      : 'Practise similar problems until it sticks.';
+  // ── Home extras ────────────────────────────────────────────────────────────
+  String get browseTopics => isKhmer ? 'មើលប្រធានបទ' : 'Browse topics';
+  String get today => isKhmer ? 'ថ្ងៃនេះ' : 'Today';
+  String get yesterday => isKhmer ? 'ម្សិលមិញ' : 'Yesterday';
+  String get recently => isKhmer ? 'ថ្មីៗនេះ' : 'Recent';
+  String daysAgo(int n) =>
+      isKhmer ? '${_toKhmerDigits(n)} ថ្ងៃមុន' : '$n days ago';
+
+  // ── Profile ────────────────────────────────────────────────────────────────
+  String get profileSubtitle => isKhmer
+      ? 'ព័ត៌មានការរៀន ការកំណត់ និងគណនីរបស់អ្នក។'
+      : 'Your learning setup, preferences and account.';
+  String get studentFallbackName => isKhmer ? 'សិស្ស' : 'Student';
+  String get profileReady => isKhmer ? 'ព័ត៌មានពេញលេញ' : 'Profile complete';
+  String get profileIncomplete =>
+      isKhmer ? 'ព័ត៌មានមិនទាន់ពេញលេញ' : 'Profile not complete';
+  String get learningSetup => isKhmer ? 'ការរៀបចំការរៀន' : 'Learning setup';
+  String get gradeField => isKhmer ? 'ថ្នាក់' : 'Grade';
+  String get subjectsField => isKhmer ? 'មុខវិជ្ជា' : 'Subjects';
+  String get languageField => isKhmer ? 'ភាសារៀន' : 'Learning language';
+  String get notSetYet => isKhmer ? 'មិនទាន់កំណត់' : 'Not set yet';
+  String get updateLearningSetup =>
+      isKhmer ? 'កែប្រែការរៀបចំការរៀន' : 'Update learning setup';
+  String get preferencesTitle => isKhmer ? 'ការកំណត់' : 'Preferences';
+  String get appLanguage => isKhmer ? 'ភាសាកម្មវិធី' : 'App language';
+  String get appearance => isKhmer ? 'រូបរាង' : 'Appearance';
+  String get themeLight => isKhmer ? 'ភ្លឺ' : 'Light';
+  String get themeDark => isKhmer ? 'ងងឹត' : 'Dark';
+  String get accountTitle => isKhmer ? 'គណនី' : 'Account';
+  String get signOutConfirmTitle =>
+      isKhmer ? 'ចាកចេញពីគណនី?' : 'Sign out?';
+  String get signOutConfirmBody => isKhmer
+      ? 'វឌ្ឍនភាពរបស់អ្នកត្រូវបានរក្សាទុក។ អ្នកអាចចូលវិញបានគ្រប់ពេល។'
+      : 'Your progress is saved. You can sign back in any time.';
+  String get profileLoadError =>
+      isKhmer ? 'មិនអាចផ្ទុកព័ត៌មានរបស់អ្នកបានទេ។' : 'Could not load your profile.';
+  String get noProgressYet => isKhmer
+      ? 'ដោះស្រាយលំហាត់ដំបូងរបស់អ្នក ដើម្បីចាប់ផ្តើមតាមដានវឌ្ឍនភាព។'
+      : 'Solve your first problem to start tracking progress.';
 
   // ── Profile & Quizzes ──────────────────────────────────────────────────────
   String get editProfile => isKhmer ? 'កែប្រែព័ត៌មាន' : 'Edit Profile';

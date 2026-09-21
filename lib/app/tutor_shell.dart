@@ -162,9 +162,8 @@ class _TutorShellState extends State<TutorShell> {
     _rememberLocalLimitsView(isLocalCurriculumDemo);
     _openLiveTutor(
       context: learningContextForLesson(lesson),
-      // Only the explicitly selected local curriculum demo starts itself.
-      // The device-local evaluator restores the approved current moment,
-      // including when the gateway or AI service is unavailable.
+      // Local demo starts its evaluator moment. Published lessons with a verified
+      // starter problem immediately launch the solver on the whiteboard.
       initialSubmission: isLocalCurriculumDemo
           ? const VisualTutorStudentSubmission(
               message: 'Start local curriculum demo.',
@@ -173,7 +172,23 @@ class _TutorShellState extends State<TutorShell> {
               inputType: 'quick_action',
               metadata: {'entry_point': 'local_curriculum_demo'},
             )
-          : null,
+          : (lesson.starterProblem != null &&
+                  lesson.starterProblem!.trim().isNotEmpty)
+              ? VisualTutorStudentSubmission(
+                  message: lesson.starterProblem!.trim(),
+                  intent: 'new_problem',
+                  action: 'submit_problem',
+                  inputType: 'quick_action',
+                  metadata: {
+                    'entry_point': 'published_lesson',
+                    'lesson_id': lesson.lessonId,
+                    'curriculum_version_id': lesson.curriculumVersionId,
+                    'topic_id': lesson.topicId,
+                    'subject_id': lesson.subjectId,
+                    'grade_level_id': lesson.gradeLevelId,
+                  },
+                )
+              : null,
     );
   }
 
@@ -254,18 +269,6 @@ class _TutorShellState extends State<TutorShell> {
     }
   }
 
-  void _openStuckTutor() {
-    _openLiveTutor(
-      context: _askQuestionContext,
-      initialSubmission: const VisualTutorStudentSubmission(
-        message: "I'm stuck",
-        intent: 'stuck',
-        action: 'stuck',
-        inputType: 'quick_action',
-        metadata: {'entry_point': 'visual_tutor_home_stuck'},
-      ),
-    );
-  }
 
   Future<void> _logout() async {
     await appAuthService.signOut();
@@ -293,17 +296,23 @@ class _TutorShellState extends State<TutorShell> {
         onVoiceQuestion: _openVoiceTutor,
         onStartDailyPractice: _startDashboardDailyPractice,
         onCompleteProfile: _completeLearningProfile,
+        onBrowseCurriculum: _openTutorHome,
       ),
       1 =>
         _learningContext == null
             ? VisualTutorHomeScreen(
-                onBack: () => setState(() => _selectedIndex = 0),
-                onTypeQuestion: () => _openLiveTutor(),
-                onVoiceInput: _openVoiceTutor,
-                onStuck: _openStuckTutor,
-                onOpenLessons: () => setState(() => _selectedIndex = 3),
-                onContinueLearning: (context) =>
-                    _openLiveTutor(context: context),
+                onOpenLesson: _openLesson,
+                onAskQuestion: (problem) => _openLiveTutor(
+                  initialSubmission: (problem != null && problem.isNotEmpty)
+                      ? VisualTutorStudentSubmission(
+                          message: problem,
+                          intent: 'new_problem',
+                          action: 'submit_problem',
+                          inputType: 'text',
+                          metadata: const {'entry_point': 'tutor_curriculum'},
+                        )
+                      : null,
+                ),
               )
             : TutorScreen(
                 context: _learningContext,
@@ -312,7 +321,6 @@ class _TutorShellState extends State<TutorShell> {
                 voiceMode: _tutorVoiceMode,
                 onOpenTargetedPractice: _openTargetedPractice,
               ),
-      2 => const SizedBox.shrink(),
       3 =>
         _targetedPractice != null
             ? QuizzesScreen(targetedPractice: _targetedPractice)
@@ -360,8 +368,6 @@ class _TutorShellState extends State<TutorShell> {
                 _rememberLocalLimitsView(false);
                 if (index == 1) {
                   _openTutorHome();
-                } else if (index == 2) {
-                  _openVoiceTutor();
                 } else {
                   if (index == 3) _targetedPractice = null;
                   setState(() => _selectedIndex = index);

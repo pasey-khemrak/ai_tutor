@@ -17,12 +17,13 @@ class AppBottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
+    // Each item keeps the shell's tab index; voice is reached from Home and
+    // the tutor itself rather than a dedicated tab.
     final items = [
-      _NavItem(Icons.dashboard_outlined, localizations.navHome),
-      _NavItem(Icons.smart_toy_outlined, localizations.navTutor),
-      _NavItem(Icons.mic_none_rounded, localizations.navVoice),
-      _NavItem(Icons.quiz_outlined, localizations.navLessons),
-      _NavItem(Icons.person_rounded, localizations.navProfile),
+      _NavItem(0, Icons.dashboard_outlined, localizations.navHome),
+      _NavItem(1, Icons.smart_toy_outlined, localizations.navTutor),
+      _NavItem(3, Icons.quiz_outlined, localizations.navLessons),
+      _NavItem(4, Icons.person_rounded, localizations.navProfile),
     ];
 
     final isLight = AdaptiveColors.isLight(context);
@@ -49,12 +50,12 @@ class AppBottomNavigation extends StatelessWidget {
       ),
       child: Row(
         children: [
-          for (var index = 0; index < items.length; index++)
+          for (final item in items)
             Expanded(
               child: _NavButton(
-                item: items[index],
-                selected: selectedIndex == index,
-                onTap: () => onSelected(index),
+                item: item,
+                selected: selectedIndex == item.index,
+                onTap: () => onSelected(item.index),
               ),
             ),
         ],
@@ -113,8 +114,9 @@ class _NavButton extends StatelessWidget {
 }
 
 class _NavItem {
-  const _NavItem(this.icon, this.label);
+  const _NavItem(this.index, this.icon, this.label);
 
+  final int index;
   final IconData icon;
   final String label;
 }

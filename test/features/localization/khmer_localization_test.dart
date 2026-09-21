@@ -161,31 +161,26 @@ void main() {
   });
 
   group('VisualTutorHomeScreen localization', () {
-    testWidgets('renders Khmer labels and no hardcoded English titles under km locale', (tester) async {
+    testWidgets('renders the Khmer curriculum without hardcoded English', (tester) async {
       await tester.pumpWidget(
         _wrapWithLocalization(
           VisualTutorHomeScreen(
-            onBack: () {},
-            onTypeQuestion: () {},
-            onVoiceInput: () {},
-            onStuck: () {},
-            onContinueLearning: (_) {},
+            repository: const LocalDemoStudentLessonsRepository(),
+            onOpenLesson: (_) {},
+            onAskQuestion: (_) {},
           ),
           locale: const Locale('km'),
         ),
       );
       await tester.pumpAndSettle();
 
-      // Verify Khmer text is displayed
-      expect(find.text('សរសេរសំណួរ'), findsOneWidget);
-      expect(find.text('បញ្ចូលសំឡេង'), findsOneWidget);
-      expect(find.text('ចាប់ផ្តើមជំនួយផ្ទាល់'), findsOneWidget);
+      expect(find.text('កម្មវិធីសិក្សា'), findsOneWidget);
+      expect(find.text('សួរលំហាត់ផ្ទាល់ខ្លួន'), findsOneWidget);
 
-      // Verify hardcoded English strings are absent in Khmer mode
-      expect(find.text('Type a Question'), findsNothing);
-      expect(find.text('Voice Input'), findsNothing);
-      expect(find.text('Start Live Help'), findsNothing);
-      expect(find.text('How can I help you\ntoday?'), findsNothing);
+      expect(find.text('Curriculum'), findsNothing);
+      expect(find.text('Continue Learning'), findsNothing);
+      expect(find.text('See All'), findsNothing);
+      expect(find.text('Ask your own problem'), findsNothing);
     });
   });
 
@@ -209,6 +204,8 @@ void main() {
       expect(find.text('Home'), findsNothing);
       expect(find.text('Tutor'), findsNothing);
       expect(find.text('Lessons'), findsNothing);
+      // Voice is reached from Home, not a tab.
+      expect(find.text('សំឡេង'), findsNothing);
     });
   });
 
@@ -432,6 +429,7 @@ class _EmptyStudentLessonsRepository implements StudentLessonsRepository {
     String? search,
     String? subjectId,
     String? topicId,
+    int? grade,
   }) async {
     return const [];
   }

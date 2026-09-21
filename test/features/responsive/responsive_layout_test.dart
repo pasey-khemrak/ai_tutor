@@ -245,24 +245,22 @@ void main() {
         await tester.pumpWidget(
           _wrap(
             VisualTutorHomeScreen(
-              onBack: () {},
-              onTypeQuestion: () {},
-              onVoiceInput: () {},
-              onStuck: () {},
-              onContinueLearning: (_) {},
+              repository: const LocalDemoStudentLessonsRepository(),
+              onOpenLesson: (_) {},
+              onAskQuestion: (_) {},
             ),
           ),
         );
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        expect(find.byKey(const Key('type-question-card')), findsOneWidget);
+        final search = find.byKey(const Key('curriculum-search-field'));
+        expect(search, findsOneWidget);
 
         if (name == 'desktop') {
           // On desktop (1440 wide), content is horizontally centered.
-          final cardRect = tester.getRect(find.byKey(const Key('type-question-card')));
-          final cardCenter = cardRect.center.dx;
-          expect((cardCenter - size.width / 2).abs(), lessThan(10.0));
+          final center = tester.getRect(search).center.dx;
+          expect((center - size.width / 2).abs(), lessThan(10.0));
         }
       });
     }

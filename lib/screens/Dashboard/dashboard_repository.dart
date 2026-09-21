@@ -328,7 +328,7 @@ List<String> _subjects(Object? value) {
 }
 
 int? _gradeNumber(String gradeLabel) {
-  final match = RegExp(r'\\d+').firstMatch(gradeLabel);
+  final match = RegExp(r'\d+').firstMatch(gradeLabel);
   return match == null ? null : int.tryParse(match.group(0)!);
 }
 
