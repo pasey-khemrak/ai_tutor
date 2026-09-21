@@ -27,6 +27,7 @@ class _EmptyLessonsRepository implements StudentLessonsRepository {
     String? search,
     String? subjectId,
     String? topicId,
+    int? grade,
   }) async => const [];
 }
 

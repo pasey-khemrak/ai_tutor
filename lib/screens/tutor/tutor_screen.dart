@@ -123,6 +123,12 @@ class _TutorScreenState extends State<TutorScreen> {
   @override
   void initState() {
     super.initState();
+    final explicitLang = widget.context?.languageMode;
+    if (explicitLang == 'khmer' || explicitLang == 'km') {
+      AppLanguageController.setLanguage('km');
+    } else if (explicitLang == 'english' || explicitLang == 'en') {
+      AppLanguageController.setLanguage('en');
+    }
     _repository = widget.repository ?? _buildDefaultRepository();
     // A free-form "ask anything" question carries no lesson context (it isn't
     // a published lesson), so it's the only source of grade/subject for the
@@ -137,7 +143,10 @@ class _TutorScreenState extends State<TutorScreen> {
         tokenProvider: appAuthService.getAccessToken,
       ),
     );
-    if (_isLocalCurriculumDemo) {
+    if (widget.initialSessionId != null &&
+        widget.initialSessionId!.isNotEmpty) {
+      unawaited(_createOrRestoreSession());
+    } else if (_isLocalCurriculumDemo) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) unawaited(_handleStudentSubmission(
           widget.initialSubmission ?? const VisualTutorStudentSubmission(
@@ -147,10 +156,6 @@ class _TutorScreenState extends State<TutorScreen> {
         ));
       });
       return;
-    }
-    if (widget.initialSessionId != null &&
-        widget.initialSessionId!.isNotEmpty) {
-      unawaited(_createOrRestoreSession());
     }
     final initialSubmission = widget.initialSubmission;
     if (initialSubmission != null) {
@@ -226,20 +231,33 @@ class _TutorScreenState extends State<TutorScreen> {
       ? widget.context!.topic
       : null;
 
-  String get _requestLanguageMode {
-    final explicit = widget.context?.languageMode;
-    if (explicit != null && explicit.isNotEmpty) return explicit;
-    return AppLanguageController.isKhmer ? 'khmer' : 'english';
-  }
+  String get _requestLanguageMode =>
+      AppLanguageController.isKhmer ? 'khmer' : 'english';
 
-  bool get _isLocalCurriculumDemo => isLocalMvpLimitsScope(
-    grade: widget.context?.grade ?? 0,
-    subject: widget.context?.subject ?? '',
-    topic: widget.context?.topic ?? '',
-    lessonId: widget.context?.lessonId ?? '',
-    curriculumVersionId: widget.context?.curriculumVersionId ?? '',
-    teachingMomentId: widget.context?.teachingMomentId,
-  );
+  bool get _isLocalCurriculumDemo {
+    if (widget.initialSessionId == LocalMvpLimitsSession.sessionId) {
+      return true;
+    }
+    if (widget.initialSessionId != null &&
+        widget.initialSessionId!.isNotEmpty) {
+      return false;
+    }
+    if (widget.initialSubmission?.message == 'Start local curriculum demo.') {
+      return true;
+    }
+    if (widget.repository != null &&
+        widget.repository.runtimeType.toString() != '_OfflineRepository') {
+      return false;
+    }
+    return isLocalMvpLimitsScope(
+      grade: widget.context?.grade ?? 0,
+      subject: widget.context?.subject ?? '',
+      topic: widget.context?.topic ?? '',
+      lessonId: widget.context?.lessonId ?? '',
+      curriculumVersionId: widget.context?.curriculumVersionId ?? '',
+      teachingMomentId: widget.context?.teachingMomentId,
+    );
+  }
 
   String? get _boardSnapshotKey {
     final sessionId = _session?.sessionId;
@@ -1517,8 +1535,12 @@ class _TutorScreenState extends State<TutorScreen> {
     if (boardIdentityMustChange(
       // The service's own live preview line is dropped by the turn that
       // replaces it. Losing a presentation hint is not a new board.
+      // Similarly, advancing or updating the interactive student_task prompt
+      // between turns does not drop whiteboard mathematical content.
       renderedActionIds: _renderedBoardActions
-          .where((action) => !isProvisionalBoardAction(action))
+          .where((action) =>
+              !isProvisionalBoardAction(action) &&
+              action.type != 'student_task')
           .map((action) => action.id),
       nextActionIds: next.map((action) => action.id),
     )) {
@@ -1547,16 +1569,16 @@ class _TutorScreenState extends State<TutorScreen> {
     }
 
     final boardUpdateMode =
-        response.metadata['board_update_mode']?.toString() ?? 'replace';
-    if (boardUpdateMode == 'replace') {
-      return responseActions;
-    }
+        response.metadata['board_update_mode']?.toString();
     if (boardUpdateMode == 'patch' && _renderedBoardActions.isNotEmpty) {
       return applyVisualTutorBoardPatch(_renderedBoardActions, responseActions);
     }
 
+    // Append / merge turn actions: remove superseded student task prompt so only
+    // the newest turn's task prompt is active, while preserving all math content.
     final byId = <String, VisualTutorBoardActionEntity>{
-      for (final action in _renderedBoardActions) action.id: action,
+      for (final action in _renderedBoardActions)
+        if (action.type != 'student_task') action.id: action,
     };
     for (final action in responseActions) {
       byId[action.id] = action;
@@ -2075,18 +2097,16 @@ class _TutorScreenState extends State<TutorScreen> {
     VisualTutorStudentSubmission submission,
     VisualTutorTurnResponseEntity response,
   ) {
-    final serverMode = response.metadata['board_update_mode']?.toString();
-    if (serverMode == 'replace') return true;
     final action = _backendActionFor(submission);
     final previousProblem = _turnState.problemText?.trim();
     final nextProblem =
         _stringFromMap(response.board.metadata, 'problem_text') ??
         _problemFromBoard(response.board);
-    // A board may only be cleared for a genuinely new problem.  Some service
-    // responses mark a single turn as `replace`, but using that signal alone
-    // would erase earlier teaching steps when the response omits problem
-    // metadata. A student's lesson board is therefore append-only for the
-    // current problem.
+    // A board may only be cleared for a genuinely new problem. Service
+    // responses default to `board_update_mode: replace`, but using that signal
+    // alone erases earlier teaching steps when answering follow-up questions
+    // about the current problem. A student's lesson board is therefore append-only
+    // for the current problem.
     if (_renderedBoardActions.isEmpty) return true;
     final sameProblem =
         nextProblem != null &&
@@ -2100,6 +2120,14 @@ class _TutorScreenState extends State<TutorScreen> {
         previousProblem != null &&
         previousProblem.isNotEmpty &&
         nextProblem.trim() != previousProblem) {
+      return true;
+    }
+    final submittedProblem = submission.message.trim();
+    if (submission.intent == 'new_problem' &&
+        previousProblem != null &&
+        previousProblem.isNotEmpty &&
+        submittedProblem.isNotEmpty &&
+        submittedProblem != previousProblem) {
       return true;
     }
     // `submit_problem` without a different confirmed problem is a turn in the
@@ -2312,6 +2340,7 @@ class _TutorScreenState extends State<TutorScreen> {
                 onHistoryTap: () =>
                     setState(() => _showHistoryPanel = !_showHistoryPanel),
                 onReportTap: _showTutorReportSheet,
+                metadata: _currentTurn.metadata,
               ),
               Expanded(
                 child: isPhone
@@ -3186,7 +3215,8 @@ class _CompactStepPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       liveRegion: true,
-      label: 'Step $stepNumber: $explanation',
+      label:
+          'Step $stepNumber: $explanation${task.trim().isNotEmpty ? ' Current task: $task' : ''}',
       child: AnimatedSize(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeInOut,
@@ -3404,6 +3434,7 @@ class TutorPresenceBar extends StatelessWidget {
     this.compact = false,
     this.onHistoryTap,
     this.onReportTap,
+    this.metadata = const {},
   });
 
   final LearningContext? learningContext;
@@ -3411,6 +3442,7 @@ class TutorPresenceBar extends StatelessWidget {
   final bool compact;
   final VoidCallback? onHistoryTap;
   final VoidCallback? onReportTap;
+  final Map<String, dynamic> metadata;
 
   @override
   Widget build(BuildContext context) {
@@ -3419,17 +3451,42 @@ class TutorPresenceBar extends StatelessWidget {
     return Container(
       key: const Key('tutor-presence-bar'),
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 12 : 24,
+        horizontal: compact ? 8 : 24,
         vertical: compact ? 8 : 16,
       ),
-      decoration: VisualTutorDecorations.presenceBar(),
+      decoration: BoxDecoration(
+        color: VisualTutorColors.shellElevated,
+        border: Border(
+          bottom: BorderSide(
+            color: VisualTutorColors.cyan.withValues(alpha: .22),
+            width: 1.2,
+          ),
+        ),
+      ),
       child: Row(
         children: [
-          // ── Avatar with status glow ──────────────────────────────────────
+          // ── Avatar + status pip ───────────────────────────────────────────
           Stack(
-            clipBehavior: Clip.none,
             children: [
-              ReanAvatar(size: compact ? 36 : 48),
+              Container(
+                width: compact ? 32 : 40,
+                height: compact ? 32 : 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: VisualTutorColors.panelRaised,
+                  border: Border.all(
+                    color: VisualTutorColors.cyan.withValues(alpha: .4),
+                    width: 1.5,
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.school_rounded,
+                    color: VisualTutorColors.cyan,
+                    size: compact ? 17 : 22,
+                  ),
+                ),
+              ),
               Positioned(
                 bottom: 1,
                 right: 1,
@@ -3450,7 +3507,7 @@ class TutorPresenceBar extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: compact ? 8 : 12),
           // ── Title + status ───────────────────────────────────────────────
           Expanded(
             child: Column(
@@ -3461,43 +3518,49 @@ class TutorPresenceBar extends StatelessWidget {
                   AppLocalizations.of(context).tutorPresenceTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: VisualTutorTypography.presenceTitle,
+                  style: compact
+                      ? VisualTutorTypography.presenceTitle.copyWith(fontSize: 13)
+                      : VisualTutorTypography.presenceTitle,
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        AppLocalizations.of(context).isKhmer
-                            ? status.khmer
-                            : status.english,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: VisualTutorTypography.presenceStatus,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        AppLocalizations.of(context).isKhmer
-                            ? status.english
-                            : status.khmer,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: VisualTutorTypography.presenceStatus.copyWith(
-                          color: VisualTutorColors.cyan.withValues(alpha: .6),
+                if (!compact) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          AppLocalizations.of(context).isKhmer
+                              ? status.khmer
+                              : status.english,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: VisualTutorTypography.presenceStatus,
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          AppLocalizations.of(context).isKhmer
+                              ? status.english
+                              : status.khmer,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: VisualTutorTypography.presenceStatus.copyWith(
+                            color: VisualTutorColors.cyan.withValues(alpha: .6),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
           // ── Teaching mode chip + menu ────────────────────────────────────
-          if (stageState != null && stageState != 'waiting_for_student')
+          if (stageState != null &&
+              stageState != 'waiting_for_student' &&
+              (!compact || metadata['verified'] == null))
             Padding(
-              padding: const EdgeInsets.only(right: 10),
+              padding: EdgeInsets.only(right: compact ? 6 : 10),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                 decoration: BoxDecoration(
@@ -3518,14 +3581,25 @@ class TutorPresenceBar extends StatelessWidget {
                 ),
               ),
             ),
+          // ── Curriculum verification badge ─────────────────────────────────
+          if (metadata['verified'] != null)
+            Flexible(
+              child: Padding(
+                padding: EdgeInsets.only(right: compact ? 4 : 10),
+                child: _CurriculumStatusBadge(
+                  metadata: metadata,
+                  compact: compact,
+                ),
+              ),
+            ),
           // ── Language switcher button ────────────────────────────────────
-          const Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: LanguageSwitcherButton(compact: true),
+          Padding(
+            padding: EdgeInsets.only(right: compact ? 6 : 8),
+            child: const LanguageSwitcherButton(compact: true),
           ),
           Container(
-            width: compact ? 36 : 40,
-            height: compact ? 36 : 40,
+            width: compact ? 32 : 40,
+            height: compact ? 32 : 40,
             decoration: BoxDecoration(
               color: VisualTutorColors.panelRaised,
               borderRadius: BorderRadius.circular(10),
@@ -3535,29 +3609,30 @@ class TutorPresenceBar extends StatelessWidget {
               tooltip: AppLocalizations.of(context).conversationHistory,
               onPressed: onHistoryTap,
               padding: EdgeInsets.zero,
-              icon: const Icon(
+              icon: Icon(
                 Icons.history_rounded,
                 color: VisualTutorColors.textMuted,
-                size: 20,
+                size: compact ? 18 : 20,
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: compact ? 6 : 8),
           Container(
-            width: compact ? 36 : 40,
-            height: compact ? 36 : 40,
+            width: compact ? 32 : 40,
+            height: compact ? 32 : 40,
             decoration: BoxDecoration(
               color: VisualTutorColors.panelRaised,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: VisualTutorColors.border),
             ),
             child: PopupMenuButton<String>(
+              key: const Key('tutor-menu-button'),
               tooltip: AppLocalizations.of(context).tutorMenu,
               padding: EdgeInsets.zero,
-              icon: const Icon(
+              icon: Icon(
                 Icons.more_horiz_rounded,
                 color: VisualTutorColors.textMuted,
-                size: 20,
+                size: compact ? 18 : 20,
               ),
               color: VisualTutorColors.shellElevated,
               shape: RoundedRectangleBorder(
@@ -3575,17 +3650,20 @@ class TutorPresenceBar extends StatelessWidget {
                         color: VisualTutorColors.cyan,
                       ),
                       const SizedBox(width: 10),
-                      Text(
-                        AppLocalizations.of(context).firstRunTitle,
-                        style: const TextStyle(
-                          color: VisualTutorColors.text,
-                          fontSize: 13,
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context).firstRunTitle,
+                          style: const TextStyle(
+                            color: VisualTutorColors.text,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
                 PopupMenuItem<String>(
+                  key: const Key('report-tutor-explanation-button'),
                   value: 'report',
                   child: Row(
                     children: [
@@ -3595,11 +3673,13 @@ class TutorPresenceBar extends StatelessWidget {
                         color: VisualTutorColors.textMuted,
                       ),
                       const SizedBox(width: 10),
-                      Text(
-                        AppLocalizations.of(context).reportExplanation,
-                        style: const TextStyle(
-                          color: VisualTutorColors.text,
-                          fontSize: 13,
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context).reportExplanation,
+                          style: const TextStyle(
+                            color: VisualTutorColors.text,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
@@ -3658,6 +3738,127 @@ class TutorPresenceBar extends StatelessWidget {
       'listening' => const _TutorStatusText('Listening...', 'កំពុងស្តាប់...'),
       _ => const _TutorStatusText('Waiting for you', 'រង់ចាំអ្នក'),
     };
+  }
+}
+
+/// Dynamic curriculum verification badge displayed in the tutor presence bar.
+///
+/// Shows "✓ Verified Curriculum" (cyan) when grounded in admin curriculum,
+/// or "AI Generated (Unverified)" (amber) when generated dynamically by LLM.
+class _CurriculumStatusBadge extends StatelessWidget {
+  const _CurriculumStatusBadge({
+    required this.metadata,
+    this.compact = false,
+  });
+
+  final Map<String, dynamic> metadata;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final verified = metadata['verified'];
+    if (verified == null) return const SizedBox.shrink();
+
+    final isKhmer = AppLocalizations.of(context).isKhmer;
+    final topic = metadata['curriculum_topic'] as String?;
+
+    if (verified == true) {
+      final label = compact
+          ? (isKhmer ? '✓ ផ្ទៀងផ្ទាត់' : '✓ Verified')
+          : (isKhmer ? '✓ ផ្ទៀងផ្ទាត់តាមកម្មវិធីសិក្សា' : '✓ Verified Curriculum');
+      final tooltip = topic != null && topic.trim().isNotEmpty
+          ? (isKhmer ? 'ប្រធានបទ៖ $topic' : 'Topic: $topic')
+          : (isKhmer ? 'ផ្ទៀងផ្ទាត់តាមកម្មវិធីសិក្សា' : 'Grounded in Admin Curriculum');
+      return Tooltip(
+        message: tooltip,
+        child: Container(
+          key: const Key('curriculum-verified-badge'),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 6 : 8,
+            vertical: compact ? 3 : 4,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xFF00E5FF).withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(VisualTutorRadius.pill),
+            border: Border.all(
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.verified_rounded,
+                size: compact ? 12 : 13,
+                color: const Color(0xFF00E5FF),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xFF00E5FF),
+                    fontSize: compact ? 9.5 : 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: .3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      final label = compact
+          ? (isKhmer ? 'AI មិនទាន់ផ្ទៀងផ្ទាត់' : 'AI Unverified')
+          : (isKhmer ? 'ចម្លើយ AI (មិនទាន់ផ្ទៀងផ្ទាត់)' : 'AI Generated (Unverified)');
+      final tooltip = isKhmer
+          ? 'ចម្លើយបង្កើតដោយ AI LLM។ រូបមន្តមិនទាន់បានបោះពុម្ពក្នុងកម្មវិធីសិក្សា។'
+          : 'Solves with AI LLM. Formula not yet published in admin curriculum.';
+      return Tooltip(
+        message: tooltip,
+        child: Container(
+          key: const Key('curriculum-unverified-badge'),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 6 : 8,
+            vertical: compact ? 3 : 4,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(VisualTutorRadius.pill),
+            border: Border.all(
+              color: Colors.amber.withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                size: compact ? 12 : 13,
+                color: Colors.amber,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.amber,
+                    fontSize: compact ? 9.5 : 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: .3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 }
 
@@ -4203,7 +4404,8 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
         oldWidget.restored != widget.restored ||
         oldWidget.reducedMotion != widget.reducedMotion ||
         oldWidget.animate != widget.animate ||
-        oldWidget.snapshot != widget.snapshot) {
+        oldWidget.snapshot != widget.snapshot ||
+        oldWidget.pageViewportHeight != widget.pageViewportHeight) {
       _syncActions();
       _restoreSnapshot();
     }
@@ -4285,10 +4487,13 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
     // The step being written wins, unless the student went back to read an
     // earlier board themselves.
     final active = pageIndexOfAction(pages, _activeActionId);
-    final target = _studentPickedBoardPage
+    final target = (_studentPickedBoardPage
         ? _boardPageIndex
-        : (active ?? _boardPageIndex);
-    return target.clamp(0, pages.length - 1);
+        : (active ?? _boardPageIndex)).clamp(0, pages.length - 1);
+    if (_boardPageIndex != target) {
+      _boardPageIndex = target;
+    }
+    return target;
   }
 
   List<VisualTutorBoardActionEntity> _currentBoardPageActions() {
@@ -4552,6 +4757,7 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
       });
       return;
     }
+    _studentPickedBoardPage = false;
     final generation = _generation;
     // Mount the first actual teaching visual before an optional marker/timer
     // yields.  On Flutter Web a streamed `turn_complete` can otherwise leave
@@ -7003,6 +7209,7 @@ class _InteractionInput extends StatelessWidget {
         onMuteToggle: onMuteToggle,
       );
     }
+    final isKhmer = AppLocalizations.of(context).isKhmer;
     // ── Keyboard composer + secondary microphone ────────────────────────────
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -7031,8 +7238,8 @@ class _InteractionInput extends StatelessWidget {
               ),
               decoration: InputDecoration(
                 hintText: type == 'numeric_input'
-                    ? 'Type your number...'
-                    : 'Ask a follow-up...',
+                    ? (isKhmer ? 'បញ្ចូលលេខ...' : 'Type your number...')
+                    : (isKhmer ? 'សួរសំណួរបន្ថែមអំពីជំហាន...' : 'Ask a follow-up about any step...'),
                 hintStyle: TextStyle(
                   color: VisualTutorColors.textMuted,
                   fontSize: compact ? 13 : 14,

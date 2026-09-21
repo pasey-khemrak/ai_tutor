@@ -28,18 +28,20 @@ class _LessonsRepository implements StudentLessonsRepository {
   _LessonsRepository(this.lessons);
 
   final List<StudentLesson> lessons;
-  final List<({String? search, String? subjectId, String? topicId})> calls = [];
+  final List<({String? search, String? subjectId, String? topicId, int? grade})> calls = [];
 
   @override
   Future<List<StudentLesson>> loadLessons({
     String? search,
     String? subjectId,
     String? topicId,
+    int? grade,
   }) async {
-    calls.add((search: search, subjectId: subjectId, topicId: topicId));
+    calls.add((search: search, subjectId: subjectId, topicId: topicId, grade: grade));
     return lessons
         .where(
           (lesson) =>
+              (grade == null || lesson.grade == grade) &&
               (subjectId == null || lesson.subjectId == subjectId) &&
               (topicId == null || lesson.topicId == topicId) &&
               (search == null ||

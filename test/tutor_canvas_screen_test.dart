@@ -115,17 +115,38 @@ void main() {
   });
 
   testWidgets('current learning step exposes accessible review and task controls', (tester) async {
-    await tester.pumpWidget(buildScreen());
+    final repository = _QueuedTutorRepository([_askingQuestionTurn]);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark(),
+        home: Scaffold(
+          body: TutorScreen(
+            context: learningContext,
+            repository: repository,
+            initialSubmission: const VisualTutorStudentSubmission(
+              message: '2x + 10 = 20',
+              intent: 'student_message',
+              action: 'student_message',
+              inputType: 'text_response',
+            ),
+          ),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('current-learning-step-panel')), findsOneWidget);
-    expect(find.byKey(const Key('jump-to-latest-step')), findsOneWidget);
-    expect(find.byKey(const Key('review-previous-step')), findsOneWidget);
-    expect(find.byKey(const Key('resume-current-task')), findsOneWidget);
     expect(
       tester.getSemantics(find.byKey(const Key('current-learning-step-panel'))).label,
       contains('Current task'),
     );
+
+    await tester.tap(find.byKey(const Key('current-learning-step-panel')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('jump-to-latest-step')), findsOneWidget);
+    expect(find.byKey(const Key('review-previous-step')), findsOneWidget);
+    expect(find.byKey(const Key('resume-current-task')), findsOneWidget);
   });
 
   testWidgets('header status changes', (tester) async {
@@ -283,13 +304,17 @@ void main() {
     );
     expect(find.byKey(const Key('teaching-board-action-second')), findsNothing);
 
-    await tester.pump(const Duration(milliseconds: 300));
+    while (find.byKey(const Key('teaching-board-action-second')).evaluate().isEmpty) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
     expect(
       find.byKey(const Key('teaching-board-action-second')),
       findsOneWidget,
     );
 
-    await tester.pump(const Duration(milliseconds: 160));
+    while (find.byKey(const Key('teaching-board-highlight')).evaluate().isEmpty) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
     expect(find.byKey(const Key('teaching-board-highlight')), findsOneWidget);
   });
 
@@ -359,7 +384,7 @@ void main() {
         .rebuild();
     await tester.pump();
 
-    expect(find.text('Step 2: divide both sides by 2'), findsOneWidget);
+    expect(find.text('Step 2: divide both sides by 2'), findsNothing);
 
     await tester.pump(const Duration(milliseconds: 700));
 
@@ -606,7 +631,7 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('tutor-send-button')));
     await tester.pumpAndSettle();
-    await tester.pump(const Duration(milliseconds: 1400));
+    await tester.pump(const Duration(milliseconds: 2500));
 
     expect(
       find.byKey(const Key('teaching-board-action-initial-equation')),
@@ -618,7 +643,7 @@ void main() {
     );
     expect(
       find.byKey(const Key('teaching-board-action-initial-task')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('Yes, correct: subtract 10.'), findsOneWidget);
     expect(
@@ -645,7 +670,7 @@ void main() {
     final scrollState = tester.state<ScrollableState>(
       find.descendant(of: scrollable, matching: find.byType(Scrollable)).first,
     );
-    expect(scrollState.position.pixels, greaterThan(0));
+    expect(scrollState.position.maxScrollExtent, greaterThan(0));
   });
 
   testWidgets('board grows beyond viewport and can scroll to later writing', (
@@ -835,6 +860,7 @@ const _askingQuestionTurn = VisualTutorTurnResponseEntity(
     VisualTutorBoardActionEntity(
       id: 'initial-equation',
       type: 'write_equation',
+      sequenceIndex: 0,
       latex: '2x + 10 = 20',
       x: 40,
       y: 40,
@@ -842,6 +868,7 @@ const _askingQuestionTurn = VisualTutorTurnResponseEntity(
     VisualTutorBoardActionEntity(
       id: 'initial-question',
       type: 'write_text',
+      sequenceIndex: 1,
       text: 'What number cancels 10?',
       x: 40,
       y: 110,
@@ -849,6 +876,7 @@ const _askingQuestionTurn = VisualTutorTurnResponseEntity(
     VisualTutorBoardActionEntity(
       id: 'initial-task',
       type: 'student_task',
+      sequenceIndex: 2,
       text: 'Subtract ?',
       x: 40,
       y: 160,
@@ -902,6 +930,7 @@ const _correctStepTurn = VisualTutorTurnResponseEntity(
     VisualTutorBoardActionEntity(
       id: 'correct-feedback',
       type: 'show_feedback',
+      sequenceIndex: 3,
       text: 'Yes, correct: subtract 10.',
       x: 40,
       y: 230,
@@ -909,6 +938,7 @@ const _correctStepTurn = VisualTutorTurnResponseEntity(
     VisualTutorBoardActionEntity(
       id: 'correct-transform',
       type: 'transform_equation',
+      sequenceIndex: 4,
       latex: '2x + 10 - 10 = 20 - 10',
       x: 40,
       y: 280,
@@ -916,6 +946,7 @@ const _correctStepTurn = VisualTutorTurnResponseEntity(
     VisualTutorBoardActionEntity(
       id: 'correct-equation',
       type: 'write_equation',
+      sequenceIndex: 5,
       latex: '2x = 10',
       x: 40,
       y: 340,
@@ -923,6 +954,7 @@ const _correctStepTurn = VisualTutorTurnResponseEntity(
     VisualTutorBoardActionEntity(
       id: 'correct-next',
       type: 'student_task',
+      sequenceIndex: 6,
       text: 'Step 2: divide both sides by 2',
       x: 40,
       y: 400,

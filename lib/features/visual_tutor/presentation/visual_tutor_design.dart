@@ -92,8 +92,8 @@ class VisualTutorTypography {
 
   static const welcomeTitle = TextStyle(
     color: VisualTutorColors.text,
-    fontSize: 25,
-    fontWeight: FontWeight.w900,
+    fontSize: 20,
+    fontWeight: FontWeight.w800,
     height: 1.35,
     fontFamilyFallback: fontFallback,
   );
@@ -101,16 +101,16 @@ class VisualTutorTypography {
   static const cardTitle = TextStyle(
     color: VisualTutorColors.text,
     fontSize: 16,
-    fontWeight: FontWeight.w900,
+    fontWeight: FontWeight.w800,
     height: 1.40,
     fontFamilyFallback: fontFallback,
   );
 
   static const khmerSubtitle = TextStyle(
-    color: VisualTutorColors.textMuted,
-    fontSize: 12,
-    fontWeight: FontWeight.w700,
-    height: 1.45,
+    color: Color(0xFF9DAABE),
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    height: 1.40,
     fontFamilyFallback: fontFallback,
   );
 
@@ -279,10 +279,10 @@ class VisualTutorShadows {
 
   static List<BoxShadow> get orangeGlow => [
     BoxShadow(
-      color: VisualTutorColors.orange.withValues(alpha: .28),
-      blurRadius: 24,
-      spreadRadius: -6,
-      offset: const Offset(0, 10),
+      color: VisualTutorColors.orange.withValues(alpha: .12),
+      blurRadius: 20,
+      spreadRadius: -2,
+      offset: const Offset(0, 6),
     ),
   ];
 
@@ -317,14 +317,31 @@ class VisualTutorDecorations {
 
   static BoxDecoration welcomePanel() {
     return BoxDecoration(
-      color: VisualTutorColors.welcomePanel,
-      borderRadius: BorderRadius.circular(VisualTutorRadius.board),
-      border: Border.all(color: VisualTutorColors.cyan.withValues(alpha: .18)),
+      gradient: const LinearGradient(
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+        colors: [Color(0xFF073F4A), Color(0xFF121C45)],
+      ),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(
+        color: VisualTutorColors.cyan.withValues(alpha: .32),
+        width: 1.2,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: VisualTutorColors.cyan.withValues(alpha: .06),
+          blurRadius: 20,
+        ),
+      ],
     );
   }
 
-  static BoxDecoration actionCard({double radius = VisualTutorRadius.xl}) {
-    return raisedPanel(radius: radius);
+  static BoxDecoration actionCard({double radius = VisualTutorRadius.lg}) {
+    return BoxDecoration(
+      color: const Color(0xFF15182B),
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: const Color(0xFF2B3048)),
+    );
   }
 
   static BoxDecoration iconTile(Color background) {
@@ -336,8 +353,16 @@ class VisualTutorDecorations {
 
   static BoxDecoration stuckCard() {
     return BoxDecoration(
-      color: VisualTutorColors.orange,
-      borderRadius: BorderRadius.circular(VisualTutorRadius.xl),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF231B10), Color(0xFF141926)],
+      ),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: VisualTutorColors.orange.withValues(alpha: .45),
+        width: 1.2,
+      ),
       boxShadow: VisualTutorShadows.orangeGlow,
     );
   }
@@ -520,13 +545,16 @@ class VisualTutorButtonStyles {
 
   static ButtonStyle stuckCardCta() {
     return FilledButton.styleFrom(
-      backgroundColor: VisualTutorColors.darkButton,
-      foregroundColor: VisualTutorColors.orange,
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      backgroundColor: VisualTutorColors.orange,
+      foregroundColor: const Color(0xFF0D1117),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(VisualTutorRadius.md),
       ),
-      textStyle: VisualTutorTypography.quickAction,
+      textStyle: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w800,
+      ),
     );
   }
 
@@ -577,8 +605,8 @@ class VisualTutorIconTile extends StatelessWidget {
     required this.icon,
     this.background = VisualTutorColors.card,
     this.foreground = VisualTutorColors.cyan,
-    this.size = 52,
-    this.iconSize = 25,
+    this.size = 44,
+    this.iconSize = 22,
   });
 
   final IconData icon;
@@ -621,27 +649,28 @@ class VisualTutorActionCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(VisualTutorRadius.xl),
+        borderRadius: BorderRadius.circular(VisualTutorRadius.lg),
         child: Container(
           padding: const EdgeInsets.all(VisualTutorSpacing.lg),
           decoration: VisualTutorDecorations.actionCard(),
           child: Row(
             children: [
               VisualTutorIconTile(icon: icon, background: iconBackground),
-              const SizedBox(width: VisualTutorSpacing.lg),
+              const SizedBox(width: VisualTutorSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title, style: VisualTutorTypography.cardTitle),
-                    const SizedBox(height: VisualTutorSpacing.xs),
+                    const SizedBox(height: 3),
                     Text(subtitle, style: VisualTutorTypography.khmerSubtitle),
                   ],
                 ),
               ),
-              Icon(
+              const Icon(
                 Icons.chevron_right_rounded,
-                color: VisualTutorColors.textMuted.withValues(alpha: .7),
+                color: Color(0xFF7784BA),
+                size: 22,
               ),
             ],
           ),

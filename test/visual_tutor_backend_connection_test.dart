@@ -70,6 +70,8 @@ void main() {
     await pumpTutor(tester, repository);
     await submit(tester, '2x + 5 = 15');
 
+    await tester.tap(find.byKey(const Key('tutor-menu-button')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('report-tutor-explanation-button')));
     await tester.pumpAndSettle();
 
