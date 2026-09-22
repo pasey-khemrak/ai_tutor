@@ -324,12 +324,14 @@ class VisualTutorTurnResponseModel extends VisualTutorTurnResponseEntity {
         );
       }
     }
+    final verificationMap = _map(json['verification']);
     final metadata = isPublicTurn
         ? {
             'board_version': json['board_version'],
             'base_board_version': json['base_board_version'],
             'board_update_mode': json['board_update_mode'] ?? 'replace',
             'authoritative_lesson_state': _map(json['lesson_state']),
+            'verified': verificationMap['verified'],
           }
         : _map(json['metadata']);
     final planPayload = publicPlan.isNotEmpty

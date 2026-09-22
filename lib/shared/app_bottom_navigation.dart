@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/localization/app_localizations.dart';
 import '../core/adaptive_colors.dart';
 import '../core/app_colors.dart';
 
@@ -13,16 +14,18 @@ class AppBottomNavigation extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
 
-  static const _items = [
-    _NavItem(Icons.dashboard_outlined, 'Home'),
-    _NavItem(Icons.smart_toy_outlined, 'Tutor'),
-    _NavItem(Icons.mic_none_rounded, 'Voice'),
-    _NavItem(Icons.quiz_outlined, 'Lessons'),
-    _NavItem(Icons.person_rounded, 'Profile'),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+    // Each item keeps the shell's tab index; voice is reached from Home and
+    // the tutor itself rather than a dedicated tab.
+    final items = [
+      _NavItem(0, Icons.dashboard_outlined, localizations.navHome),
+      _NavItem(1, Icons.smart_toy_outlined, localizations.navTutor),
+      _NavItem(3, Icons.quiz_outlined, localizations.navLessons),
+      _NavItem(4, Icons.person_rounded, localizations.navProfile),
+    ];
+
     final isLight = AdaptiveColors.isLight(context);
     final backgroundColor = isLight
         ? Colors.white.withValues(alpha: .94)
@@ -47,12 +50,12 @@ class AppBottomNavigation extends StatelessWidget {
       ),
       child: Row(
         children: [
-          for (var index = 0; index < _items.length; index++)
+          for (final item in items)
             Expanded(
               child: _NavButton(
-                item: _items[index],
-                selected: selectedIndex == index,
-                onTap: () => onSelected(index),
+                item: item,
+                selected: selectedIndex == item.index,
+                onTap: () => onSelected(item.index),
               ),
             ),
         ],
@@ -111,8 +114,9 @@ class _NavButton extends StatelessWidget {
 }
 
 class _NavItem {
-  const _NavItem(this.icon, this.label);
+  const _NavItem(this.index, this.icon, this.label);
 
+  final int index;
   final IconData icon;
   final String label;
 }

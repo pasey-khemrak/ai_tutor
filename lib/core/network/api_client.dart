@@ -28,14 +28,25 @@ class ApiClient {
   final http.Client _httpClient;
   final Future<String?> Function()? _tokenProvider;
 
+  static const Duration defaultTimeout = Duration(seconds: 25);
+
   Future<Map<String, dynamic>> get(
     String path, {
     Map<String, String>? queryParameters,
   }) async {
-    final response = await _httpClient.get(
-      config.backendUri(path, queryParameters),
-      headers: await _headers(),
-    );
+    final response = await _httpClient
+        .get(
+          config.backendUri(path, queryParameters),
+          headers: await _headers(),
+        )
+        .timeout(
+          defaultTimeout,
+          onTimeout: () => throw const ApiException(
+            message:
+                'Connection timed out. Please check your internet connection.',
+            statusCode: 408,
+          ),
+        );
     return _decodeObject(response);
   }
 
@@ -44,11 +55,20 @@ class ApiClient {
     Object? body,
     Map<String, String>? queryParameters,
   }) async {
-    final response = await _httpClient.post(
-      config.backendUri(path, queryParameters),
-      headers: await _headers(),
-      body: body == null ? null : jsonEncode(body),
-    );
+    final response = await _httpClient
+        .post(
+          config.backendUri(path, queryParameters),
+          headers: await _headers(),
+          body: body == null ? null : jsonEncode(body),
+        )
+        .timeout(
+          defaultTimeout,
+          onTimeout: () => throw const ApiException(
+            message:
+                'Connection timed out. Please check your internet connection.',
+            statusCode: 408,
+          ),
+        );
     return _decodeObject(response);
   }
 
@@ -67,7 +87,16 @@ class ApiClient {
         'Last-Event-ID': lastEventId,
     });
     if (body != null) request.body = jsonEncode(body);
-    final response = await _httpClient.send(request);
+    final response = await _httpClient
+        .send(request)
+        .timeout(
+          defaultTimeout,
+          onTimeout: () => throw const ApiException(
+            message:
+                'Connection timed out. Please check your internet connection.',
+            statusCode: 408,
+          ),
+        );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final text = await response.stream.bytesToString();
       Object? decoded;

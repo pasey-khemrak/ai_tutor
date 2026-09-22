@@ -130,7 +130,7 @@ void main() {
           'id': 'unsafe-widget',
           'type': 'custom_widget',
           'sequence_index': 1,
-          'widget_code': 'Text(\"do not run this\")',
+          'widget_code': 'Text("do not run this")',
         },
         {
           ...plan()['board_actions'][1] as Map<String, dynamic>,

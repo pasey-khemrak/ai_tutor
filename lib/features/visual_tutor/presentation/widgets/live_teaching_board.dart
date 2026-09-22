@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/visual_tutor_entities.dart';
 import '../live_board_state.dart';
 import '../semantic_board_layout.dart';
@@ -695,7 +696,7 @@ class _StudentActionOverlay extends StatelessWidget {
                           ),
                         ),
                         icon: const Icon(Icons.lightbulb_outline, size: 15),
-                        label: const Text('Explain'),
+                        label: Text(AppLocalizations.of(context).explain),
                       ),
                     ),
                   )

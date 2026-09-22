@@ -181,11 +181,11 @@ void main() {
         'teaching_plan': plan,
       });
       expect(
-        response.boardActions!.map((action) => action.type),
+        response.boardActions.map((action) => action.type),
         contains('show_feedback'),
       );
       expect(
-        response.boardActions!.where((action) => action.type == 'student_task'),
+        response.boardActions.where((action) => action.type == 'student_task'),
         hasLength(1),
       );
     },

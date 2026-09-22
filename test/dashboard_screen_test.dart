@@ -2,10 +2,12 @@ import 'dart:convert';
 
 import 'package:ai_tutor/core/config/app_config.dart';
 import 'package:ai_tutor/core/network/api_client.dart';
+import 'package:ai_tutor/core/localization/app_localizations.dart';
 import 'package:ai_tutor/core/theme/app_theme.dart';
 import 'package:ai_tutor/screens/dashboard/dashboard_repository.dart';
 import 'package:ai_tutor/screens/dashboard/dashboard_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -156,6 +158,35 @@ void main() {
     client.close();
   });
 
+  test('resume grade is parsed from the learner grade label', () async {
+    final client = ApiClient(
+      config: const AppConfig(
+        environment: AppEnvironment.production,
+        backendBaseUrl: 'http://localhost:4000/api/v1',
+        aiServiceBaseUrl: 'http://localhost:8001/api/v1',
+        useDemoAuth: false,
+        useDemoTutorData: false,
+      ),
+      tokenProvider: () async => 'token',
+      httpClient: MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'data': {
+              'learner': {'display_name': 'Dara', 'grade_label': 'Grade 11'},
+            },
+          }),
+          200,
+        ),
+      ),
+    );
+
+    final data = await BackendDashboardRepository(apiClient: client)
+        .loadDashboard();
+
+    expect(data?.resumeGrade, 11);
+    client.close();
+  });
+
   testWidgets('dashboard renders empty state', (tester) async {
     await tester.pumpWidget(
       wrap(
@@ -254,7 +285,6 @@ void main() {
     'dashboard quick actions use callbacks and submit the typed question',
     (tester) async {
       String? submittedQuestion;
-      var scanned = false;
       var voiced = false;
       var dailyPractice = false;
       await tester.pumpWidget(
@@ -263,7 +293,6 @@ void main() {
             repository: const TestDashboardRepository(_dashboardFixture),
             onResumeLearning: () {},
             onAskQuestion: (question) => submittedQuestion = question,
-            onScanQuestion: () => scanned = true,
             onVoiceQuestion: () => voiced = true,
             onStartDailyPractice: (_) => dailyPractice = true,
           ),
@@ -271,12 +300,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.byKey(const Key('dashboard-scan-button')), findsNothing);
+      expect(find.byKey(const Key('dashboard-ask-button')), findsOneWidget);
+
       await tester.enterText(
         find.byKey(const Key('dashboard-question-field')),
         'How do I solve 2x + 5 = 15?',
       );
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.tap(find.byKey(const Key('dashboard-scan-button')));
+      await tester.tap(find.byKey(const Key('dashboard-ask-button')));
       await tester.tap(find.byKey(const Key('dashboard-voice-button')));
       final daily = find.byKey(
         const Key('dashboard-start-daily-practice-button'),
@@ -285,9 +316,52 @@ void main() {
       await tester.tap(daily);
 
       expect(submittedQuestion, 'How do I solve 2x + 5 = 15?');
-      expect(scanned, isTrue);
       expect(voiced, isTrue);
       expect(dailyPractice, isTrue);
     },
   );
+
+  testWidgets('Continue Learning links to the curriculum', (tester) async {
+    var browsed = false;
+    await tester.pumpWidget(
+      wrap(
+        DashboardScreen(
+          repository: const TestDashboardRepository(_dashboardFixture),
+          onResumeLearning: () {},
+          onBrowseCurriculum: () => browsed = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final browse = find.byKey(const Key('dashboard-browse-curriculum'));
+    await tester.ensureVisible(browse);
+    await tester.tap(browse);
+    expect(browsed, isTrue);
+  });
+
+  testWidgets('recent activity time is shown in Khmer', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark(),
+        locale: const Locale('km'),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizationsDelegate(),
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: Scaffold(
+          body: DashboardScreen(
+            repository: const TestDashboardRepository(_dashboardFixture),
+            onResumeLearning: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('ថ្ងៃនេះ'), findsOneWidget);
+    expect(find.text('Today'), findsNothing);
+  });
 }

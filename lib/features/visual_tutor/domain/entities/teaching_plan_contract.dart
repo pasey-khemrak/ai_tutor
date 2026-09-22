@@ -192,7 +192,7 @@ class VisualTutorTeachingPlan {
     task ??= {
       'id': 'board-recovery-task',
       'type': 'student_task',
-      'sequence_index': repaired.length.clamp(0, 24) as int,
+      'sequence_index': repaired.length.clamp(0, 24),
       'text': 'Please answer the current question or ask for a hint.',
       'requires_student_response': true,
       'task_type': 'conceptual_operation',
@@ -243,7 +243,7 @@ class VisualTutorTeachingPlan {
   static Map<String, dynamic> _boardRecoveryNotice(String id, int index) => {
     'id': id,
     'type': 'show_feedback',
-    'sequence_index': index.clamp(0, 24) as int,
+    'sequence_index': index.clamp(0, 24),
     'text': 'One board item could not be shown. Continue with this step.',
     'layout_zone': 'feedback',
     'layout_flow': 'vertical',
@@ -619,8 +619,9 @@ class VisualTutorTeachingPlan {
       }
       final label = point['label'];
       if (label != null &&
-          (label is! String || label.length > 120 || !_safeText(label)))
+          (label is! String || label.length > 120 || !_safeText(label))) {
         return false;
+      }
       if (point['open'] != null && point['open'] is! bool) return false;
     }
     return true;
@@ -628,8 +629,9 @@ class VisualTutorTeachingPlan {
 
   static bool _validNumberLine(Map<String, dynamic>? line) {
     const allowed = {'min', 'max', 'step', 'labels'};
-    if (line == null || line.keys.any((key) => !allowed.contains(key)))
+    if (line == null || line.keys.any((key) => !allowed.contains(key))) {
       return false;
+    }
     final min = line['min'];
     final max = line['max'];
     final step = line['step'];
@@ -657,8 +659,9 @@ class VisualTutorTeachingPlan {
 
   static bool _validTable(Map<String, dynamic>? table) {
     const allowed = {'columns', 'rows'};
-    if (table == null || table.keys.any((key) => !allowed.contains(key)))
+    if (table == null || table.keys.any((key) => !allowed.contains(key))) {
       return false;
+    }
     final columns = table['columns'];
     final rows = table['rows'];
     bool cell(Object? value) => value is num

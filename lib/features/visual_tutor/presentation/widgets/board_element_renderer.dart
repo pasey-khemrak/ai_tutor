@@ -865,6 +865,46 @@ class _PositionedTextAction extends StatelessWidget {
   }
 }
 
+/// Preprocesses raw LaTeX equation strings to ensure clean rendering:
+/// 1. Strips accidental outer delimiters: $$, $, \[, \], \(, \).
+/// 2. Converts chemical reaction arrows: <=> and <-> to \rightleftharpoons, --> and -> to \rightarrow.
+/// 3. Normalizes physics vectors and unit vectors: \vec v -> \vec{v}, \hat i -> \hat{i}.
+String preprocessLatexEquation(String raw) {
+  var s = raw.trim();
+
+  // 1. Clean outer delimiters
+  if (s.startsWith(r'$$') && s.endsWith(r'$$') && s.length >= 4) {
+    s = s.substring(2, s.length - 2).trim();
+  } else if (s.startsWith(r'$') && s.endsWith(r'$') && s.length >= 2) {
+    s = s.substring(1, s.length - 1).trim();
+  } else if (s.startsWith(r'\[') && s.endsWith(r'\]') && s.length >= 4) {
+    s = s.substring(2, s.length - 2).trim();
+  } else if (s.startsWith(r'\(') && s.endsWith(r'\)') && s.length >= 4) {
+    s = s.substring(2, s.length - 2).trim();
+  }
+
+  // 2. Chemical reaction arrows
+  s = s.replaceAll('<=>', r'\rightleftharpoons');
+  s = s.replaceAll('<->', r'\rightleftharpoons');
+  s = s.replaceAll('-->', r'\rightarrow');
+  s = s.replaceAllMapped(
+    RegExp(r'(?<!\\(?:right|left|long))-(?:-)?>(?![a-zA-Z])'),
+    (_) => r'\rightarrow ',
+  );
+
+  // 3. Physics vectors and unit vectors
+  s = s.replaceAllMapped(
+    RegExp(r'\\vec\s+([a-zA-Z0-9])'),
+    (m) => '\\vec{${m[1]}}',
+  );
+  s = s.replaceAllMapped(
+    RegExp(r'\\hat\s+([a-zA-Z0-9])'),
+    (m) => '\\hat{${m[1]}}',
+  );
+
+  return s;
+}
+
 class _LatexEquation extends StatelessWidget {
   const _LatexEquation({
     required this.latex,
@@ -878,19 +918,20 @@ class _LatexEquation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cleanLatex = preprocessLatexEquation(latex);
     // Attempt to render as proper LaTeX; fall back to plain text on parse failure.
     // flutter_math_fork's Math.tex() is the entry point. The onErrorFallback
     // receives a FlutterMathException and returns a fallback widget.
     try {
       final equation = Math.tex(
-        latex,
+        cleanLatex,
         textStyle: TextStyle(
           color: color,
           fontSize: fontSize,
           fontWeight: FontWeight.w900,
         ),
         onErrorFallback: (_) => Text(
-          latex,
+          cleanLatex,
           style: TextStyle(
             color: color,
             fontSize: fontSize,
@@ -911,7 +952,7 @@ class _LatexEquation extends StatelessWidget {
       );
     } catch (_) {
       return Text(
-        latex,
+        cleanLatex,
         style: TextStyle(
           color: color,
           fontSize: fontSize,

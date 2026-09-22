@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/responsive/app_breakpoints.dart';
 import '../board_pagination.dart';
 import '../visual_tutor_design.dart';
 
@@ -22,10 +24,13 @@ class BoardPageSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     final current = pages[currentIndex.clamp(0, pages.length - 1)];
+    final pageLabel = localizations.boardPageOf(current.index + 1, pages.length);
+
     return Semantics(
       container: true,
-      label: '${current.label} of ${pages.length}',
+      label: pageLabel,
       child: DecoratedBox(
         key: const Key('visual-tutor-board-pages'),
         decoration: BoxDecoration(
@@ -39,25 +44,26 @@ class BoardPageSwitcher extends StatelessWidget {
             BoardArrowButton(
               keyValue: 'visual-tutor-board-previous',
               icon: Icons.chevron_left_rounded,
-              tooltip: 'Previous board',
+              tooltip: localizations.previousBoard,
               onTap: currentIndex > 0 ? () => onSelected(currentIndex - 1) : null,
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
-                '${current.label} of ${pages.length}',
+                pageLabel,
                 style: const TextStyle(
                   fontSize: 12.5,
-                  height: 1.1,
+                  height: 1.40,
                   fontWeight: FontWeight.w600,
                   color: VisualTutorColors.cyan,
+                  fontFamilyFallback: VisualTutorTypography.fontFallback,
                 ),
               ),
             ),
             BoardArrowButton(
               keyValue: 'visual-tutor-board-next',
               icon: Icons.chevron_right_rounded,
-              tooltip: 'Next board',
+              tooltip: localizations.nextBoard,
               onTap: currentIndex < pages.length - 1
                   ? () => onSelected(currentIndex + 1)
                   : null,
@@ -96,8 +102,7 @@ class BoardArrowButton extends StatelessWidget {
         tooltip: tooltip,
         iconSize: 20,
         padding: const EdgeInsets.all(6),
-        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-        visualDensity: VisualDensity.compact,
+        constraints: AppBreakpoints.touchTargetConstraints,
         icon: Icon(
           icon,
           color: enabled

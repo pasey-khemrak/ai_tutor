@@ -4,6 +4,7 @@
 /// path the app uses: public payload -> model parsing -> teaching-plan
 /// validation -> board rendering. It guards the rule that matters to a
 /// student: every step of the solution is shown, not just one line of it.
+library;
 import 'dart:convert';
 import 'dart:io';
 

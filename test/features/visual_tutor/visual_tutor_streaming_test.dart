@@ -210,7 +210,7 @@ void main() {
             'type': 'write_text',
             'sequence_index': 1,
             'text': 'This action must not reach the renderer.',
-            'widget_code': 'Text(\"unsafe\")',
+            'widget_code': 'Text("unsafe")',
           },
         ];
         teachingPlan['active_student_task'] = {
@@ -236,7 +236,7 @@ void main() {
         final event = (await _remote(
           client,
         ).streamTurn(_request()).toList()).single;
-        final actions = event.response!.boardActions!;
+        final actions = event.response!.boardActions;
 
         expect(actions.map((action) => action.id), contains('equation'));
         expect(actions.map((action) => action.type), contains('show_feedback'));

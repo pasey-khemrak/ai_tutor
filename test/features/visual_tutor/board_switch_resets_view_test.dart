@@ -4,6 +4,7 @@
 /// that offset stayed put when the next board arrived — and the next board,
 /// drawn from its first line, sat off-screen. To a student that is a blank
 /// board, which is exactly what was reported for "Board 2 of 3".
+library;
 import 'dart:convert';
 import 'dart:io';
 

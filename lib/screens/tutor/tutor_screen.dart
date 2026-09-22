@@ -12,7 +12,11 @@ import 'package:audioplayers/audioplayers.dart';
 import '../../core/app_colors.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/config/app_config.dart';
+import '../../core/localization/app_language_controller.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../core/network/api_client.dart';
+import '../../core/responsive/app_breakpoints.dart';
+import '../../shared/language_switcher_button.dart';
 import '../../features/visual_tutor/data/datasources/visual_tutor_remote_data_source.dart';
 import '../../features/visual_tutor/data/client_telemetry.dart';
 import '../../features/visual_tutor/data/voice_tutor_repository.dart';
@@ -30,10 +34,10 @@ import '../../features/visual_tutor/presentation/visual_tutor_design.dart';
 import '../../features/visual_tutor/presentation/widgets/live_teaching_board.dart';
 import '../../features/visual_tutor/presentation/visual_tutor_voice.dart';
 import '../../features/visual_tutor/presentation/visual_tutor_recorder.dart';
-import '../../shared/rean_avatar.dart';
 import '../learning_selection/learning_selection_repository.dart';
 import '../lessons/local_mvp_limits_scope.dart';
 import '../profile/student_profile_repository.dart';
+import '../onboarding/first_run_explainer_sheet.dart';
 import 'tutor_stream_coordinator.dart';
 
 class TutorScreen extends StatefulWidget {
@@ -91,7 +95,6 @@ class _TutorScreenState extends State<TutorScreen> {
     ),
   ];
   bool _isLoading = false;
-  bool _isSpeaking = false;
   Timer? _speechDelayTimer;
   String? _pendingSpeechText;
   String? _pendingSpeechActionId;
@@ -118,6 +121,12 @@ class _TutorScreenState extends State<TutorScreen> {
   @override
   void initState() {
     super.initState();
+    final explicitLang = widget.context?.languageMode;
+    if (explicitLang == 'khmer' || explicitLang == 'km') {
+      AppLanguageController.setLanguage('km');
+    } else if (explicitLang == 'english' || explicitLang == 'en') {
+      AppLanguageController.setLanguage('en');
+    }
     _repository = widget.repository ?? _buildDefaultRepository();
     // A free-form "ask anything" question carries no lesson context (it isn't
     // a published lesson), so it's the only source of grade/subject for the
@@ -132,7 +141,10 @@ class _TutorScreenState extends State<TutorScreen> {
         tokenProvider: appAuthService.getAccessToken,
       ),
     );
-    if (_isLocalCurriculumDemo) {
+    if (widget.initialSessionId != null &&
+        widget.initialSessionId!.isNotEmpty) {
+      unawaited(_createOrRestoreSession());
+    } else if (_isLocalCurriculumDemo) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) unawaited(_handleStudentSubmission(
           widget.initialSubmission ?? const VisualTutorStudentSubmission(
@@ -142,10 +154,6 @@ class _TutorScreenState extends State<TutorScreen> {
         ));
       });
       return;
-    }
-    if (widget.initialSessionId != null &&
-        widget.initialSessionId!.isNotEmpty) {
-      unawaited(_createOrRestoreSession());
     }
     final initialSubmission = widget.initialSubmission;
     if (initialSubmission != null) {
@@ -167,7 +175,7 @@ class _TutorScreenState extends State<TutorScreen> {
     _speechDelayTimer?.cancel();
     _boardSnapshotWriteTimer?.cancel();
     _streamCoordinator.invalidate();
-    _stopTutorSpeech(updateState: false);
+    _stopTutorSpeech();
     unawaited(_cancelVoiceRecording(updateState: false));
     _recordingTimer?.cancel();
     unawaited(_voiceRecorder.dispose());
@@ -213,35 +221,41 @@ class _TutorScreenState extends State<TutorScreen> {
 
   bool get _hasCurriculumContext => widget.context?.isCurriculumScoped ?? false;
 
-  /// The scope-locked deployment serves exactly one grade+subject+topic
-  /// combination (Grade 12 Mathematics, Limits of Functions) -- an
-  /// "ask anything" question carries no topic picker of its own, so once the
-  /// student's profile says Grade 12, that's the only content this build
-  /// actually has to offer. Without this, the server's own scope lock
-  /// (api/services/visual_tutor/orchestrator.py's
-  /// _is_grade12_math_limits_request) rejects every such question as
-  /// out-of-scope, whatever grade metadata is attached.
-  bool get _isScopeLockedGrade12 =>
-      !_hasCurriculumContext && _profileGradeNumber == 12;
-
   String get _requestSubject => _hasCurriculumContext
       ? widget.context!.subject
-      : (_isScopeLockedGrade12 ? 'Mathematics' : 'General');
+      : 'General';
 
   String? get _requestTopic => _hasCurriculumContext
       ? widget.context!.topic
-      : (_isScopeLockedGrade12 ? 'Limits of Functions' : null);
+      : null;
 
-  String get _requestLanguageMode => widget.context?.languageMode ?? 'english';
+  String get _requestLanguageMode =>
+      AppLanguageController.isKhmer ? 'khmer' : 'english';
 
-  bool get _isLocalCurriculumDemo => isLocalMvpLimitsScope(
-    grade: widget.context?.grade ?? 0,
-    subject: widget.context?.subject ?? '',
-    topic: widget.context?.topic ?? '',
-    lessonId: widget.context?.lessonId ?? '',
-    curriculumVersionId: widget.context?.curriculumVersionId ?? '',
-    teachingMomentId: widget.context?.teachingMomentId,
-  );
+  bool get _isLocalCurriculumDemo {
+    if (widget.initialSessionId == LocalMvpLimitsSession.sessionId) {
+      return true;
+    }
+    if (widget.initialSessionId != null &&
+        widget.initialSessionId!.isNotEmpty) {
+      return false;
+    }
+    if (widget.initialSubmission?.message == 'Start local curriculum demo.') {
+      return true;
+    }
+    if (widget.repository != null &&
+        widget.repository.runtimeType.toString() != '_OfflineRepository') {
+      return false;
+    }
+    return isLocalMvpLimitsScope(
+      grade: widget.context?.grade ?? 0,
+      subject: widget.context?.subject ?? '',
+      topic: widget.context?.topic ?? '',
+      lessonId: widget.context?.lessonId ?? '',
+      curriculumVersionId: widget.context?.curriculumVersionId ?? '',
+      teachingMomentId: widget.context?.teachingMomentId,
+    );
+  }
 
   String? get _boardSnapshotKey {
     final sessionId = _session?.sessionId;
@@ -354,22 +368,20 @@ class _TutorScreenState extends State<TutorScreen> {
         }
       }
 
-      if (session == null) {
-        session = await _repository.createSession(
-          VisualTutorSessionCreateRequestEntity(
-            userId: widget.userId,
-            subject: _requestSubject,
-            sessionMode: 'draft',
-            topic: _requestTopic,
-            metadata: _contextMetadata(),
-          ),
-        );
-      }
+      session ??= await _repository.createSession(
+        VisualTutorSessionCreateRequestEntity(
+          userId: widget.userId,
+          subject: _requestSubject,
+          sessionMode: 'draft',
+          topic: _requestTopic,
+          metadata: _contextMetadata(),
+        ),
+      );
 
-      await prefs?.setString('active_tutor_session_id', session!.sessionId);
+      final currentSession = session;
+      await prefs?.setString('active_tutor_session_id', currentSession.sessionId);
       if (!mounted) return;
       setState(() {
-        final currentSession = session!;
         _session = currentSession;
         _turnState = VisualTutorTurnStateEntity(
           problemInstanceId: _stringFromMap(
@@ -489,10 +501,17 @@ class _TutorScreenState extends State<TutorScreen> {
         ),
       );
       final response = await _sendTurnWithStreaming(
-              turnRequest,
-              turnSerial: turnSerial,
-              requestBoardVersion: requestBoardVersion,
-            );
+        turnRequest,
+        turnSerial: turnSerial,
+        requestBoardVersion: requestBoardVersion,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw const ApiException(
+          message:
+              'The tutor is taking longer than expected. Tap retry to continue.',
+          statusCode: 408,
+        ),
+      );
       if (!mounted) return;
       if (!_streamCoordinator.isCurrent(turnSerial)) return;
       final responseLessonState = _mapFromObject(
@@ -1087,7 +1106,7 @@ class _TutorScreenState extends State<TutorScreen> {
     if (_tutorMuted) return;
     final cleaned = text.trim();
     if (cleaned.isEmpty) return;
-    _stopTutorSpeech(updateState: false);
+    _stopTutorSpeech();
     try {
       final audio = await _voiceRepository.synthesize(
         cleaned,
@@ -1095,17 +1114,12 @@ class _TutorScreenState extends State<TutorScreen> {
       );
       if (!mounted) return;
       await _tutorAudioPlayer.play(BytesSource(audio));
-      if (mounted)
-        setState(() {
-          _isSpeaking = true;
-          _voiceStatus = null;
-        });
+      if (mounted) setState(() => _voiceStatus = null);
     } catch (_) {
       // Browser synthesis is an explicitly optional fallback only when the
       // authenticated server-side TTS service cannot respond.
       if (mounted) {
         setState(() {
-          _isSpeaking = false;
           _voiceStatus =
               'Tutor audio is unavailable. Browser speech may be used where supported.';
         });
@@ -1114,24 +1128,13 @@ class _TutorScreenState extends State<TutorScreen> {
       _voiceRuntime.speak(
         cleaned,
         languageCode: _currentTurn.speech?.language == 'km' ? 'km-KH' : 'en-US',
-        onStart: () {
-          if (mounted) setState(() => _isSpeaking = true);
-        },
-        onEnd: () {
-          if (mounted) setState(() => _isSpeaking = false);
-        },
       );
     }
   }
 
-  void _stopTutorSpeech({bool updateState = true}) {
+  void _stopTutorSpeech() {
     _voiceRuntime.stop();
     unawaited(_tutorAudioPlayer.stop());
-    if (updateState && mounted) {
-      setState(() => _isSpeaking = false);
-    } else {
-      _isSpeaking = false;
-    }
   }
 
   void _toggleListening() {
@@ -1514,8 +1517,12 @@ class _TutorScreenState extends State<TutorScreen> {
     if (boardIdentityMustChange(
       // The service's own live preview line is dropped by the turn that
       // replaces it. Losing a presentation hint is not a new board.
+      // Similarly, advancing or updating the interactive student_task prompt
+      // between turns does not drop whiteboard mathematical content.
       renderedActionIds: _renderedBoardActions
-          .where((action) => !isProvisionalBoardAction(action))
+          .where((action) =>
+              !isProvisionalBoardAction(action) &&
+              action.type != 'student_task')
           .map((action) => action.id),
       nextActionIds: next.map((action) => action.id),
     )) {
@@ -1544,16 +1551,16 @@ class _TutorScreenState extends State<TutorScreen> {
     }
 
     final boardUpdateMode =
-        response.metadata['board_update_mode']?.toString() ?? 'replace';
-    if (boardUpdateMode == 'replace') {
-      return responseActions;
-    }
+        response.metadata['board_update_mode']?.toString();
     if (boardUpdateMode == 'patch' && _renderedBoardActions.isNotEmpty) {
       return applyVisualTutorBoardPatch(_renderedBoardActions, responseActions);
     }
 
+    // Append / merge turn actions: remove superseded student task prompt so only
+    // the newest turn's task prompt is active, while preserving all math content.
     final byId = <String, VisualTutorBoardActionEntity>{
-      for (final action in _renderedBoardActions) action.id: action,
+      for (final action in _renderedBoardActions)
+        if (action.type != 'student_task') action.id: action,
     };
     for (final action in responseActions) {
       byId[action.id] = action;
@@ -2072,18 +2079,16 @@ class _TutorScreenState extends State<TutorScreen> {
     VisualTutorStudentSubmission submission,
     VisualTutorTurnResponseEntity response,
   ) {
-    final serverMode = response.metadata['board_update_mode']?.toString();
-    if (serverMode == 'replace') return true;
     final action = _backendActionFor(submission);
     final previousProblem = _turnState.problemText?.trim();
     final nextProblem =
         _stringFromMap(response.board.metadata, 'problem_text') ??
         _problemFromBoard(response.board);
-    // A board may only be cleared for a genuinely new problem.  Some service
-    // responses mark a single turn as `replace`, but using that signal alone
-    // would erase earlier teaching steps when the response omits problem
-    // metadata. A student's lesson board is therefore append-only for the
-    // current problem.
+    // A board may only be cleared for a genuinely new problem. Service
+    // responses default to `board_update_mode: replace`, but using that signal
+    // alone erases earlier teaching steps when answering follow-up questions
+    // about the current problem. A student's lesson board is therefore append-only
+    // for the current problem.
     if (_renderedBoardActions.isEmpty) return true;
     final sameProblem =
         nextProblem != null &&
@@ -2097,6 +2102,14 @@ class _TutorScreenState extends State<TutorScreen> {
         previousProblem != null &&
         previousProblem.isNotEmpty &&
         nextProblem.trim() != previousProblem) {
+      return true;
+    }
+    final submittedProblem = submission.message.trim();
+    if (submission.intent == 'new_problem' &&
+        previousProblem != null &&
+        previousProblem.isNotEmpty &&
+        submittedProblem.isNotEmpty &&
+        submittedProblem != previousProblem) {
       return true;
     }
     // `submit_problem` without a different confirmed problem is a turn in the
@@ -2268,13 +2281,24 @@ class _TutorScreenState extends State<TutorScreen> {
   }
 
   String _friendlyError(Object error) {
-    if (error is ApiException) {
-      if (error.statusCode == 409) {
-        return 'The board changed while that was loading. Retry from the latest board.';
-      }
-      return error.message;
+    final loc = AppLocalizations.of(context);
+    if (error is TimeoutException) {
+      return loc.requestTimedOutFriendly;
     }
-    return 'Could not reach the tutor service. Check the backend and try again.';
+    if (error is ApiException) {
+      if (error.statusCode == 408) {
+        return loc.requestTimedOutFriendly;
+      }
+      if (error.statusCode == 409) {
+        return loc.boardConflictFriendly;
+      }
+      final msg = error.message.trim();
+      if (msg.isNotEmpty && !msg.toLowerCase().contains('backend') && !msg.toLowerCase().contains('exception')) {
+        return msg;
+      }
+      return loc.connectionErrorFriendly;
+    }
+    return loc.connectionErrorFriendly;
   }
 
   @override
@@ -2283,76 +2307,174 @@ class _TutorScreenState extends State<TutorScreen> {
       color: VisualTutorColors.shell,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 720;
-          final compact = !wide;
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
-              child: Column(
-                children: [
-                  TutorPresenceBar(
-                    learningContext: widget.context,
-                    stageState: _currentTurn.teachingStage?.stageState,
-                    compact: compact,
-                    onHistoryTap: () =>
-                        setState(() => _showHistoryPanel = !_showHistoryPanel),
-                  ),
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: _teachingBoard(compact: compact),
-                        ),
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: _FloatingTutorControls(
-                            child: Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                wide ? 28 : 16,
-                                0,
-                                wide ? 28 : 16,
-                                16,
-                              ),
-                              child: Column(
-                                children: _lowerTutorControls(compact),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // ── Floating radial action button (right side) ──────
-                        Builder(
-                          builder: (ctx) {
-                            final items = _screenActionItems();
-                            if (items.isEmpty) return const SizedBox.shrink();
-                            return Positioned(
-                              right: wide ? 20 : 12,
-                              bottom: wide
-                                  ? 200
-                                  : 160, // Avoid overlapping the text input and step panel
-                              child: _FloatingRadialFab(
-                                key: const Key('floating-radial-fab'),
-                                items: items,
-                              ),
-                            );
-                          },
-                        ),
-                        if (_showHistoryPanel)
-                          Positioned.fill(
-                            child: _HistoryPanel(
-                              history: _history,
-                              onClose: () =>
-                                  setState(() => _showHistoryPanel = false),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+          final formFactor = AppBreakpoints.getFormFactor(constraints.maxWidth);
+          final isPhone = formFactor == DeviceFormFactor.phone;
+          final isDesktop = formFactor == DeviceFormFactor.desktop;
+          final compact = isPhone;
+          final fabItems = _screenActionItems();
+
+          final content = Column(
+            children: [
+              TutorPresenceBar(
+                learningContext: widget.context,
+                stageState: _currentTurn.teachingStage?.stageState,
+                compact: compact,
+                onHistoryTap: () =>
+                    setState(() => _showHistoryPanel = !_showHistoryPanel),
+                onReportTap: _showTutorReportSheet,
+                metadata: _currentTurn.metadata,
               ),
-            ),
+              Expanded(
+                child: isPhone
+                    ? Column(
+                        children: [
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: _teachingBoard(compact: true),
+                                ),
+                                if (fabItems.isNotEmpty)
+                                  Positioned(
+                                    right: 12,
+                                    bottom: 16,
+                                    child: _FloatingRadialFab(
+                                      key: const Key('floating-radial-fab'),
+                                      items: fabItems,
+                                    ),
+                                  ),
+                                if (_showHistoryPanel)
+                                  Positioned.fill(
+                                    child: _HistoryPanel(
+                                      history: _history,
+                                      onClose: () => setState(
+                                        () => _showHistoryPanel = false,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            key: const Key('tutor-phone-dock'),
+                            decoration: BoxDecoration(
+                              color: VisualTutorColors.shell,
+                              border: Border(
+                                top: BorderSide(
+                                  color: VisualTutorColors.cyan.withValues(
+                                    alpha: .18,
+                                  ),
+                                  width: 1,
+                                ),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: .4),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, -4),
+                                ),
+                              ],
+                            ),
+                            child: SafeArea(
+                              top: false,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  4,
+                                  12,
+                                  8,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: _lowerTutorControls(true),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: _teachingBoard(compact: false),
+                                ),
+                                if (fabItems.isNotEmpty)
+                                  Positioned(
+                                    right: 16,
+                                    bottom: 24,
+                                    child: _FloatingRadialFab(
+                                      key: const Key('floating-radial-fab'),
+                                      items: fabItems,
+                                    ),
+                                  ),
+                                if (_showHistoryPanel)
+                                  Positioned.fill(
+                                    child: _HistoryPanel(
+                                      history: _history,
+                                      onClose: () => setState(
+                                        () => _showHistoryPanel = false,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            key: const Key('tutor-side-panel'),
+                            width: isDesktop
+                                ? AppBreakpoints.sidePanelWidthDesktop
+                                : AppBreakpoints.sidePanelWidthTablet,
+                            decoration: BoxDecoration(
+                              color: VisualTutorColors.shell,
+                              border: Border(
+                                left: BorderSide(
+                                  color: VisualTutorColors.cyan.withValues(
+                                    alpha: .2,
+                                  ),
+                                  width: 1.2,
+                                ),
+                              ),
+                            ),
+                            child: SafeArea(
+                              top: false,
+                              child: Scrollbar(
+                                child: SingleChildScrollView(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    12,
+                                    16,
+                                    20,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: _lowerTutorControls(false),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
           );
+
+          if (isDesktop) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: AppBreakpoints.maxContentWidthDesktop,
+                ),
+                child: content,
+              ),
+            );
+          }
+
+          return content;
         },
       ),
     );
@@ -2739,7 +2861,10 @@ class _TutorScreenState extends State<TutorScreen> {
         const SizedBox(height: 8),
       ],
       if (_isLoading) ...[
-        _TutorLoadingControls(onCancel: _cancelActiveTurn),
+        _TutorLoadingControls(
+          status: _voiceStatus,
+          onCancel: _cancelActiveTurn,
+        ),
         const SizedBox(height: 8),
       ],
       if (_isTranscribingVoice) ...[
@@ -2951,100 +3076,6 @@ class _LocalCurriculumDemoLabel extends StatelessWidget {
   );
 }
 
-class _CurrentLearningStepPanel extends StatelessWidget {
-  const _CurrentLearningStepPanel({
-    required this.stepNumber,
-    required this.explanation,
-    required this.task,
-    required this.onJumpToLatest,
-    required this.onReviewPrevious,
-    required this.onResumeTask,
-  });
-
-  final int stepNumber;
-  final String explanation;
-  final String task;
-  final VoidCallback onJumpToLatest;
-  final VoidCallback onReviewPrevious;
-  final VoidCallback onResumeTask;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    liveRegion: true,
-    label: 'New teaching step $stepNumber. $explanation Current task: $task',
-    child: Container(
-      key: const Key('current-learning-step-panel'),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: VisualTutorColors.shellElevated,
-        borderRadius: BorderRadius.circular(VisualTutorRadius.md),
-        border: Border.all(color: VisualTutorColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'STEP $stepNumber · CURRENT',
-            style: const TextStyle(
-              color: VisualTutorColors.cyan,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            explanation,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: VisualTutorColors.text,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          if (task.trim().isNotEmpty) ...[
-            const SizedBox(height: 7),
-            Semantics(
-              label: 'Current student task: $task',
-              child: Text(
-                'Your task: $task',
-                style: const TextStyle(
-                  color: VisualTutorColors.textSubtle,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              TextButton.icon(
-                key: const Key('review-previous-step'),
-                onPressed: onReviewPrevious,
-                icon: const Icon(Icons.arrow_upward_rounded, size: 17),
-                label: const Text('Review previous'),
-              ),
-              TextButton.icon(
-                key: const Key('jump-to-latest-step'),
-                onPressed: onJumpToLatest,
-                icon: const Icon(Icons.south_rounded, size: 17),
-                label: const Text('Jump to latest'),
-              ),
-              TextButton.icon(
-                key: const Key('resume-current-task'),
-                onPressed: onResumeTask,
-                icon: const Icon(Icons.play_arrow_rounded, size: 17),
-                label: const Text('Resume task'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 /// Compact collapsible step indicator. Shows a single-row chip when collapsed,
 /// and expands to show the full explanation, task, and navigation buttons.
 class _CompactStepPanel extends StatelessWidget {
@@ -3072,7 +3103,8 @@ class _CompactStepPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       liveRegion: true,
-      label: 'Step $stepNumber: $explanation',
+      label:
+          'Step $stepNumber: $explanation${task.trim().isNotEmpty ? ' Current task: $task' : ''}',
       child: AnimatedSize(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeInOut,
@@ -3114,7 +3146,7 @@ class _CompactStepPanel extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            'STEP $stepNumber',
+                            AppLocalizations.of(context).stepNumber(stepNumber),
                             style: const TextStyle(
                               color: VisualTutorColors.cyan,
                               fontSize: 10,
@@ -3168,7 +3200,7 @@ class _CompactStepPanel extends StatelessWidget {
                       if (task.trim().isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(
-                          'Your task: $task',
+                          AppLocalizations.of(context).yourTask(task),
                           style: const TextStyle(
                             color: VisualTutorColors.textSubtle,
                             fontSize: 12,
@@ -3192,9 +3224,9 @@ class _CompactStepPanel extends StatelessWidget {
                               Icons.arrow_upward_rounded,
                               size: 14,
                             ),
-                            label: const Text(
-                              'Review previous',
-                              style: TextStyle(fontSize: 12),
+                            label: Text(
+                              AppLocalizations.of(context).reviewPrevious,
+                              style: const TextStyle(fontSize: 12),
                             ),
                           ),
                           TextButton.icon(
@@ -3205,9 +3237,9 @@ class _CompactStepPanel extends StatelessWidget {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             icon: const Icon(Icons.south_rounded, size: 14),
-                            label: const Text(
-                              'Jump to latest',
-                              style: TextStyle(fontSize: 12),
+                            label: Text(
+                              AppLocalizations.of(context).jumpToLatest,
+                              style: const TextStyle(fontSize: 12),
                             ),
                           ),
                           TextButton.icon(
@@ -3221,9 +3253,9 @@ class _CompactStepPanel extends StatelessWidget {
                               Icons.play_arrow_rounded,
                               size: 14,
                             ),
-                            label: const Text(
-                              'Resume task',
-                              style: TextStyle(fontSize: 12),
+                            label: Text(
+                              AppLocalizations.of(context).resumeTask,
+                              style: const TextStyle(fontSize: 12),
                             ),
                           ),
                         ],
@@ -3289,12 +3321,16 @@ class TutorPresenceBar extends StatelessWidget {
     this.stageState,
     this.compact = false,
     this.onHistoryTap,
+    this.onReportTap,
+    this.metadata = const {},
   });
 
   final LearningContext? learningContext;
   final String? stageState;
   final bool compact;
   final VoidCallback? onHistoryTap;
+  final VoidCallback? onReportTap;
+  final Map<String, dynamic> metadata;
 
   @override
   Widget build(BuildContext context) {
@@ -3303,17 +3339,42 @@ class TutorPresenceBar extends StatelessWidget {
     return Container(
       key: const Key('tutor-presence-bar'),
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 20 : 24,
-        vertical: compact ? 14 : 16,
+        horizontal: compact ? 8 : 24,
+        vertical: compact ? 8 : 16,
       ),
-      decoration: VisualTutorDecorations.presenceBar(),
+      decoration: BoxDecoration(
+        color: VisualTutorColors.shellElevated,
+        border: Border(
+          bottom: BorderSide(
+            color: VisualTutorColors.cyan.withValues(alpha: .22),
+            width: 1.2,
+          ),
+        ),
+      ),
       child: Row(
         children: [
-          // ── Avatar with status glow ──────────────────────────────────────
+          // ── Avatar + status pip ───────────────────────────────────────────
           Stack(
-            clipBehavior: Clip.none,
             children: [
-              ReanAvatar(size: compact ? 42 : 48),
+              Container(
+                width: compact ? 32 : 40,
+                height: compact ? 32 : 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: VisualTutorColors.panelRaised,
+                  border: Border.all(
+                    color: VisualTutorColors.cyan.withValues(alpha: .4),
+                    width: 1.5,
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.school_rounded,
+                    color: VisualTutorColors.cyan,
+                    size: compact ? 17 : 22,
+                  ),
+                ),
+              ),
               Positioned(
                 bottom: 1,
                 right: 1,
@@ -3334,50 +3395,60 @@ class TutorPresenceBar extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: compact ? 8 : 12),
           // ── Title + status ───────────────────────────────────────────────
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Rean AI Tutor',
+                Text(
+                  AppLocalizations.of(context).tutorPresenceTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: VisualTutorTypography.presenceTitle,
+                  style: compact
+                      ? VisualTutorTypography.presenceTitle.copyWith(fontSize: 13)
+                      : VisualTutorTypography.presenceTitle,
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        status.english,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: VisualTutorTypography.presenceStatus,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        status.khmer,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: VisualTutorTypography.presenceStatus.copyWith(
-                          color: VisualTutorColors.cyan.withValues(alpha: .6),
+                if (!compact) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          AppLocalizations.of(context).isKhmer
+                              ? status.khmer
+                              : status.english,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: VisualTutorTypography.presenceStatus,
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          AppLocalizations.of(context).isKhmer
+                              ? status.english
+                              : status.khmer,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: VisualTutorTypography.presenceStatus.copyWith(
+                            color: VisualTutorColors.cyan.withValues(alpha: .6),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
           // ── Teaching mode chip + menu ────────────────────────────────────
-          if (stageState != null && stageState != 'waiting_for_student')
+          if (stageState != null &&
+              stageState != 'waiting_for_student' &&
+              (!compact || metadata['verified'] == null))
             Padding(
-              padding: const EdgeInsets.only(right: 10),
+              padding: EdgeInsets.only(right: compact ? 6 : 10),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                 decoration: BoxDecoration(
@@ -3393,77 +3464,131 @@ class TutorPresenceBar extends StatelessWidget {
                     color: VisualTutorColors.cyan,
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: .8,
-                    fontFamilyFallback: VisualTutorTypography.fontFallback,
+                    letterSpacing: .5,
                   ),
                 ),
               ),
             ),
-          // ── History + menu buttons ───────────────────────────────────────
+          // ── Curriculum verification badge ─────────────────────────────────
+          if (metadata['verified'] != null)
+            Flexible(
+              child: Padding(
+                padding: EdgeInsets.only(right: compact ? 4 : 10),
+                child: _CurriculumStatusBadge(
+                  metadata: metadata,
+                  compact: compact,
+                ),
+              ),
+            ),
+          // ── Language switcher button ────────────────────────────────────
+          Padding(
+            padding: EdgeInsets.only(right: compact ? 6 : 8),
+            child: const LanguageSwitcherButton(compact: true),
+          ),
           Container(
-            width: compact ? 36 : 40,
-            height: compact ? 36 : 40,
+            width: compact ? 32 : 40,
+            height: compact ? 32 : 40,
             decoration: BoxDecoration(
               color: VisualTutorColors.panelRaised,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: VisualTutorColors.border),
             ),
             child: IconButton(
-              tooltip: 'Conversation history',
+              tooltip: AppLocalizations.of(context).conversationHistory,
               onPressed: onHistoryTap,
               padding: EdgeInsets.zero,
-              icon: const Icon(
+              icon: Icon(
                 Icons.history_rounded,
                 color: VisualTutorColors.textMuted,
-                size: 20,
+                size: compact ? 18 : 20,
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: compact ? 6 : 8),
           Container(
-            width: compact ? 36 : 40,
-            height: compact ? 36 : 40,
+            width: compact ? 32 : 40,
+            height: compact ? 32 : 40,
             decoration: BoxDecoration(
               color: VisualTutorColors.panelRaised,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: VisualTutorColors.border),
             ),
             child: PopupMenuButton<String>(
-              tooltip: 'Tutor menu',
+              key: const Key('tutor-menu-button'),
+              tooltip: AppLocalizations.of(context).tutorMenu,
               padding: EdgeInsets.zero,
-              icon: const Icon(
+              icon: Icon(
                 Icons.more_horiz_rounded,
                 color: VisualTutorColors.textMuted,
-                size: 20,
+                size: compact ? 18 : 20,
               ),
               color: VisualTutorColors.shellElevated,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(VisualTutorRadius.md),
                 side: BorderSide(color: VisualTutorColors.border),
               ),
-              itemBuilder: (_) => const [
+              itemBuilder: (context) => [
                 PopupMenuItem<String>(
+                  value: 'how_it_works',
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.help_outline_rounded,
+                        size: 16,
+                        color: VisualTutorColors.cyan,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context).firstRunTitle,
+                          style: const TextStyle(
+                            color: VisualTutorColors.text,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  key: const Key('report-tutor-explanation-button'),
                   value: 'report',
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.flag_outlined,
                         size: 16,
                         color: VisualTutorColors.textMuted,
                       ),
-                      SizedBox(width: 10),
-                      Text(
-                        'Report explanation',
-                        style: TextStyle(
-                          color: VisualTutorColors.text,
-                          fontSize: 13,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context).reportExplanation,
+                          style: const TextStyle(
+                            color: VisualTutorColors.text,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
               ],
-              onSelected: (_) {},
+              onSelected: (value) {
+                if (value == 'how_it_works') {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (sheetContext) => FirstRunExplainerSheet(
+                      onStart: () => Navigator.of(sheetContext).pop(),
+                      onSkip: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  );
+                } else if (value == 'report') {
+                  onReportTap?.call();
+                }
+              },
             ),
           ),
         ],
@@ -3504,28 +3629,124 @@ class TutorPresenceBar extends StatelessWidget {
   }
 }
 
-class _FloatingTutorControls extends StatelessWidget {
-  const _FloatingTutorControls({required this.child});
+/// Dynamic curriculum verification badge displayed in the tutor presence bar.
+///
+/// Shows "✓ Verified Curriculum" (cyan) when grounded in admin curriculum,
+/// or "AI Generated (Unverified)" (amber) when generated dynamically by LLM.
+class _CurriculumStatusBadge extends StatelessWidget {
+  const _CurriculumStatusBadge({
+    required this.metadata,
+    this.compact = false,
+  });
 
-  final Widget child;
+  final Map<String, dynamic> metadata;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            VisualTutorColors.shell.withValues(alpha: 0),
-            VisualTutorColors.shell.withValues(alpha: .88),
-            VisualTutorColors.shell,
-          ],
-          stops: const [0, .15, .35],
+    final verified = metadata['verified'];
+    if (verified == null) return const SizedBox.shrink();
+
+    final isKhmer = AppLocalizations.of(context).isKhmer;
+    final topic = metadata['curriculum_topic'] as String?;
+
+    if (verified == true) {
+      final label = compact
+          ? (isKhmer ? '✓ ផ្ទៀងផ្ទាត់' : '✓ Verified')
+          : (isKhmer ? '✓ ផ្ទៀងផ្ទាត់តាមកម្មវិធីសិក្សា' : '✓ Verified Curriculum');
+      final tooltip = topic != null && topic.trim().isNotEmpty
+          ? (isKhmer ? 'ប្រធានបទ៖ $topic' : 'Topic: $topic')
+          : (isKhmer ? 'ផ្ទៀងផ្ទាត់តាមកម្មវិធីសិក្សា' : 'Grounded in Admin Curriculum');
+      return Tooltip(
+        message: tooltip,
+        child: Container(
+          key: const Key('curriculum-verified-badge'),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 6 : 8,
+            vertical: compact ? 3 : 4,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xFF00E5FF).withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(VisualTutorRadius.pill),
+            border: Border.all(
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.verified_rounded,
+                size: compact ? 12 : 13,
+                color: const Color(0xFF00E5FF),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xFF00E5FF),
+                    fontSize: compact ? 9.5 : 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: .3,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      child: SafeArea(top: false, child: child),
-    );
+      );
+    } else {
+      final label = compact
+          ? (isKhmer ? 'AI មិនទាន់ផ្ទៀងផ្ទាត់' : 'AI Unverified')
+          : (isKhmer ? 'ចម្លើយ AI (មិនទាន់ផ្ទៀងផ្ទាត់)' : 'AI Generated (Unverified)');
+      final tooltip = isKhmer
+          ? 'ចម្លើយបង្កើតដោយ AI LLM។ រូបមន្តមិនទាន់បានបោះពុម្ពក្នុងកម្មវិធីសិក្សា។'
+          : 'Solves with AI LLM. Formula not yet published in admin curriculum.';
+      return Tooltip(
+        message: tooltip,
+        child: Container(
+          key: const Key('curriculum-unverified-badge'),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 6 : 8,
+            vertical: compact ? 3 : 4,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(VisualTutorRadius.pill),
+            border: Border.all(
+              color: Colors.amber.withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                size: compact ? 12 : 13,
+                color: Colors.amber,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.amber,
+                    fontSize: compact ? 9.5 : 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: .3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 }
 
@@ -3588,10 +3809,10 @@ class _HistoryPanel extends StatelessWidget {
                         size: 18,
                       ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Conversation History',
-                          style: TextStyle(
+                          AppLocalizations.of(context).conversationHistory,
+                          style: const TextStyle(
                             color: VisualTutorColors.text,
                             fontWeight: FontWeight.w700,
                             fontSize: 14,
@@ -3606,7 +3827,7 @@ class _HistoryPanel extends StatelessWidget {
                           size: 20,
                         ),
                         padding: const EdgeInsets.all(6),
-                        tooltip: 'Close history',
+                        tooltip: AppLocalizations.of(context).closeHistory,
                       ),
                     ],
                   ),
@@ -3614,10 +3835,10 @@ class _HistoryPanel extends StatelessWidget {
                 // Messages list
                 Expanded(
                   child: history.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
-                            'No conversation yet.',
-                            style: TextStyle(
+                            AppLocalizations.of(context).noConversationYet,
+                            style: const TextStyle(
                               color: VisualTutorColors.textMuted,
                               fontSize: 13,
                             ),
@@ -3758,7 +3979,7 @@ class TutorSpeechQuotePanel extends StatelessWidget {
     return Container(
       key: const Key('tutor-speech-quote-panel'),
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(14, compact ? 12 : 14, 8, compact ? 12 : 14),
+      padding: EdgeInsets.fromLTRB(12, compact ? 8 : 14, 8, compact ? 8 : 14),
       decoration: VisualTutorDecorations.speechPanel(),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3783,7 +4004,7 @@ class TutorSpeechQuotePanel extends StatelessWidget {
             child: Text(
               '"$speechText"',
               key: const Key('tutor-speech-text'),
-              maxLines: compact ? 3 : 4,
+              maxLines: compact ? 2 : 4,
               overflow: TextOverflow.ellipsis,
               style: VisualTutorTypography.tutorSpeech.copyWith(
                 color: VisualTutorColors.textSubtle,
@@ -3829,30 +4050,31 @@ class _VerificationFeedbackPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final status = verification.status;
     final (label, color, icon) = switch (status) {
       'correct' => (
-        'Verified correct',
+        l10n.verifiedCorrect,
         VisualTutorColors.cyan,
         Icons.verified_outlined,
       ),
       'mathematically_valid_but_inefficient' => (
-        'Valid — show the requested step',
+        l10n.validShowRequestedStep,
         VisualTutorColors.orange,
         Icons.route_outlined,
       ),
       'invalid' => (
-        'This step needs a correction',
+        l10n.stepNeedsCorrection,
         VisualTutorColors.orange,
         Icons.error_outline,
       ),
       'incomplete' => (
-        'More of this step is needed',
+        l10n.moreOfStepNeeded,
         VisualTutorColors.textSubtle,
         Icons.pending_outlined,
       ),
       _ => (
-        'Math check unavailable',
+        l10n.mathCheckUnavailable,
         VisualTutorColors.textSubtle,
         Icons.info_outline,
       ),
@@ -3887,12 +4109,20 @@ class _VerificationFeedbackPanel extends StatelessWidget {
 }
 
 class _TutorLoadingControls extends StatelessWidget {
-  const _TutorLoadingControls({required this.onCancel});
+  const _TutorLoadingControls({
+    required this.onCancel,
+    this.status,
+  });
 
   final VoidCallback onCancel;
+  final String? status;
 
   @override
   Widget build(BuildContext context) {
+    final effectiveStatus = (status != null && status!.trim().isNotEmpty)
+        ? status!
+        : AppLocalizations.of(context).tutorThinkingAndDrawing;
+
     return Container(
       key: const Key('tutor-loading-controls'),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -3912,10 +4142,10 @@ class _TutorLoadingControls extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Tutor is thinking and drawing...',
-              style: TextStyle(
+              effectiveStatus,
+              style: const TextStyle(
                 color: VisualTutorColors.text,
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
@@ -3926,7 +4156,7 @@ class _TutorLoadingControls extends StatelessWidget {
             key: const Key('cancel-tutor-turn-button'),
             onPressed: onCancel,
             icon: const Icon(Icons.close_rounded, size: 18),
-            label: const Text('Cancel'),
+            label: Text(AppLocalizations.of(context).cancel),
           ),
         ],
       ),
@@ -4062,7 +4292,8 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
         oldWidget.restored != widget.restored ||
         oldWidget.reducedMotion != widget.reducedMotion ||
         oldWidget.animate != widget.animate ||
-        oldWidget.snapshot != widget.snapshot) {
+        oldWidget.snapshot != widget.snapshot ||
+        oldWidget.pageViewportHeight != widget.pageViewportHeight) {
       _syncActions();
       _restoreSnapshot();
     }
@@ -4144,10 +4375,13 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
     // The step being written wins, unless the student went back to read an
     // earlier board themselves.
     final active = pageIndexOfAction(pages, _activeActionId);
-    final target = _studentPickedBoardPage
+    final target = (_studentPickedBoardPage
         ? _boardPageIndex
-        : (active ?? _boardPageIndex);
-    return target.clamp(0, pages.length - 1);
+        : (active ?? _boardPageIndex)).clamp(0, pages.length - 1);
+    if (_boardPageIndex != target) {
+      _boardPageIndex = target;
+    }
+    return target;
   }
 
   List<VisualTutorBoardActionEntity> _currentBoardPageActions() {
@@ -4411,6 +4645,7 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
       });
       return;
     }
+    _studentPickedBoardPage = false;
     final generation = _generation;
     // Mount the first actual teaching visual before an optional marker/timer
     // yields.  On Flutter Web a streamed `turn_complete` can otherwise leave
@@ -4846,7 +5081,7 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
           // InteractiveViewer swallow the taps and the switcher would pan away
           // with the board.
           Positioned(
-            top: MediaQuery.sizeOf(context).width < 430 ? 56 : 8,
+            top: AppBreakpoints.isPhone(context) ? 56 : 8,
             left: 8,
             child: _StudentBoardControls(
               drawingMode: _drawingMode,
@@ -4944,11 +5179,12 @@ class _BoardPlaybackControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final playLabel = waitingForStudent
-        ? 'Continue after student checkpoint'
+        ? l10n.resumeTask
         : isPaused
-        ? 'Play board timeline'
-        : 'Pause board timeline';
+        ? l10n.playBoardTimeline
+        : l10n.pauseBoardTimeline;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: VisualTutorColors.panel.withValues(alpha: .9),
@@ -4960,18 +5196,18 @@ class _BoardPlaybackControls extends StatelessWidget {
         children: [
           IconButton(
             key: const Key('visual-tutor-board-replay'),
-            tooltip: 'Replay board timeline',
+            tooltip: l10n.replayBoard,
             icon: const Icon(Icons.replay_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            visualDensity: VisualDensity.compact,
+            constraints: AppBreakpoints.touchTargetConstraints,
             onPressed: reducedMotion ? null : onReplay,
           ),
           IconButton(
             key: const Key('visual-tutor-board-jump-current'),
-            tooltip: 'Jump to current teaching step',
+            tooltip: l10n.jumpToCurrentStep,
             icon: const Icon(Icons.my_location_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            visualDensity: VisualDensity.compact,
+            constraints: AppBreakpoints.touchTargetConstraints,
             onPressed: onJumpToCurrentStep,
           ),
           Semantics(
@@ -4986,7 +5222,7 @@ class _BoardPlaybackControls extends StatelessWidget {
                   size: 18,
                 ),
                 color: VisualTutorColors.cyan,
-                visualDensity: VisualDensity.compact,
+                constraints: AppBreakpoints.touchTargetConstraints,
                 onPressed: reducedMotion ? null : onTogglePlayback,
               ),
             ),
@@ -5067,132 +5303,73 @@ class _StudentBoardControls extends StatelessWidget {
   final VoidCallback onClear;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: VisualTutorColors.panel.withValues(alpha: .9),
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: VisualTutorColors.cyan.withValues(alpha: .45)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          key: const Key('visual-tutor-board-reset-fit'),
-          tooltip: 'Reset board view',
-          icon: const Icon(Icons.fit_screen_rounded, size: 18),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: onResetToFit,
-        ),
-        IconButton(
-          key: const Key('student-ink-pen'),
-          tooltip: drawingMode ? 'Stop drawing' : 'Draw on board',
-          icon: Icon(
-            Icons.edit_rounded,
-            size: 18,
-            color: drawingMode ? VisualTutorColors.cyan : null,
-          ),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: onToggleDrawing,
-        ),
-        IconButton(
-          key: const Key('student-ink-erase'),
-          tooltip: erasing ? 'Stop erasing' : 'Erase ink stroke',
-          icon: Icon(
-            Icons.auto_fix_normal_rounded,
-            size: 18,
-            color: erasing ? VisualTutorColors.cyan : null,
-          ),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: onToggleErase,
-        ),
-        IconButton(
-          key: const Key('student-ink-undo'),
-          tooltip: 'Undo ink',
-          icon: const Icon(Icons.undo_rounded, size: 18),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: canUndo ? onUndo : null,
-        ),
-        IconButton(
-          key: const Key('student-ink-redo'),
-          tooltip: 'Redo ink',
-          icon: const Icon(Icons.redo_rounded, size: 18),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: canRedo ? onRedo : null,
-        ),
-        IconButton(
-          key: const Key('student-ink-clear'),
-          tooltip: 'Clear student ink',
-          icon: const Icon(Icons.delete_outline_rounded, size: 18),
-          color: VisualTutorColors.cyan,
-          visualDensity: VisualDensity.compact,
-          onPressed: canUndo ? onClear : null,
-        ),
-      ],
-    ),
-  );
-}
-
-class _BoardStatusCluster extends StatelessWidget {
-  const _BoardStatusCluster({required this.locked, required this.compact});
-
-  final bool locked;
-  final bool compact;
-
-  @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 8 : 10,
-        vertical: compact ? 6 : 8,
-      ),
+    final l10n = AppLocalizations.of(context);
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .72),
-        borderRadius: BorderRadius.circular(VisualTutorRadius.pill),
-        border: Border.all(color: VisualTutorColors.boardBorder),
+        color: VisualTutorColors.panel.withValues(alpha: .9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: VisualTutorColors.cyan.withValues(alpha: .45)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: compact ? 28 : 34,
-            height: compact ? 28 : 34,
-            decoration: const BoxDecoration(
-              color: Color(0xFF1D63CE),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.school_rounded,
-              color: Colors.white,
-              size: compact ? 16 : 19,
-            ),
+          IconButton(
+            key: const Key('visual-tutor-board-reset-fit'),
+            tooltip: l10n.resetBoardView,
+            icon: const Icon(Icons.fit_screen_rounded, size: 18),
+            color: VisualTutorColors.cyan,
+            constraints: AppBreakpoints.touchTargetConstraints,
+            onPressed: onResetToFit,
           ),
-          const SizedBox(width: 8),
-          Icon(
-            locked ? Icons.lock_outline_rounded : Icons.lock_open_rounded,
-            color: locked
-                ? VisualTutorColors.orange
-                : VisualTutorColors.success,
-            size: compact ? 17 : 20,
-          ),
-          if (!compact) ...[
-            const SizedBox(width: 6),
-            Text(
-              locked ? 'guided mode' : 'answer ready',
-              style: TextStyle(
-                color: locked
-                    ? VisualTutorColors.orange
-                    : VisualTutorColors.success,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                fontFamilyFallback: VisualTutorTypography.fontFallback,
-              ),
+          IconButton(
+            key: const Key('student-ink-pen'),
+            tooltip: drawingMode ? l10n.stopDrawing : l10n.drawOnBoard,
+            icon: Icon(
+              Icons.edit_rounded,
+              size: 18,
+              color: drawingMode ? VisualTutorColors.cyan : null,
             ),
-          ],
+            color: VisualTutorColors.cyan,
+            constraints: AppBreakpoints.touchTargetConstraints,
+            onPressed: onToggleDrawing,
+          ),
+          IconButton(
+            key: const Key('student-ink-erase'),
+            tooltip: erasing ? l10n.stopErasing : l10n.eraseInk,
+            icon: Icon(
+              Icons.auto_fix_normal_rounded,
+              size: 18,
+              color: erasing ? VisualTutorColors.cyan : null,
+            ),
+            color: VisualTutorColors.cyan,
+            constraints: AppBreakpoints.touchTargetConstraints,
+            onPressed: onToggleErase,
+          ),
+          IconButton(
+            key: const Key('student-ink-undo'),
+            tooltip: l10n.undoInk,
+            icon: const Icon(Icons.undo_rounded, size: 18),
+            color: VisualTutorColors.cyan,
+            constraints: AppBreakpoints.touchTargetConstraints,
+            onPressed: canUndo ? onUndo : null,
+          ),
+          IconButton(
+            key: const Key('student-ink-redo'),
+            tooltip: l10n.redoInk,
+            icon: const Icon(Icons.redo_rounded, size: 18),
+            color: VisualTutorColors.cyan,
+            constraints: AppBreakpoints.touchTargetConstraints,
+            onPressed: canRedo ? onRedo : null,
+          ),
+          IconButton(
+            key: const Key('student-ink-clear'),
+            tooltip: l10n.clearInk,
+            icon: const Icon(Icons.delete_outline_rounded, size: 18),
+            color: VisualTutorColors.cyan,
+            constraints: AppBreakpoints.touchTargetConstraints,
+            onPressed: canUndo ? onClear : null,
+          ),
         ],
       ),
     );
@@ -5244,7 +5421,7 @@ class _TutorApiErrorBanner extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Retry'),
+                label: Text(AppLocalizations.of(context).retry),
               ),
             ),
           ],
@@ -5252,496 +5429,6 @@ class _TutorApiErrorBanner extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CanvasPaperLines extends StatelessWidget {
-  const _CanvasPaperLines();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: _CanvasPaperPainter());
-  }
-}
-
-class _CanvasPaperPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final linePaint = Paint()
-      ..color = VisualTutorColors.boardPaperLine.withValues(alpha: .65)
-      ..strokeWidth = 1;
-    final dotPaint = Paint()
-      ..color = VisualTutorColors.boardPaperDot.withValues(alpha: .45)
-      ..strokeWidth = 1;
-
-    for (double y = 42; y < size.height; y += 48) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
-    }
-    for (double x = 24; x < size.width; x += 36) {
-      for (double y = 22; y < size.height; y += 36) {
-        canvas.drawCircle(Offset(x, y), 1, dotPaint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _BoardActionRenderer extends StatelessWidget {
-  const _BoardActionRenderer({
-    required this.action,
-    required this.scale,
-    required this.faded,
-    required this.progress,
-  });
-
-  final VisualTutorBoardActionEntity action;
-  final double scale;
-  final bool faded;
-  final Animation<double> progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final left = (action.x ?? 28) * scale;
-    final top = action.y ?? 32;
-    final width = (action.width ?? 260) * scale;
-    final height = action.height ?? 42;
-    final opacity = action.type == 'highlight' ? 1.0 : (faded ? .66 : 1.0);
-
-    if (action.type == 'highlight') {
-      return Positioned(
-        key: const Key('teaching-board-highlight'),
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: VisualTutorColors.yellowHighlight.withValues(alpha: .38),
-            borderRadius: BorderRadius.circular(VisualTutorRadius.md),
-            border: Border.all(color: VisualTutorColors.orange, width: 1.4),
-          ),
-        ),
-      );
-    }
-
-    if (action.type == 'draw_axes') {
-      return Positioned.fill(
-        child: CustomPaint(
-          key: const Key('teaching-board-axes'),
-          painter: _AxesActionPainter(scale: scale),
-        ),
-      );
-    }
-
-    if (action.type == 'draw_point') {
-      return Positioned(
-        key: Key('teaching-board-point-${action.id}'),
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        child: _PointActionLabel(action: action),
-      );
-    }
-
-    if (action.type == 'draw_line' ||
-        action.type == 'draw_arrow' ||
-        action.type == 'circle' ||
-        action.type == 'cross_out') {
-      return Positioned.fill(
-        child: AnimatedBuilder(
-          animation: progress,
-          builder: (context, _) {
-            return CustomPaint(
-              key: Key('teaching-board-${action.type}-${action.id}'),
-              painter: _ShapeActionPainter(
-                action: action,
-                scale: scale,
-                progress: progress.value,
-              ),
-            );
-          },
-        ),
-      );
-    }
-
-    if (action.type == 'show_table') {
-      return Positioned(
-        key: Key('teaching-board-table-${action.id}'),
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        child: _TableActionView(action: action),
-      );
-    }
-
-    if (action.type == 'create_blank') {
-      return Positioned(
-        key: Key('teaching-board-blank-${action.id}'),
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .68),
-            borderRadius: BorderRadius.circular(VisualTutorRadius.sm),
-            border: Border.all(color: VisualTutorColors.orange, width: 1.5),
-          ),
-        ),
-      );
-    }
-
-    if (action.type == 'show_graph') {
-      return Positioned(
-        key: Key('teaching-board-graph-${action.id}'),
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .62),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: VisualTutorColors.blueInk),
-          ),
-          child: const CustomPaint(painter: _MiniGraphPainter()),
-        ),
-      );
-    }
-
-    final isEquation = action.type == 'write_equation';
-    final ink = action.style['ink'] == 'blue'
-        ? VisualTutorColors.blueInk
-        : VisualTutorColors.blackInk;
-    final fontSize =
-        ((action.style['size'] as num?)?.toDouble() ?? (isEquation ? 26 : 19)) *
-        scale.clamp(.86, 1.1);
-
-    return Positioned(
-      key: Key('teaching-board-action-${action.id}'),
-      left: left,
-      top: top,
-      width: width,
-      height: height,
-      child: Opacity(
-        opacity: opacity,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            decoration: BoxDecoration(
-              color: isEquation
-                  ? Colors.transparent
-                  : VisualTutorColors.yellowHighlight.withValues(alpha: .36),
-              borderRadius: BorderRadius.circular(VisualTutorRadius.sm),
-            ),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: AnimatedBuilder(
-                animation: progress,
-                builder: (context, _) => Text(
-                  _visibleTextFor(action, progress.value),
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: ink,
-                    fontSize: fontSize,
-                    height: 1.1,
-                    fontWeight: FontWeight.w900,
-                    fontFamilyFallback: VisualTutorTypography.fontFallback,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _visibleTextFor(VisualTutorBoardActionEntity action, double progress) {
-    final fullContent = action.latex ?? action.text ?? '';
-    if (fullContent.isEmpty) return '';
-    if (action.type != 'write_text' && action.type != 'write_equation') {
-      return fullContent;
-    }
-    final visibleCharacters = (fullContent.length * progress)
-        .ceil()
-        .clamp(1, fullContent.length)
-        .toInt();
-    return fullContent.substring(0, visibleCharacters);
-  }
-}
-
-class _PointActionLabel extends StatelessWidget {
-  const _PointActionLabel({required this.action});
-
-  final VisualTutorBoardActionEntity action;
-
-  @override
-  Widget build(BuildContext context) {
-    final label =
-        action.text ??
-        action.metadata['label']?.toString() ??
-        action.id.replaceAll('-', ' ');
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: const BoxDecoration(
-            color: VisualTutorColors.blueInk,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 5),
-        Flexible(
-          child: Text(
-            label,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: VisualTutorColors.blackInk,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TableActionView extends StatelessWidget {
-  const _TableActionView({required this.action});
-
-  final VisualTutorBoardActionEntity action;
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = (action.metadata['rows'] as List?) ?? const [];
-    if (rows.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .72),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFCBBF9E)),
-      ),
-      child: Column(
-        children: [
-          for (final row in rows.take(4))
-            Expanded(
-              child: Row(
-                children: [
-                  for (final cell in ((row as List?) ?? const []).take(3))
-                    Expanded(
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: const Color(0xFFCBBF9E),
-                            width: .6,
-                          ),
-                        ),
-                        child: Text(
-                          cell.toString(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF15120B),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AxesActionPainter extends CustomPainter {
-  const _AxesActionPainter({required this.scale});
-
-  final double scale;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final origin = Offset(size.width * .18, size.height * .72);
-    final paint = Paint()
-      ..color = const Color(0xFF15120B).withValues(alpha: .78)
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(size.width * .08, origin.dy),
-      Offset(size.width * .9, origin.dy),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(origin.dx, size.height * .18),
-      Offset(origin.dx, size.height * .86),
-      paint,
-    );
-    _drawArrowHead(canvas, Offset(size.width * .9, origin.dy), 0, paint);
-    _drawArrowHead(
-      canvas,
-      Offset(origin.dx, size.height * .18),
-      -math.pi / 2,
-      paint,
-    );
-  }
-
-  void _drawArrowHead(Canvas canvas, Offset tip, double angle, Paint paint) {
-    const length = 8.0;
-    final left =
-        tip -
-        Offset(math.cos(angle - .55) * length, math.sin(angle - .55) * length);
-    final right =
-        tip -
-        Offset(math.cos(angle + .55) * length, math.sin(angle + .55) * length);
-    canvas.drawLine(tip, left, paint);
-    canvas.drawLine(tip, right, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _AxesActionPainter oldDelegate) {
-    return oldDelegate.scale != scale;
-  }
-}
-
-class _ShapeActionPainter extends CustomPainter {
-  const _ShapeActionPainter({
-    required this.action,
-    required this.scale,
-    required this.progress,
-  });
-
-  final VisualTutorBoardActionEntity action;
-  final double scale;
-  final double progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = action.type == 'cross_out'
-          ? const Color(0xFFC62828)
-          : const Color(0xFF15120B)
-      ..strokeWidth = action.type == 'highlight' ? 8 : 2.6
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    if (action.type == 'circle') {
-      final rect = Rect.fromLTWH(
-        (action.x ?? 40) * scale,
-        action.y ?? 40,
-        (action.width ?? 90) * scale,
-        action.height ?? 46,
-      );
-      final sweep = math.pi * 2 * progress.clamp(0, 1);
-      canvas.drawArc(rect, 0, sweep, false, paint);
-      return;
-    }
-
-    if (action.type == 'cross_out') {
-      final rect = Rect.fromLTWH(
-        (action.x ?? 40) * scale,
-        action.y ?? 40,
-        (action.width ?? 120) * scale,
-        action.height ?? 44,
-      );
-      _drawProgressLine(canvas, rect.topLeft, rect.bottomRight, paint);
-      _drawProgressLine(canvas, rect.bottomLeft, rect.topRight, paint);
-      return;
-    }
-
-    final points = _pointsForAction(size);
-    if (points.length < 2) return;
-    _drawProgressLine(canvas, points.first, points.last, paint);
-    if (action.type == 'draw_arrow') {
-      _drawArrowHead(canvas, points.first, points.last, paint);
-    }
-  }
-
-  List<Offset> _pointsForAction(Size size) {
-    if (action.points.length >= 2) {
-      return action.points.take(2).map((point) {
-        final x = ((point['x'] as num?)?.toDouble() ?? 0) * scale;
-        final y = (point['y'] as num?)?.toDouble() ?? 0;
-        return Offset(x, y);
-      }).toList();
-    }
-    final start = Offset((action.x ?? 40) * scale, action.y ?? 40);
-    final end = Offset(
-      ((action.x ?? 40) + (action.width ?? 120)) * scale,
-      (action.y ?? 40) + (action.height ?? 0),
-    );
-    return [start, end];
-  }
-
-  void _drawProgressLine(Canvas canvas, Offset start, Offset end, Paint paint) {
-    final clamped = progress.clamp(0, 1).toDouble();
-    final current = Offset.lerp(start, end, clamped)!;
-    canvas.drawLine(start, current, paint);
-  }
-
-  void _drawArrowHead(Canvas canvas, Offset start, Offset end, Paint paint) {
-    if (progress < .95) return;
-    final angle = math.atan2(end.dy - start.dy, end.dx - start.dx);
-    const length = 9.0;
-    final left =
-        end -
-        Offset(math.cos(angle - .55) * length, math.sin(angle - .55) * length);
-    final right =
-        end -
-        Offset(math.cos(angle + .55) * length, math.sin(angle + .55) * length);
-    canvas.drawLine(end, left, paint);
-    canvas.drawLine(end, right, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ShapeActionPainter oldDelegate) {
-    return oldDelegate.action != action ||
-        oldDelegate.scale != scale ||
-        oldDelegate.progress != progress;
-  }
-}
-
-class _MiniGraphPainter extends CustomPainter {
-  const _MiniGraphPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = const Color(0xFFB7C5DA).withValues(alpha: .5)
-      ..strokeWidth = .7;
-    final linePaint = Paint()
-      ..color = const Color(0xFF1B5CCB)
-      ..strokeWidth = 2.2
-      ..strokeCap = StrokeCap.round;
-    for (double x = 0; x <= size.width; x += size.width / 4) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (double y = 0; y <= size.height; y += size.height / 4) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-    canvas.drawLine(
-      Offset(size.width * .12, size.height * .74),
-      Offset(size.width * .84, size.height * .24),
-      linePaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class VisualTutorStudentSubmission {
@@ -5830,14 +5517,6 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
         ?.toString()
         .toLowerCase();
     return variant == 'check_my_work';
-  }
-
-  bool get _isGraphBased {
-    final metadata = widget.turn.board.metadata;
-    final variant = (metadata['screen_state'] ?? metadata['board_type'])
-        ?.toString()
-        .toLowerCase();
-    return variant == 'graph_based';
   }
 
   bool get _isFinalVerified {
@@ -6035,12 +5714,6 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
     });
   }
 
-  void _contactSupport() {
-    setState(() {
-      _answerLockNotice =
-          'Support contact is not connected in this demo build yet.';
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -6054,7 +5727,17 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
         compact: widget.compact,
         notice: _answerLockNotice,
         onTryAnother: widget.onReset,
-        onContactSupport: _contactSupport,
+        onSelectProblem: (problem) {
+          widget.onSubmit(
+            VisualTutorStudentSubmission(
+              message: problem,
+              intent: 'new_problem',
+              action: 'submit_problem',
+              inputType: 'quick_action',
+              metadata: const {'entry_point': 'unsupported_problem_chip'},
+            ),
+          );
+        },
       );
     }
     if (_isFinalVerified) {
@@ -6100,7 +5783,7 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
                 key: const Key('voice-cancel-recording'),
                 onPressed: widget.onCancelRecording,
                 icon: const Icon(Icons.close_rounded, size: 18),
-                label: const Text('Cancel recording'),
+                label: Text(AppLocalizations.of(context).cancelRecording),
               ),
             ),
           ],
@@ -6216,26 +5899,6 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
     ];
   }
 
-  Widget _radialActionMenu() {
-    final items = _actionItems();
-    if (items.isEmpty) return const SizedBox.shrink();
-    return _RadialActionMenu(
-      key: const Key('radial-action-menu'),
-      items: [
-        for (final item in items)
-          _RadialItem(
-            key: item.key,
-            icon: item.icon,
-            label: item.label,
-            onPressed: item.onPressed,
-          ),
-      ],
-    );
-  }
-
-  // keep old _quickActions / _quickActionStrip stubs so no other caller breaks
-  List<Widget> _quickActions() => [];
-  Widget _quickActionStrip() => const SizedBox.shrink();
 }
 
 /// A horizontal scrollable row of quick-action chips shown below the text
@@ -6338,7 +6001,7 @@ class _CheckWorkBottomActions extends StatelessWidget {
             key: const Key('check-work-try-again'),
             onPressed: onTryAgain,
             icon: const Icon(Icons.replay_rounded, size: 17),
-            label: const Text('Try again'),
+            label: Text(AppLocalizations.of(context).tryAgain),
             style:
                 FilledButton.styleFrom(
                   backgroundColor: VisualTutorColors.cyan,
@@ -6366,7 +6029,7 @@ class _CheckWorkBottomActions extends StatelessWidget {
             key: const Key('check-work-show-me-why'),
             onPressed: onShowWhy,
             icon: const Icon(Icons.help_outline_rounded, size: 17),
-            label: const Text('Show me why'),
+            label: Text(AppLocalizations.of(context).showMeWhy),
             style: FilledButton.styleFrom(
               backgroundColor: VisualTutorColors.panelRaised,
               foregroundColor: VisualTutorColors.text,
@@ -6476,7 +6139,7 @@ class _FinalVerifiedActionPanel extends StatelessWidget {
                 child: _FinalPanelButton(
                   key: const Key('final-repeat-button'),
                   icon: Icons.repeat_rounded,
-                  label: 'Repeat',
+                  label: AppLocalizations.of(context).repeat,
                   onPressed: onRepeat,
                 ),
               ),
@@ -6485,7 +6148,7 @@ class _FinalVerifiedActionPanel extends StatelessWidget {
                 child: _FinalPanelButton(
                   key: const Key('final-show-summary-button'),
                   icon: Icons.menu_book_rounded,
-                  label: 'Show Summary',
+                  label: AppLocalizations.of(context).showSummary,
                   onPressed: onShowSummary,
                 ),
               ),
@@ -6501,7 +6164,7 @@ class _FinalVerifiedActionPanel extends StatelessWidget {
                 Size.fromHeight(compact ? 50 : 56),
               ),
             ),
-            child: const Text('Next Practice Problem  →'),
+            child: Text(AppLocalizations.of(context).nextPracticeProblem),
           ),
           const SizedBox(height: 8),
           // ── Back to Home (secondary) ─────────────────────────────────────────
@@ -6513,7 +6176,7 @@ class _FinalVerifiedActionPanel extends StatelessWidget {
                 Size.fromHeight(compact ? 46 : 52),
               ),
             ),
-            child: const Text('Back to Home'),
+            child: Text(AppLocalizations.of(context).backToHome),
           ),
           SizedBox(height: compact ? 14 : 18),
           // ── Centered cyan mic FAB ───────────────────────────────────────────────
@@ -6558,17 +6221,22 @@ class _UnsupportedActionPanel extends StatelessWidget {
     required this.compact,
     required this.notice,
     required this.onTryAnother,
-    required this.onContactSupport,
+    this.onSelectProblem,
   });
 
   final String prompt;
   final bool compact;
   final String? notice;
   final VoidCallback onTryAnother;
-  final VoidCallback onContactSupport;
+  final ValueChanged<String>? onSelectProblem;
+
+  static const String sampleLimits = r'\lim_{x \to 3} \frac{x^2 - 9}{x - 3}';
+  static const String samplePhysics = 'v = u + at, u=0, a=2, t=5';
+  static const String sampleChemistry = r'2H_2 + O_2 \to 2H_2O';
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Container(
       key: const Key('unsupported-action-panel'),
       padding: EdgeInsets.all(compact ? 12 : 16),
@@ -6624,48 +6292,50 @@ class _UnsupportedActionPanel extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: 14),
+          Text(
+            loc.supportedGrade12TopicsPrompt,
+            style: const TextStyle(
+              color: VisualTutorColors.cyan,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ActionChip(
+                key: const Key('unsupported-chip-limits'),
+                avatar: const Text('📐'),
+                label: const Text(r'lim x→3 (x²-9)/(x-3)'),
+                onPressed: () => onSelectProblem?.call(sampleLimits),
+              ),
+              ActionChip(
+                key: const Key('unsupported-chip-physics'),
+                avatar: const Text('⚡'),
+                label: const Text('v = u + at, u=0, a=2, t=5'),
+                onPressed: () => onSelectProblem?.call(samplePhysics),
+              ),
+              ActionChip(
+                key: const Key('unsupported-chip-chemistry'),
+                avatar: const Text('🧪'),
+                label: const Text('2H₂ + O₂ → 2H₂O'),
+                onPressed: () => onSelectProblem?.call(sampleChemistry),
+              ),
+            ],
+          ),
           SizedBox(height: compact ? 14 : 18),
           FilledButton(
             key: const Key('unsupported-try-another-button'),
             onPressed: onTryAnother,
             style: VisualTutorButtonStyles.primary().copyWith(
               minimumSize: WidgetStatePropertyAll(
-                Size.fromHeight(compact ? 48 : 56),
+                Size.fromHeight(compact ? 48 : 54),
               ),
             ),
-            child: const Text('Try Another Problem'),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            key: const Key('unsupported-contact-support-button'),
-            onPressed: onContactSupport,
-            icon: const Icon(Icons.headset_mic_rounded, size: 18),
-            label: const Text('Contact Support'),
-            style: VisualTutorButtonStyles.darkCard().copyWith(
-              minimumSize: WidgetStatePropertyAll(
-                Size.fromHeight(compact ? 46 : 54),
-              ),
-            ),
-          ),
-          SizedBox(height: compact ? 12 : 18),
-          Align(
-            alignment: Alignment.center,
-            child: SizedBox(
-              width: compact ? 58 : 66,
-              height: compact ? 58 : 66,
-              child: FilledButton(
-                key: const Key('unsupported-disabled-mic-button'),
-                onPressed: null,
-                style: FilledButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  disabledBackgroundColor: VisualTutorColors.textMuted
-                      .withValues(alpha: .18),
-                  disabledForegroundColor: VisualTutorColors.textMuted,
-                  shape: const CircleBorder(),
-                ),
-                child: const Icon(Icons.mic_rounded, size: 30),
-              ),
-            ),
+            child: Text(loc.tryAnotherProblem),
           ),
         ],
       ),
@@ -6789,6 +6459,7 @@ class _InteractionInput extends StatelessWidget {
         onMuteToggle: onMuteToggle,
       );
     }
+    final isKhmer = AppLocalizations.of(context).isKhmer;
     // ── Keyboard composer + secondary microphone ────────────────────────────
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -6817,8 +6488,8 @@ class _InteractionInput extends StatelessWidget {
               ),
               decoration: InputDecoration(
                 hintText: type == 'numeric_input'
-                    ? 'Type your number...'
-                    : 'Ask a follow-up...',
+                    ? (isKhmer ? 'បញ្ចូលលេខ...' : 'Type your number...')
+                    : (isKhmer ? 'សួរសំណួរបន្ថែមអំពីជំហាន...' : 'Ask a follow-up about any step...'),
                 hintStyle: TextStyle(
                   color: VisualTutorColors.textMuted,
                   fontSize: compact ? 13 : 14,
@@ -6845,7 +6516,7 @@ class _InteractionInput extends StatelessWidget {
                           color: VisualTutorColors.cyan,
                           size: 20,
                         ),
-                        tooltip: 'Submit your answer',
+                        tooltip: AppLocalizations.of(context).submit,
                       )
                     : null,
               ),
@@ -6855,11 +6526,11 @@ class _InteractionInput extends StatelessWidget {
         const SizedBox(width: 10),
         if (voiceMode) ...[
           Semantics(
-            label: 'Close keyboard',
+            label: AppLocalizations.of(context).closeKeyboard,
             button: true,
             child: IconButton(
               key: const Key('voice-close-keyboard'),
-              tooltip: 'Close keyboard',
+              tooltip: AppLocalizations.of(context).closeKeyboard,
               onPressed: onKeyboardToggle,
               icon: const Icon(
                 Icons.keyboard_hide_rounded,
@@ -6931,15 +6602,17 @@ class _VoiceFirstDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final muteLabel = muted ? l10n.unmuteAudio : l10n.muteAudio;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Semantics(
-          label: muted ? 'Unmute tutor audio' : 'Mute tutor audio',
+          label: muteLabel,
           button: true,
           child: IconButton.filledTonal(
             key: const Key('voice-mute-button'),
-            tooltip: muted ? 'Unmute tutor audio' : 'Mute tutor audio',
+            tooltip: muteLabel,
             onPressed: onMuteToggle,
             icon: Icon(
               muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
@@ -6970,11 +6643,11 @@ class _VoiceFirstDock extends StatelessWidget {
           ),
         ),
         Semantics(
-          label: 'Open keyboard',
+          label: l10n.openKeyboard,
           button: true,
           child: IconButton.filledTonal(
             key: const Key('voice-open-keyboard'),
-            tooltip: 'Open keyboard',
+            tooltip: l10n.openKeyboard,
             onPressed: onOpenKeyboard,
             icon: const Icon(Icons.keyboard_rounded),
           ),
@@ -7161,57 +6834,6 @@ class _ButtonChoices extends StatelessWidget {
   }
 }
 
-class _QuickActionButton extends StatelessWidget {
-  const _QuickActionButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final disabled = onPressed == null;
-    return AnimatedOpacity(
-      opacity: disabled ? 0.45 : 1.0,
-      duration: const Duration(milliseconds: 200),
-      child: GestureDetector(
-        onTap: onPressed,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-          decoration: VisualTutorDecorations.quickActionChip(),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 15,
-                color: disabled
-                    ? VisualTutorColors.textMuted
-                    : VisualTutorColors.cyan,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: VisualTutorTypography.quickAction.copyWith(
-                  color: disabled
-                      ? VisualTutorColors.textMuted
-                      : VisualTutorColors.text,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ── Data class for a single radial action ───────────────────────────────────
 class _RadialItem {
   const _RadialItem({
@@ -7231,7 +6853,7 @@ class _RadialItem {
 /// A single glowing circle trigger button that expands horizontally into a row
 /// of circular icon-buttons when tapped, keeping the teaching board unobscured.
 class _RadialActionMenu extends StatefulWidget {
-  const _RadialActionMenu({super.key, required this.items});
+  const _RadialActionMenu({required this.items});
   final List<_RadialItem> items;
 
   @override
@@ -7986,7 +7608,7 @@ class TutorPanel extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Explain another way',
+                  tooltip: AppLocalizations.of(context).explainDifferently,
                   onPressed: onExplainAgain,
                   icon: const Icon(
                     Icons.help_outline_rounded,
@@ -8246,11 +7868,18 @@ class ChatInput extends StatelessWidget {
                 style: const TextStyle(
                   color: AppColors.text,
                   fontSize: 16,
+                  height: 1.45,
                   fontWeight: FontWeight.w600,
+                  fontFamilyFallback: VisualTutorTypography.fontFallback,
                 ),
-                decoration: const InputDecoration(
-                  hintText: 'Ask Rean any question!',
-                  hintStyle: TextStyle(color: Color(0xFF777C91), fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: AppLocalizations.of(context).askAnyQuestionHint,
+                  hintStyle: const TextStyle(
+                    color: Color(0xFF777C91),
+                    fontSize: 16,
+                    height: 1.40,
+                    fontFamilyFallback: VisualTutorTypography.fontFallback,
+                  ),
                   border: InputBorder.none,
                   isCollapsed: true,
                 ),

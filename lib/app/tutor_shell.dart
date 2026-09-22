@@ -13,8 +13,8 @@ import '../screens/lessons/student_lessons_screen.dart';
 import '../screens/lessons/student_lessons_repository.dart';
 import '../screens/profile/student_profile_setup_sheet.dart';
 import '../features/quizzes/quiz_repository.dart';
+import '../screens/onboarding/first_run_explainer_sheet.dart';
 import '../screens/tutor/tutor_screen.dart';
-import '../screens/tutor/scan_problem_screen.dart';
 import '../screens/tutor/visual_tutor_home_screen.dart';
 import '../shared/app_bottom_navigation.dart';
 import '../shared/app_header.dart';
@@ -46,6 +46,22 @@ class _TutorShellState extends State<TutorShell> {
     if (AppConfig.current.shouldUseDemoTutorData) {
       unawaited(_restoreLocalLimitsView());
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        FirstRunExplainerSheet.showIfNeeded(
+          context,
+          onSelectProblem: (problem) => _openLiveTutor(
+            initialSubmission: VisualTutorStudentSubmission(
+              message: problem,
+              intent: 'new_problem',
+              action: 'submit_problem',
+              inputType: 'text',
+              metadata: const {'entry_point': 'first_run_explainer'},
+            ),
+          ),
+        );
+      }
+    });
   }
 
   Future<void> _restoreLocalLimitsView() async {
@@ -146,9 +162,8 @@ class _TutorShellState extends State<TutorShell> {
     _rememberLocalLimitsView(isLocalCurriculumDemo);
     _openLiveTutor(
       context: learningContextForLesson(lesson),
-      // Only the explicitly selected local curriculum demo starts itself.
-      // The device-local evaluator restores the approved current moment,
-      // including when the gateway or AI service is unavailable.
+      // Local demo starts its evaluator moment. Published lessons with a verified
+      // starter problem immediately launch the solver on the whiteboard.
       initialSubmission: isLocalCurriculumDemo
           ? const VisualTutorStudentSubmission(
               message: 'Start local curriculum demo.',
@@ -157,7 +172,23 @@ class _TutorShellState extends State<TutorShell> {
               inputType: 'quick_action',
               metadata: {'entry_point': 'local_curriculum_demo'},
             )
-          : null,
+          : (lesson.starterProblem != null &&
+                  lesson.starterProblem!.trim().isNotEmpty)
+              ? VisualTutorStudentSubmission(
+                  message: lesson.starterProblem!.trim(),
+                  intent: 'new_problem',
+                  action: 'submit_problem',
+                  inputType: 'quick_action',
+                  metadata: {
+                    'entry_point': 'published_lesson',
+                    'lesson_id': lesson.lessonId,
+                    'curriculum_version_id': lesson.curriculumVersionId,
+                    'topic_id': lesson.topicId,
+                    'subject_id': lesson.subjectId,
+                    'grade_level_id': lesson.gradeLevelId,
+                  },
+                )
+              : null,
     );
   }
 
@@ -238,35 +269,6 @@ class _TutorShellState extends State<TutorShell> {
     }
   }
 
-  void _openStuckTutor() {
-    _openLiveTutor(
-      context: _askQuestionContext,
-      initialSubmission: const VisualTutorStudentSubmission(
-        message: "I'm stuck",
-        intent: 'stuck',
-        action: 'stuck',
-        inputType: 'quick_action',
-        metadata: {'entry_point': 'visual_tutor_home_stuck'},
-      ),
-    );
-  }
-
-  Future<void> _scanProblem() async {
-    final text = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const ScanProblemScreen()),
-    );
-    if (!mounted || text == null || text.trim().isEmpty) return;
-    _openLiveTutor(
-      context: _askQuestionContext,
-      initialSubmission: VisualTutorStudentSubmission(
-        message: text.trim(),
-        intent: 'new_problem',
-        action: 'submit_problem',
-        inputType: 'image',
-        metadata: const {'entry_point': 'scan_problem'},
-      ),
-    );
-  }
 
   Future<void> _logout() async {
     await appAuthService.signOut();
@@ -291,22 +293,26 @@ class _TutorShellState extends State<TutorShell> {
             metadata: const {'entry_point': 'dashboard_ask_anything'},
           ),
         ),
-        onScanQuestion: _scanProblem,
         onVoiceQuestion: _openVoiceTutor,
         onStartDailyPractice: _startDashboardDailyPractice,
         onCompleteProfile: _completeLearningProfile,
+        onBrowseCurriculum: _openTutorHome,
       ),
       1 =>
         _learningContext == null
             ? VisualTutorHomeScreen(
-                onBack: () => setState(() => _selectedIndex = 0),
-                onTypeQuestion: () => _openLiveTutor(),
-                onVoiceInput: _openVoiceTutor,
-                onStuck: _openStuckTutor,
-                onScanProblem: _scanProblem,
-                onOpenLessons: () => setState(() => _selectedIndex = 3),
-                onContinueLearning: (context) =>
-                    _openLiveTutor(context: context),
+                onOpenLesson: _openLesson,
+                onAskQuestion: (problem) => _openLiveTutor(
+                  initialSubmission: (problem != null && problem.isNotEmpty)
+                      ? VisualTutorStudentSubmission(
+                          message: problem,
+                          intent: 'new_problem',
+                          action: 'submit_problem',
+                          inputType: 'text',
+                          metadata: const {'entry_point': 'tutor_curriculum'},
+                        )
+                      : null,
+                ),
               )
             : TutorScreen(
                 context: _learningContext,
@@ -315,13 +321,23 @@ class _TutorShellState extends State<TutorShell> {
                 voiceMode: _tutorVoiceMode,
                 onOpenTargetedPractice: _openTargetedPractice,
               ),
-      2 => const SizedBox.shrink(),
       3 =>
         _targetedPractice != null
             ? QuizzesScreen(targetedPractice: _targetedPractice)
             : StudentLessonsScreen(
                 onOpenLesson: _openLesson,
                 onPractice: _practiceLesson,
+                onAskTutor: (problem) => _openLiveTutor(
+                  initialSubmission: (problem != null && problem.isNotEmpty)
+                      ? VisualTutorStudentSubmission(
+                          message: problem,
+                          intent: 'new_problem',
+                          action: 'submit_problem',
+                          inputType: 'text',
+                          metadata: const {'entry_point': 'empty_catalog'},
+                        )
+                      : null,
+                ),
               ),
       _ => StudentProfileSummaryScreen(
         onSetup: _completeLearningProfile,
@@ -352,8 +368,6 @@ class _TutorShellState extends State<TutorShell> {
                 _rememberLocalLimitsView(false);
                 if (index == 1) {
                   _openTutorHome();
-                } else if (index == 2) {
-                  _openVoiceTutor();
                 } else {
                   if (index == 3) _targetedPractice = null;
                   setState(() => _selectedIndex = index);
@@ -368,7 +382,7 @@ class _TutorShellState extends State<TutorShell> {
 }
 
 /// A selected lesson is the only source of curriculum identifiers passed to
-/// the Tutor. Free question, voice, and scan paths use `askQuestion()`.
+/// the Tutor. Free question and voice paths use `askQuestion()`.
 LearningContext learningContextForLesson(StudentLesson lesson) =>
     LearningContext(
       grade: lesson.grade,
