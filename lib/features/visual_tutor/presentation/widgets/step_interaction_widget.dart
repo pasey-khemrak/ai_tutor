@@ -51,14 +51,21 @@ class _StepInteractionWidgetState extends State<StepInteractionWidget> {
           Text(widget.question, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
           if (multipleChoice && widget.choices.isNotEmpty)
-            ...widget.choices.map(
-              (choice) => RadioListTile<String>(
-                value: choice,
-                groupValue: _selected,
-                title: Text(choice),
-                onChanged: widget.isLoading
-                    ? null
-                    : (value) => setState(() => _selected = value),
+            RadioGroup<String>(
+              groupValue: _selected,
+              onChanged: (value) {
+                if (!widget.isLoading) setState(() => _selected = value);
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final choice in widget.choices)
+                    RadioListTile<String>(
+                      value: choice,
+                      title: Text(choice),
+                      enabled: !widget.isLoading,
+                    ),
+                ],
               ),
             )
           else if (widget.responseType == 'draw' ||

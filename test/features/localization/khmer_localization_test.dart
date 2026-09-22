@@ -5,8 +5,8 @@ import 'package:ai_tutor/core/localization/app_localizations.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/board_pagination.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/widgets/board_page_switcher.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/widgets/step_interaction_widget.dart';
-import 'package:ai_tutor/screens/Dashboard/dashboard_repository.dart';
-import 'package:ai_tutor/screens/Dashboard/dashboard_screen.dart';
+import 'package:ai_tutor/screens/dashboard/dashboard_repository.dart';
+import 'package:ai_tutor/screens/dashboard/dashboard_screen.dart';
 import 'package:ai_tutor/screens/lessons/student_lessons_repository.dart';
 import 'package:ai_tutor/screens/lessons/student_lessons_screen.dart';
 import 'package:ai_tutor/screens/tutor/tutor_screen.dart';
@@ -377,7 +377,7 @@ void main() {
       final filesToCheck = [
         'lib/screens/tutor/tutor_screen.dart',
         'lib/screens/tutor/visual_tutor_home_screen.dart',
-        'lib/screens/Dashboard/dashboard_screen.dart',
+        'lib/screens/dashboard/dashboard_screen.dart',
         'lib/screens/lessons/student_lessons_screen.dart',
         'lib/features/visual_tutor/presentation/widgets/board_page_switcher.dart',
       ];

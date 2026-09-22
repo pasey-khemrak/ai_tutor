@@ -4,8 +4,8 @@ import 'package:ai_tutor/features/visual_tutor/domain/entities/visual_tutor_enti
 import 'package:ai_tutor/features/visual_tutor/domain/repositories/visual_tutor_repository.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/board_pagination.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/widgets/board_page_switcher.dart';
-import 'package:ai_tutor/screens/Dashboard/dashboard_repository.dart';
-import 'package:ai_tutor/screens/Dashboard/dashboard_screen.dart';
+import 'package:ai_tutor/screens/dashboard/dashboard_repository.dart';
+import 'package:ai_tutor/screens/dashboard/dashboard_screen.dart';
 import 'package:ai_tutor/screens/learning_selection/learning_selection_repository.dart';
 import 'package:ai_tutor/screens/lessons/student_lessons_repository.dart';
 import 'package:ai_tutor/screens/lessons/student_lessons_screen.dart';

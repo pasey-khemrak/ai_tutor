@@ -9,7 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/language_switcher_button.dart';
 import '../../shared/state_widgets/app_error_state.dart';
 import '../../shared/student_design_system.dart';
-import '../Dashboard/dashboard_repository.dart';
+import '../dashboard/dashboard_repository.dart';
 import 'student_profile_repository.dart';
 
 /// The Profile tab: who the student is, their learning setup and stats, app

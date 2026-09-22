@@ -34,7 +34,6 @@ import '../../features/visual_tutor/presentation/visual_tutor_design.dart';
 import '../../features/visual_tutor/presentation/widgets/live_teaching_board.dart';
 import '../../features/visual_tutor/presentation/visual_tutor_voice.dart';
 import '../../features/visual_tutor/presentation/visual_tutor_recorder.dart';
-import '../../shared/rean_avatar.dart';
 import '../learning_selection/learning_selection_repository.dart';
 import '../lessons/local_mvp_limits_scope.dart';
 import '../profile/student_profile_repository.dart';
@@ -96,7 +95,6 @@ class _TutorScreenState extends State<TutorScreen> {
     ),
   ];
   bool _isLoading = false;
-  bool _isSpeaking = false;
   Timer? _speechDelayTimer;
   String? _pendingSpeechText;
   String? _pendingSpeechActionId;
@@ -177,7 +175,7 @@ class _TutorScreenState extends State<TutorScreen> {
     _speechDelayTimer?.cancel();
     _boardSnapshotWriteTimer?.cancel();
     _streamCoordinator.invalidate();
-    _stopTutorSpeech(updateState: false);
+    _stopTutorSpeech();
     unawaited(_cancelVoiceRecording(updateState: false));
     _recordingTimer?.cancel();
     unawaited(_voiceRecorder.dispose());
@@ -1108,7 +1106,7 @@ class _TutorScreenState extends State<TutorScreen> {
     if (_tutorMuted) return;
     final cleaned = text.trim();
     if (cleaned.isEmpty) return;
-    _stopTutorSpeech(updateState: false);
+    _stopTutorSpeech();
     try {
       final audio = await _voiceRepository.synthesize(
         cleaned,
@@ -1116,17 +1114,12 @@ class _TutorScreenState extends State<TutorScreen> {
       );
       if (!mounted) return;
       await _tutorAudioPlayer.play(BytesSource(audio));
-      if (mounted)
-        setState(() {
-          _isSpeaking = true;
-          _voiceStatus = null;
-        });
+      if (mounted) setState(() => _voiceStatus = null);
     } catch (_) {
       // Browser synthesis is an explicitly optional fallback only when the
       // authenticated server-side TTS service cannot respond.
       if (mounted) {
         setState(() {
-          _isSpeaking = false;
           _voiceStatus =
               'Tutor audio is unavailable. Browser speech may be used where supported.';
         });
@@ -1135,24 +1128,13 @@ class _TutorScreenState extends State<TutorScreen> {
       _voiceRuntime.speak(
         cleaned,
         languageCode: _currentTurn.speech?.language == 'km' ? 'km-KH' : 'en-US',
-        onStart: () {
-          if (mounted) setState(() => _isSpeaking = true);
-        },
-        onEnd: () {
-          if (mounted) setState(() => _isSpeaking = false);
-        },
       );
     }
   }
 
-  void _stopTutorSpeech({bool updateState = true}) {
+  void _stopTutorSpeech() {
     _voiceRuntime.stop();
     unawaited(_tutorAudioPlayer.stop());
-    if (updateState && mounted) {
-      setState(() => _isSpeaking = false);
-    } else {
-      _isSpeaking = false;
-    }
   }
 
   void _toggleListening() {
@@ -3089,100 +3071,6 @@ class _LocalCurriculumDemoLabel extends StatelessWidget {
           fontWeight: FontWeight.w800,
           fontSize: 12,
         ),
-      ),
-    ),
-  );
-}
-
-class _CurrentLearningStepPanel extends StatelessWidget {
-  const _CurrentLearningStepPanel({
-    required this.stepNumber,
-    required this.explanation,
-    required this.task,
-    required this.onJumpToLatest,
-    required this.onReviewPrevious,
-    required this.onResumeTask,
-  });
-
-  final int stepNumber;
-  final String explanation;
-  final String task;
-  final VoidCallback onJumpToLatest;
-  final VoidCallback onReviewPrevious;
-  final VoidCallback onResumeTask;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    liveRegion: true,
-    label: 'New teaching step $stepNumber. $explanation Current task: $task',
-    child: Container(
-      key: const Key('current-learning-step-panel'),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: VisualTutorColors.shellElevated,
-        borderRadius: BorderRadius.circular(VisualTutorRadius.md),
-        border: Border.all(color: VisualTutorColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            AppLocalizations.of(context).stepCurrent(stepNumber),
-            style: const TextStyle(
-              color: VisualTutorColors.cyan,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            explanation,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: VisualTutorColors.text,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          if (task.trim().isNotEmpty) ...[
-            const SizedBox(height: 7),
-            Semantics(
-              label: 'Current student task: $task',
-              child: Text(
-                AppLocalizations.of(context).yourTask(task),
-                style: const TextStyle(
-                  color: VisualTutorColors.textSubtle,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              TextButton.icon(
-                key: const Key('review-previous-step'),
-                onPressed: onReviewPrevious,
-                icon: const Icon(Icons.arrow_upward_rounded, size: 17),
-                label: Text(AppLocalizations.of(context).reviewPrevious),
-              ),
-              TextButton.icon(
-                key: const Key('jump-to-latest-step'),
-                onPressed: onJumpToLatest,
-                icon: const Icon(Icons.south_rounded, size: 17),
-                label: Text(AppLocalizations.of(context).jumpToLatest),
-              ),
-              TextButton.icon(
-                key: const Key('resume-current-task'),
-                onPressed: onResumeTask,
-                icon: const Icon(Icons.play_arrow_rounded, size: 17),
-                label: Text(AppLocalizations.of(context).resumeTask),
-              ),
-            ],
-          ),
-        ],
       ),
     ),
   );
@@ -5488,126 +5376,6 @@ class _StudentBoardControls extends StatelessWidget {
   }
 }
 
-class _BoardStatusCluster extends StatelessWidget {
-  const _BoardStatusCluster({required this.locked, required this.compact});
-
-  final bool locked;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 8 : 10,
-        vertical: compact ? 6 : 8,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .72),
-        borderRadius: BorderRadius.circular(VisualTutorRadius.pill),
-        border: Border.all(color: VisualTutorColors.boardBorder),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: compact ? 28 : 34,
-            height: compact ? 28 : 34,
-            decoration: const BoxDecoration(
-              color: Color(0xFF1D63CE),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.school_rounded,
-              color: Colors.white,
-              size: compact ? 16 : 19,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            locked ? Icons.lock_outline_rounded : Icons.lock_open_rounded,
-            color: locked
-                ? VisualTutorColors.orange
-                : VisualTutorColors.success,
-            size: compact ? 17 : 20,
-          ),
-          if (!compact) ...[
-            const SizedBox(width: 6),
-            Text(
-              locked ? l10n.guidedMode : l10n.answerReady,
-              style: TextStyle(
-                color: locked
-                    ? VisualTutorColors.orange
-                    : VisualTutorColors.success,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                fontFamilyFallback: VisualTutorTypography.fontFallback,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _CheckWorkHeader extends StatelessWidget {
-  const _CheckWorkHeader({
-    required this.onRetry,
-    required this.compact,
-  });
-
-  final VoidCallback onRetry;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 12 : 16,
-        vertical: compact ? 8 : 10,
-      ),
-      decoration: BoxDecoration(
-        color: VisualTutorColors.panelRaised,
-        borderRadius: BorderRadius.circular(VisualTutorRadius.md),
-        border: Border.all(color: VisualTutorColors.border),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.task_alt_rounded,
-            color: VisualTutorColors.cyan,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              AppLocalizations.of(context).isKhmer
-                  ? 'ពិនិត្យជំហានរបស់អ្នក'
-                  : 'Check your step',
-              style: TextStyle(
-                color: VisualTutorColors.text,
-                fontSize: compact ? 13 : 14,
-                fontWeight: FontWeight.w800,
-                fontFamilyFallback: VisualTutorTypography.fontFallback,
-              ),
-            ),
-          ),
-          Semantics(
-            button: true,
-            label: 'Retry the submitted tutor work',
-            child: OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: Text(AppLocalizations.of(context).retry),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _TutorApiErrorBanner extends StatelessWidget {
   const _TutorApiErrorBanner({
     super.key,
@@ -5661,496 +5429,6 @@ class _TutorApiErrorBanner extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CanvasPaperLines extends StatelessWidget {
-  const _CanvasPaperLines();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: _CanvasPaperPainter());
-  }
-}
-
-class _CanvasPaperPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final linePaint = Paint()
-      ..color = VisualTutorColors.boardPaperLine.withValues(alpha: .65)
-      ..strokeWidth = 1;
-    final dotPaint = Paint()
-      ..color = VisualTutorColors.boardPaperDot.withValues(alpha: .45)
-      ..strokeWidth = 1;
-
-    for (double y = 42; y < size.height; y += 48) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
-    }
-    for (double x = 24; x < size.width; x += 36) {
-      for (double y = 22; y < size.height; y += 36) {
-        canvas.drawCircle(Offset(x, y), 1, dotPaint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _BoardActionRenderer extends StatelessWidget {
-  const _BoardActionRenderer({
-    required this.action,
-    required this.scale,
-    required this.faded,
-    required this.progress,
-  });
-
-  final VisualTutorBoardActionEntity action;
-  final double scale;
-  final bool faded;
-  final Animation<double> progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final left = (action.x ?? 28) * scale;
-    final top = action.y ?? 32;
-    final width = (action.width ?? 260) * scale;
-    final height = action.height ?? 42;
-    final opacity = action.type == 'highlight' ? 1.0 : (faded ? .66 : 1.0);
-
-    if (action.type == 'highlight') {
-      return Positioned(
-        key: const Key('teaching-board-highlight'),
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: VisualTutorColors.yellowHighlight.withValues(alpha: .38),
-            borderRadius: BorderRadius.circular(VisualTutorRadius.md),
-            border: Border.all(color: VisualTutorColors.orange, width: 1.4),
-          ),
-        ),
-      );
-    }
-
-    if (action.type == 'draw_axes') {
-      return Positioned.fill(
-        child: CustomPaint(
-          key: const Key('teaching-board-axes'),
-          painter: _AxesActionPainter(scale: scale),
-        ),
-      );
-    }
-
-    if (action.type == 'draw_point') {
-      return Positioned(
-        key: Key('teaching-board-point-${action.id}'),
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        child: _PointActionLabel(action: action),
-      );
-    }
-
-    if (action.type == 'draw_line' ||
-        action.type == 'draw_arrow' ||
-        action.type == 'circle' ||
-        action.type == 'cross_out') {
-      return Positioned.fill(
-        child: AnimatedBuilder(
-          animation: progress,
-          builder: (context, _) {
-            return CustomPaint(
-              key: Key('teaching-board-${action.type}-${action.id}'),
-              painter: _ShapeActionPainter(
-                action: action,
-                scale: scale,
-                progress: progress.value,
-              ),
-            );
-          },
-        ),
-      );
-    }
-
-    if (action.type == 'show_table') {
-      return Positioned(
-        key: Key('teaching-board-table-${action.id}'),
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        child: _TableActionView(action: action),
-      );
-    }
-
-    if (action.type == 'create_blank') {
-      return Positioned(
-        key: Key('teaching-board-blank-${action.id}'),
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .68),
-            borderRadius: BorderRadius.circular(VisualTutorRadius.sm),
-            border: Border.all(color: VisualTutorColors.orange, width: 1.5),
-          ),
-        ),
-      );
-    }
-
-    if (action.type == 'show_graph') {
-      return Positioned(
-        key: Key('teaching-board-graph-${action.id}'),
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .62),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: VisualTutorColors.blueInk),
-          ),
-          child: const CustomPaint(painter: _MiniGraphPainter()),
-        ),
-      );
-    }
-
-    final isEquation = action.type == 'write_equation';
-    final ink = action.style['ink'] == 'blue'
-        ? VisualTutorColors.blueInk
-        : VisualTutorColors.blackInk;
-    final fontSize =
-        ((action.style['size'] as num?)?.toDouble() ?? (isEquation ? 26 : 19)) *
-        scale.clamp(.86, 1.1);
-
-    return Positioned(
-      key: Key('teaching-board-action-${action.id}'),
-      left: left,
-      top: top,
-      width: width,
-      height: height,
-      child: Opacity(
-        opacity: opacity,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            decoration: BoxDecoration(
-              color: isEquation
-                  ? Colors.transparent
-                  : VisualTutorColors.yellowHighlight.withValues(alpha: .36),
-              borderRadius: BorderRadius.circular(VisualTutorRadius.sm),
-            ),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: AnimatedBuilder(
-                animation: progress,
-                builder: (context, _) => Text(
-                  _visibleTextFor(action, progress.value),
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: ink,
-                    fontSize: fontSize,
-                    height: 1.1,
-                    fontWeight: FontWeight.w900,
-                    fontFamilyFallback: VisualTutorTypography.fontFallback,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _visibleTextFor(VisualTutorBoardActionEntity action, double progress) {
-    final fullContent = action.latex ?? action.text ?? '';
-    if (fullContent.isEmpty) return '';
-    if (action.type != 'write_text' && action.type != 'write_equation') {
-      return fullContent;
-    }
-    final visibleCharacters = (fullContent.length * progress)
-        .ceil()
-        .clamp(1, fullContent.length)
-        .toInt();
-    return fullContent.substring(0, visibleCharacters);
-  }
-}
-
-class _PointActionLabel extends StatelessWidget {
-  const _PointActionLabel({required this.action});
-
-  final VisualTutorBoardActionEntity action;
-
-  @override
-  Widget build(BuildContext context) {
-    final label =
-        action.text ??
-        action.metadata['label']?.toString() ??
-        action.id.replaceAll('-', ' ');
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: const BoxDecoration(
-            color: VisualTutorColors.blueInk,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 5),
-        Flexible(
-          child: Text(
-            label,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: VisualTutorColors.blackInk,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TableActionView extends StatelessWidget {
-  const _TableActionView({required this.action});
-
-  final VisualTutorBoardActionEntity action;
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = (action.metadata['rows'] as List?) ?? const [];
-    if (rows.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .72),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFCBBF9E)),
-      ),
-      child: Column(
-        children: [
-          for (final row in rows.take(4))
-            Expanded(
-              child: Row(
-                children: [
-                  for (final cell in ((row as List?) ?? const []).take(3))
-                    Expanded(
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: const Color(0xFFCBBF9E),
-                            width: .6,
-                          ),
-                        ),
-                        child: Text(
-                          cell.toString(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF15120B),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AxesActionPainter extends CustomPainter {
-  const _AxesActionPainter({required this.scale});
-
-  final double scale;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final origin = Offset(size.width * .18, size.height * .72);
-    final paint = Paint()
-      ..color = const Color(0xFF15120B).withValues(alpha: .78)
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(size.width * .08, origin.dy),
-      Offset(size.width * .9, origin.dy),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(origin.dx, size.height * .18),
-      Offset(origin.dx, size.height * .86),
-      paint,
-    );
-    _drawArrowHead(canvas, Offset(size.width * .9, origin.dy), 0, paint);
-    _drawArrowHead(
-      canvas,
-      Offset(origin.dx, size.height * .18),
-      -math.pi / 2,
-      paint,
-    );
-  }
-
-  void _drawArrowHead(Canvas canvas, Offset tip, double angle, Paint paint) {
-    const length = 8.0;
-    final left =
-        tip -
-        Offset(math.cos(angle - .55) * length, math.sin(angle - .55) * length);
-    final right =
-        tip -
-        Offset(math.cos(angle + .55) * length, math.sin(angle + .55) * length);
-    canvas.drawLine(tip, left, paint);
-    canvas.drawLine(tip, right, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _AxesActionPainter oldDelegate) {
-    return oldDelegate.scale != scale;
-  }
-}
-
-class _ShapeActionPainter extends CustomPainter {
-  const _ShapeActionPainter({
-    required this.action,
-    required this.scale,
-    required this.progress,
-  });
-
-  final VisualTutorBoardActionEntity action;
-  final double scale;
-  final double progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = action.type == 'cross_out'
-          ? const Color(0xFFC62828)
-          : const Color(0xFF15120B)
-      ..strokeWidth = action.type == 'highlight' ? 8 : 2.6
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    if (action.type == 'circle') {
-      final rect = Rect.fromLTWH(
-        (action.x ?? 40) * scale,
-        action.y ?? 40,
-        (action.width ?? 90) * scale,
-        action.height ?? 46,
-      );
-      final sweep = math.pi * 2 * progress.clamp(0, 1);
-      canvas.drawArc(rect, 0, sweep, false, paint);
-      return;
-    }
-
-    if (action.type == 'cross_out') {
-      final rect = Rect.fromLTWH(
-        (action.x ?? 40) * scale,
-        action.y ?? 40,
-        (action.width ?? 120) * scale,
-        action.height ?? 44,
-      );
-      _drawProgressLine(canvas, rect.topLeft, rect.bottomRight, paint);
-      _drawProgressLine(canvas, rect.bottomLeft, rect.topRight, paint);
-      return;
-    }
-
-    final points = _pointsForAction(size);
-    if (points.length < 2) return;
-    _drawProgressLine(canvas, points.first, points.last, paint);
-    if (action.type == 'draw_arrow') {
-      _drawArrowHead(canvas, points.first, points.last, paint);
-    }
-  }
-
-  List<Offset> _pointsForAction(Size size) {
-    if (action.points.length >= 2) {
-      return action.points.take(2).map((point) {
-        final x = ((point['x'] as num?)?.toDouble() ?? 0) * scale;
-        final y = (point['y'] as num?)?.toDouble() ?? 0;
-        return Offset(x, y);
-      }).toList();
-    }
-    final start = Offset((action.x ?? 40) * scale, action.y ?? 40);
-    final end = Offset(
-      ((action.x ?? 40) + (action.width ?? 120)) * scale,
-      (action.y ?? 40) + (action.height ?? 0),
-    );
-    return [start, end];
-  }
-
-  void _drawProgressLine(Canvas canvas, Offset start, Offset end, Paint paint) {
-    final clamped = progress.clamp(0, 1).toDouble();
-    final current = Offset.lerp(start, end, clamped)!;
-    canvas.drawLine(start, current, paint);
-  }
-
-  void _drawArrowHead(Canvas canvas, Offset start, Offset end, Paint paint) {
-    if (progress < .95) return;
-    final angle = math.atan2(end.dy - start.dy, end.dx - start.dx);
-    const length = 9.0;
-    final left =
-        end -
-        Offset(math.cos(angle - .55) * length, math.sin(angle - .55) * length);
-    final right =
-        end -
-        Offset(math.cos(angle + .55) * length, math.sin(angle + .55) * length);
-    canvas.drawLine(end, left, paint);
-    canvas.drawLine(end, right, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ShapeActionPainter oldDelegate) {
-    return oldDelegate.action != action ||
-        oldDelegate.scale != scale ||
-        oldDelegate.progress != progress;
-  }
-}
-
-class _MiniGraphPainter extends CustomPainter {
-  const _MiniGraphPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = const Color(0xFFB7C5DA).withValues(alpha: .5)
-      ..strokeWidth = .7;
-    final linePaint = Paint()
-      ..color = const Color(0xFF1B5CCB)
-      ..strokeWidth = 2.2
-      ..strokeCap = StrokeCap.round;
-    for (double x = 0; x <= size.width; x += size.width / 4) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (double y = 0; y <= size.height; y += size.height / 4) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-    canvas.drawLine(
-      Offset(size.width * .12, size.height * .74),
-      Offset(size.width * .84, size.height * .24),
-      linePaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class VisualTutorStudentSubmission {
@@ -6239,14 +5517,6 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
         ?.toString()
         .toLowerCase();
     return variant == 'check_my_work';
-  }
-
-  bool get _isGraphBased {
-    final metadata = widget.turn.board.metadata;
-    final variant = (metadata['screen_state'] ?? metadata['board_type'])
-        ?.toString()
-        .toLowerCase();
-    return variant == 'graph_based';
   }
 
   bool get _isFinalVerified {
@@ -6629,26 +5899,6 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
     ];
   }
 
-  Widget _radialActionMenu() {
-    final items = _actionItems();
-    if (items.isEmpty) return const SizedBox.shrink();
-    return _RadialActionMenu(
-      key: const Key('radial-action-menu'),
-      items: [
-        for (final item in items)
-          _RadialItem(
-            key: item.key,
-            icon: item.icon,
-            label: item.label,
-            onPressed: item.onPressed,
-          ),
-      ],
-    );
-  }
-
-  // keep old _quickActions / _quickActionStrip stubs so no other caller breaks
-  List<Widget> _quickActions() => [];
-  Widget _quickActionStrip() => const SizedBox.shrink();
 }
 
 /// A horizontal scrollable row of quick-action chips shown below the text
@@ -7584,57 +6834,6 @@ class _ButtonChoices extends StatelessWidget {
   }
 }
 
-class _QuickActionButton extends StatelessWidget {
-  const _QuickActionButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final disabled = onPressed == null;
-    return AnimatedOpacity(
-      opacity: disabled ? 0.45 : 1.0,
-      duration: const Duration(milliseconds: 200),
-      child: GestureDetector(
-        onTap: onPressed,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-          decoration: VisualTutorDecorations.quickActionChip(),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 15,
-                color: disabled
-                    ? VisualTutorColors.textMuted
-                    : VisualTutorColors.cyan,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: VisualTutorTypography.quickAction.copyWith(
-                  color: disabled
-                      ? VisualTutorColors.textMuted
-                      : VisualTutorColors.text,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ── Data class for a single radial action ───────────────────────────────────
 class _RadialItem {
   const _RadialItem({
@@ -7654,7 +6853,7 @@ class _RadialItem {
 /// A single glowing circle trigger button that expands horizontally into a row
 /// of circular icon-buttons when tapped, keeping the teaching board unobscured.
 class _RadialActionMenu extends StatefulWidget {
-  const _RadialActionMenu({super.key, required this.items});
+  const _RadialActionMenu({required this.items});
   final List<_RadialItem> items;
 
   @override

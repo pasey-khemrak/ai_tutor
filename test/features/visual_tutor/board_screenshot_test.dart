@@ -3,6 +3,7 @@
 ///
 /// Run: flutter test test/features/visual_tutor/board_screenshot_test.dart
 /// Output: build/board_shots/*.png
+library;
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;

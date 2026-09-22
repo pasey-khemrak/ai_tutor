@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/localization/app_localizations.dart';
+import '../core/localization/app_localizations.dart';
 import '../core/adaptive_colors.dart';
 import '../core/app_colors.dart';
 

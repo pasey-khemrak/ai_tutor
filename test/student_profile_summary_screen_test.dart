@@ -1,7 +1,7 @@
 import 'package:ai_tutor/core/localization/app_language_controller.dart';
 import 'package:ai_tutor/core/localization/app_localizations.dart';
 import 'package:ai_tutor/core/theme/app_theme.dart';
-import 'package:ai_tutor/screens/Dashboard/dashboard_repository.dart';
+import 'package:ai_tutor/screens/dashboard/dashboard_repository.dart';
 import 'package:ai_tutor/screens/profile/student_profile_repository.dart';
 import 'package:ai_tutor/screens/profile/student_profile_summary_screen.dart';
 import 'package:flutter/material.dart';
