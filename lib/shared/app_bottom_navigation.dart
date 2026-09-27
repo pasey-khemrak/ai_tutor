@@ -22,7 +22,9 @@ class AppBottomNavigation extends StatelessWidget {
     final items = [
       _NavItem(0, Icons.dashboard_outlined, localizations.navHome),
       _NavItem(1, Icons.smart_toy_outlined, localizations.navTutor),
-      _NavItem(3, Icons.quiz_outlined, localizations.navLessons),
+      // Tapping this tab clears targeted practice in the shell, so it always
+      // opens the lessons library. A quiz icon here promised the wrong screen.
+      _NavItem(3, Icons.menu_book_outlined, localizations.navLessons),
       _NavItem(4, Icons.person_rounded, localizations.navProfile),
     ];
 
