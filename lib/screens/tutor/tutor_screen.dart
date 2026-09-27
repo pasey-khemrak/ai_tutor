@@ -715,6 +715,18 @@ class _TutorScreenState extends State<TutorScreen> {
         switch (event.type) {
           case VisualTutorStreamEventType.status:
             final state = event.data['state']?.toString();
+            if (state == reconnectingStreamState) {
+              // Raised by the client, not the server: the link dropped and the
+              // board is being resumed rather than redrawn.
+              if (mounted) {
+                setState(
+                  () => _voiceStatus = AppLocalizations.of(
+                    context,
+                  ).tutorReconnecting,
+                );
+              }
+              break;
+            }
             if (state != null && mounted)
               setState(() => _voiceStatus = 'Tutor is $state…');
             break;

@@ -44,7 +44,24 @@ class VisualTutorRemoteDataSource {
   ) async* {
     final seen = <String>{};
     String? lastEventId;
-    for (var attempt = 0; attempt < 2; attempt++) {
+    for (var attempt = 0; attempt < _streamAttempts; attempt++) {
+      if (attempt > 0) {
+        // Say so. A student watching a board that stopped moving should never
+        // have to guess whether the app is thinking or the signal is gone.
+        yield VisualTutorStreamEventEntity(
+          eventId: 'local-reconnect-$attempt',
+          sequence: -attempt,
+          type: VisualTutorStreamEventType.status,
+          sessionId: request.sessionId ?? '',
+          turnId: null,
+          boardVersion: null,
+          baseBoardVersion: null,
+          data: {'state': _reconnectingState, 'attempt': attempt},
+        );
+        // A flaky link rarely recovers within the same millisecond, and
+        // hammering the gateway costs the student data they are paying for.
+        await Future<void>.delayed(_streamRetryBackoff(attempt));
+      }
       try {
         final response = await _apiClient.postStream(
           '/tutor/turn/stream',
@@ -67,14 +84,22 @@ class VisualTutorRemoteDataSource {
             }
           }
         }
-        if (attempt == 0) continue;
+        // The body ended without turn_complete, which is what a dropped
+        // connection looks like. Resume from lastEventId rather than giving up.
+        if (attempt < _streamAttempts - 1) continue;
         throw const FormatException(
           'Tutor stream ended before a final response.',
         );
-      } on ApiException {
-        rethrow;
+      } on ApiException catch (error) {
+        // A timeout or a gateway hiccup is a dropped link and deserves the
+        // resume path. A refusal — unauthorised, or a board conflict — is a
+        // verdict, so retrying only wastes data and hides the real problem.
+        if (!_isRetryableStreamStatus(error.statusCode) ||
+            attempt == _streamAttempts - 1) {
+          rethrow;
+        }
       } catch (_) {
-        if (attempt == 1) rethrow;
+        if (attempt == _streamAttempts - 1) rethrow;
       }
     }
   }
@@ -84,6 +109,25 @@ class VisualTutorRemoteDataSource {
     return VisualTutorSessionModel.fromJson(json);
   }
 }
+
+/// Marks a status event the client raised itself while reconnecting, so the
+/// screen can show a localized message instead of echoing a server string.
+const String reconnectingStreamState = 'reconnecting';
+const String _reconnectingState = reconnectingStreamState;
+
+/// Attempts for one streamed turn, including the first.
+const int _streamAttempts = 3;
+
+/// Statuses that mean "the link failed", not "the request was refused".
+bool _isRetryableStreamStatus(int? statusCode) => switch (statusCode) {
+  408 || 425 || 429 || 500 || 502 || 503 || 504 => true,
+  _ => false,
+};
+
+/// Short, bounded backoff. Long enough for a mobile handover to settle, short
+/// enough that the student is not left watching a still board.
+Duration _streamRetryBackoff(int attempt) =>
+    Duration(milliseconds: 400 * attempt);
 
 VisualTutorStreamEventEntity? _parseStreamFrame(String frame) {
   final dataLines = frame

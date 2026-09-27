@@ -379,6 +379,9 @@ class AppLocalizations {
   }
 
   // ── Progress & session history ──────────────────────────────────────────────
+  String get tutorReconnecting => isKhmer
+      ? 'ការតភ្ជាប់ដាច់។ កំពុងបន្តពីកន្លែងដែលក្តារឈប់…'
+      : 'Connection dropped. Resuming where the board stopped…';
   String get seeAllAction => isKhmer ? 'មើលទាំងអស់' : 'See all';
   String get yourLearning => isKhmer ? 'ការសិក្សារបស់អ្នក' : 'Your learning';
   String get progressTitle =>
