@@ -22,6 +22,7 @@ class DashboardScreen extends StatelessWidget {
     this.onStartDailyPractice,
     this.onCompleteProfile,
     this.onBrowseCurriculum,
+    this.onViewProgress,
   }) : repository = repository ?? buildDefaultDashboardRepository();
 
   final DashboardRepository repository;
@@ -34,6 +35,8 @@ class DashboardScreen extends StatelessWidget {
 
   /// Opens the curriculum (Tutor tab) from the Continue Learning section.
   final VoidCallback? onBrowseCurriculum;
+  /// Opens the full progress screen from the Your Progress section.
+  final VoidCallback? onViewProgress;
 
   @override
   Widget build(BuildContext context) => _DashboardLoader(
@@ -45,6 +48,7 @@ class DashboardScreen extends StatelessWidget {
     onStartDailyPractice: onStartDailyPractice,
     onCompleteProfile: onCompleteProfile,
     onBrowseCurriculum: onBrowseCurriculum,
+    onViewProgress: onViewProgress,
   );
 }
 
@@ -63,6 +67,7 @@ class _DashboardLoader extends StatefulWidget {
     required this.onStartDailyPractice,
     required this.onCompleteProfile,
     required this.onBrowseCurriculum,
+    required this.onViewProgress,
   });
   final DashboardRepository repository;
   final VoidCallback onResumeLearning;
@@ -72,6 +77,7 @@ class _DashboardLoader extends StatefulWidget {
   final ValueChanged<StudentDashboardData>? onStartDailyPractice;
   final VoidCallback? onCompleteProfile;
   final VoidCallback? onBrowseCurriculum;
+  final VoidCallback? onViewProgress;
 
   @override
   State<_DashboardLoader> createState() => _DashboardLoaderState();
@@ -144,6 +150,7 @@ class _DashboardLoaderState extends State<_DashboardLoader> {
                 },
                 onCompleteProfile: widget.onCompleteProfile,
                 onBrowseCurriculum: widget.onBrowseCurriculum,
+                onViewProgress: widget.onViewProgress,
               ),
       );
     },
@@ -185,6 +192,7 @@ class _DashboardContent extends StatelessWidget {
     required this.onStartDailyPractice,
     required this.onCompleteProfile,
     required this.onBrowseCurriculum,
+    required this.onViewProgress,
   });
   final StudentDashboardData data;
   final Widget ask;
@@ -192,6 +200,7 @@ class _DashboardContent extends StatelessWidget {
   final VoidCallback onStartDailyPractice;
   final VoidCallback? onCompleteProfile;
   final VoidCallback? onBrowseCurriculum;
+  final VoidCallback? onViewProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -230,7 +239,19 @@ class _DashboardContent extends StatelessWidget {
           StudentSectionHeader(l10n.dailyPractice, icon: Icons.bolt_rounded),
           _DailyPractice(data: data, onStart: onStartDailyPractice),
           const SizedBox(height: 24),
-          StudentSectionHeader(l10n.yourProgress, icon: Icons.trending_up_rounded),
+          StudentSectionHeader(
+            l10n.yourProgress,
+            icon: Icons.trending_up_rounded,
+            action: onViewProgress == null
+                ? null
+                : TextButton.icon(
+                    key: const Key('dashboard-view-progress'),
+                    onPressed: onViewProgress,
+                    iconAlignment: IconAlignment.end,
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                    label: Text(l10n.seeAllAction),
+                  ),
+          ),
           _ProgressCard(progress: data.subjectProgress),
         ];
 

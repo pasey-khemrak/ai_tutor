@@ -14,6 +14,10 @@ class StudentDashboardData {
     required this.weakTopic,
     this.practiceRecommendations = const [],
     this.completedPractice = 0,
+    this.totalSessions = 0,
+    this.lessonsCompleted = 0,
+    this.quizAttempts = 0,
+    this.averageQuizScore,
     required this.resumeTitle,
     required this.resumeSubtitle,
     this.resumeGrade,
@@ -32,6 +36,12 @@ class StudentDashboardData {
   final WeakTopic? weakTopic;
   final List<PracticeRecommendation> practiceRecommendations;
   final int completedPractice;
+
+  /// Lifetime totals, shown on the progress screen.
+  final int totalSessions;
+  final int lessonsCompleted;
+  final int quizAttempts;
+  final int? averageQuizScore;
   final String resumeTitle;
   final String resumeSubtitle;
   final int? resumeGrade;
@@ -70,11 +80,34 @@ class SubjectProgress {
     required this.subject,
     required this.topic,
     required this.progress,
+    this.subjectId,
+    this.topicId,
+    this.lessonsCompleted = 0,
+    this.quizAttempts = 0,
+    this.correctAnswers = 0,
+    this.totalAnswers = 0,
+    this.averageQuizScore,
+    this.readiness,
   }) : assert(progress >= 0 && progress <= 1);
 
   final String subject;
   final String topic;
   final double progress;
+
+  /// Raw identifiers, kept so a topic can be handed back to practice.
+  final String? subjectId;
+  final String? topicId;
+
+  /// Per-topic evidence behind [progress]. The dashboard shows only the bar;
+  /// the progress screen explains what the bar is made of.
+  final int lessonsCompleted;
+  final int quizAttempts;
+  final int correctAnswers;
+  final int totalAnswers;
+  final int? averageQuizScore;
+
+  /// `needs_practice`, `building` or `ready` as the gateway judged it.
+  final String? readiness;
 }
 
 class WeakTopic {
@@ -157,6 +190,10 @@ class BackendDashboardRepository implements DashboardRepository {
         data['practice_recommendations'],
       ),
       completedPractice: _int(data['completed_practice']),
+      totalSessions: _int(data['total_sessions']),
+      lessonsCompleted: _int(data['lessons_completed']),
+      quizAttempts: _int(data['quiz_attempts']),
+      averageQuizScore: averageQuizScore,
       resumeTitle: resumeSessionId == null ? 'Start learning' : resumeTopic,
       resumeSubtitle: resumeSessionId != null
           ? 'Resume your latest tutor activity'
@@ -185,6 +222,14 @@ class BackendDashboardRepository implements DashboardRepository {
             progress: (_int(item['progress_percent']) / 100)
                 .clamp(0, 1)
                 .toDouble(),
+            subjectId: _nullableString(item['subject_id']),
+            topicId: _nullableString(item['topic_id']),
+            lessonsCompleted: _int(item['lessons_completed']),
+            quizAttempts: _int(item['quiz_attempts']),
+            correctAnswers: _int(item['correct_answers']),
+            totalAnswers: _int(item['total_answers']),
+            averageQuizScore: _nullableInt(item['average_quiz_score']),
+            readiness: _nullableString(item['readiness']),
           ),
         )
         .toList();

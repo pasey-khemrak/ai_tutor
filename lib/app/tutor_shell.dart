@@ -6,7 +6,9 @@ import '../core/auth/auth_service.dart';
 import '../core/routing/app_routes.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/dashboard/dashboard_repository.dart';
+import '../screens/history/student_session_history_screen.dart';
 import '../screens/learning_selection/learning_selection_repository.dart';
+import '../screens/progress/student_progress_screen.dart';
 import '../screens/profile/student_profile_summary_screen.dart';
 import '../screens/quizzes/quizzes_screen.dart';
 import '../screens/lessons/student_lessons_screen.dart';
@@ -148,6 +150,59 @@ class _TutorShellState extends State<TutorShell> {
 
   void _openVoiceTutor() {
     _openLiveTutor(context: _askQuestionContext, voiceMode: true);
+  }
+
+  Future<void> _openProgress() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => StudentProgressScreen(
+          onPracticeTopic: (topicId, subjectId) {
+            Navigator.of(context).pop();
+            _openTargetedPractice(
+              TargetedPracticeContext(
+                tutorSessionId: 'progress-$topicId',
+                topicId: topicId,
+                subjectId: subjectId ?? '',
+                gradeLevelId: '',
+              ),
+            );
+          },
+          onStartLearning: () {
+            Navigator.of(context).pop();
+            _openTutorHome();
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSessionHistory() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => StudentSessionHistoryScreen(
+          onOpenSession: (session) {
+            Navigator.of(context).pop();
+            _reopenSession(session);
+          },
+          onStartLearning: () {
+            Navigator.of(context).pop();
+            _openTutorHome();
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Reopens a past board on the Tutor tab. Session restoration is
+  /// authoritative, so the saved session id drives it rather than a fresh turn.
+  void _reopenSession(DashboardActivity session) {
+    setState(() {
+      _learningContext = null;
+      _initialTutorSubmission = null;
+      _initialTutorSessionId = session.tutorSessionId;
+      _tutorVoiceMode = false;
+      _selectedIndex = 1;
+    });
   }
 
   void _openTargetedPractice(TargetedPracticeContext practice) {
@@ -297,6 +352,7 @@ class _TutorShellState extends State<TutorShell> {
         onStartDailyPractice: _startDashboardDailyPractice,
         onCompleteProfile: _completeLearningProfile,
         onBrowseCurriculum: _openTutorHome,
+        onViewProgress: _openProgress,
       ),
       1 =>
         _learningContext == null
@@ -342,6 +398,8 @@ class _TutorShellState extends State<TutorShell> {
       _ => StudentProfileSummaryScreen(
         onSetup: _completeLearningProfile,
         onLogout: _logout,
+        onOpenProgress: _openProgress,
+        onOpenHistory: _openSessionHistory,
       ),
     };
   }

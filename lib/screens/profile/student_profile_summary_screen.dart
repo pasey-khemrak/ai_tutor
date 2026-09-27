@@ -21,10 +21,17 @@ class StudentProfileSummaryScreen extends StatefulWidget {
     required this.onLogout,
     this.repository,
     this.statsRepository,
+    this.onOpenProgress,
+    this.onOpenHistory,
   });
   final VoidCallback onSetup;
   final VoidCallback onLogout;
   final StudentProfileRepository? repository;
+
+  /// The shell owns these routes so a topic tapped for practice, or a board
+  /// reopened from history, lands on the Tutor tab rather than a nested page.
+  final VoidCallback? onOpenProgress;
+  final VoidCallback? onOpenHistory;
 
   /// Streak and practice stats come from the same summary as Home. When they
   /// cannot load, the stats row is simply left out.
@@ -105,6 +112,10 @@ class _StudentProfileSummaryScreenState extends State<StudentProfileSummaryScree
               final setup = _LearningSetupCard(profile: profile, onSetup: widget.onSetup);
               final preferences = const _PreferencesCard();
               final account = _AccountCard(onSignOut: _confirmSignOut);
+              final learning = _YourLearningCard(
+                onOpenProgress: widget.onOpenProgress,
+                onOpenHistory: widget.onOpenHistory,
+              );
               return SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(horizontal, 20, horizontal, 32),
@@ -152,13 +163,21 @@ class _StudentProfileSummaryScreenState extends State<StudentProfileSummaryScree
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [preferences, const SizedBox(height: 20), account],
+                                  children: [
+                                    learning,
+                                    const SizedBox(height: 20),
+                                    preferences,
+                                    const SizedBox(height: 20),
+                                    account,
+                                  ],
                                 ),
                               ),
                             ],
                           )
                         else ...[
                           setup,
+                          const SizedBox(height: 20),
+                          learning,
                           const SizedBox(height: 20),
                           preferences,
                           const SizedBox(height: 20),
@@ -612,4 +631,100 @@ class _ProfileSkeleton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Links out to the two screens that explain the student's own history.
+class _YourLearningCard extends StatelessWidget {
+  const _YourLearningCard({this.onOpenProgress, this.onOpenHistory});
+  final VoidCallback? onOpenProgress;
+  final VoidCallback? onOpenHistory;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        StudentSectionHeader(l10n.yourLearning, icon: Icons.insights_outlined),
+        _LearningLink(
+          navKey: const Key('profile-open-progress'),
+          icon: Icons.trending_up_rounded,
+          color: const Color(0xFF12B5CB),
+          title: l10n.progressTitle,
+          subtitle: l10n.progressSubtitle,
+          onTap: onOpenProgress,
+        ),
+        const SizedBox(height: 12),
+        _LearningLink(
+          navKey: const Key('profile-open-history'),
+          icon: Icons.history_rounded,
+          color: const Color(0xFF8A52FF),
+          title: l10n.sessionHistoryTitle,
+          subtitle: l10n.sessionHistorySubtitle,
+          onTap: onOpenHistory,
+        ),
+      ],
+    );
+  }
+}
+
+class _LearningLink extends StatelessWidget {
+  const _LearningLink({
+    required this.navKey,
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+  });
+  final Key navKey;
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      key: navKey,
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Ink(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: StudentStyle.card(context),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: .12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: StudentStyle.title(context, 15)),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: StudentStyle.body(context, size: 12),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: AdaptiveColors.muted(context)),
+          ],
+        ),
+      ),
+    ),
+  );
 }

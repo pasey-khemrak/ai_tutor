@@ -369,6 +369,58 @@ class AppLocalizations {
   String daysAgo(int n) =>
       isKhmer ? '${_toKhmerDigits(n)} ថ្ងៃមុន' : '$n days ago';
 
+  /// Turns a backend relative-time label into the student's language.
+  String relativeTime(String label) {
+    if (label == 'Today') return today;
+    if (label == 'Yesterday') return yesterday;
+    if (label == 'Recent') return recently;
+    final days = RegExp(r'^(\d+) days ago$').firstMatch(label);
+    return days == null ? label : daysAgo(int.parse(days.group(1)!));
+  }
+
+  // ── Progress & session history ──────────────────────────────────────────────
+  String get seeAllAction => isKhmer ? 'មើលទាំងអស់' : 'See all';
+  String get yourLearning => isKhmer ? 'ការសិក្សារបស់អ្នក' : 'Your learning';
+  String get progressTitle =>
+      isKhmer ? 'ការរីកចម្រើនរបស់អ្នក' : 'Your progress';
+  String get progressSubtitle => isKhmer
+      ? 'ប្រធានបទណាដែលស្ទាត់ និងប្រធានបទណាដែលត្រូវអនុវត្តបន្ថែម'
+      : 'What you have mastered, and what still needs practice';
+  String get sessionHistoryTitle => isKhmer ? 'ប្រវត្តិមេរៀន' : 'Session history';
+  String get sessionHistorySubtitle => isKhmer
+      ? 'បើកក្តារណាមួយដែលអ្នកបានធ្វើពីមុនឡើងវិញ'
+      : 'Reopen any board you worked on before';
+  String get progressEmptyTitle => isKhmer
+      ? 'មិនទាន់មានការរីកចម្រើននៅឡើយ'
+      : 'No progress to show yet';
+  String get progressEmptyBody => isKhmer
+      ? 'ដោះស្រាយលំហាត់មួយជាមួយគ្រូ AI រួចការរីកចម្រើនរបស់អ្នកនឹងបង្ហាញនៅទីនេះ។'
+      : 'Solve a problem with the tutor and your progress will appear here.';
+  String get historyEmptyTitle =>
+      isKhmer ? 'មិនទាន់មានមេរៀនណាមួយទេ' : 'No sessions yet';
+  String get historyEmptyBody => isKhmer
+      ? 'មេរៀនដែលអ្នកធ្វើជាមួយគ្រូ AI នឹងបង្ហាញនៅទីនេះ ដើម្បីអាចត្រឡប់មកមើលឡើងវិញ។'
+      : 'Boards you work on with the tutor appear here so you can come back to them.';
+  String get practiceThisTopic =>
+      isKhmer ? 'អនុវត្តប្រធានបទនេះ' : 'Practise this topic';
+  String get needsPracticeMost =>
+      isKhmer ? 'ត្រូវអនុវត្តបំផុត' : 'Needs practice most';
+  String get readinessReady => isKhmer ? 'ស្ទាត់' : 'Ready';
+  String get readinessBuilding => isKhmer ? 'កំពុងរីកចម្រើន' : 'Building';
+  String get readinessNeedsPractice =>
+      isKhmer ? 'ត្រូវអនុវត្ត' : 'Needs practice';
+  String get sessionsStat => isKhmer ? 'មេរៀនសរុប' : 'Sessions';
+  String get lessonsCompletedStat => isKhmer ? 'មេរៀនបានបញ្ចប់' : 'Lessons done';
+  String get quizAttemptsStat => isKhmer ? 'ការធ្វើតេស្ត' : 'Quizzes';
+  String get averageScoreStat => isKhmer ? 'ពិន្ទុមធ្យម' : 'Average score';
+  String percentValue(int n) =>
+      isKhmer ? '${_toKhmerDigits(n)}%' : '$n%';
+  String answersCorrect(int correct, int total) => isKhmer
+      ? 'ត្រឹមត្រូវ ${_toKhmerDigits(correct)} ក្នុង ${_toKhmerDigits(total)}'
+      : '$correct of $total correct';
+  String get noAnswersYet =>
+      isKhmer ? 'មិនទាន់មានចម្លើយនៅឡើយ' : 'No answers yet';
+
   // ── Profile ────────────────────────────────────────────────────────────────
   String get profileSubtitle => isKhmer
       ? 'ព័ត៌មានការរៀន ការកំណត់ និងគណនីរបស់អ្នក។'
