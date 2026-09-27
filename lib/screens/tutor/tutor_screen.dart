@@ -2568,6 +2568,7 @@ class _TutorScreenState extends State<TutorScreen> {
                           board: _currentTurn.board,
                           actions: boardActions,
                           finalAnswerLocked: _currentTurn.finalAnswerLocked,
+                          verification: _currentTurn.verification,
                           compact: compact,
                           // Respect the platform accessibility preference even
                           // when this board is reconstructed from a session.
@@ -4186,6 +4187,7 @@ class TeachingCanvasBoard extends StatefulWidget {
     this.onActionCompleted,
     this.onJumpToCurrentStep,
     this.pageViewportHeight,
+    this.verification,
   });
 
   /// Height the student can actually see, used to decide where one board ends
@@ -4197,6 +4199,7 @@ class TeachingCanvasBoard extends StatefulWidget {
   final VisualTutorBoardEntity? board;
   final List<VisualTutorBoardActionEntity> actions;
   final bool finalAnswerLocked;
+  final VisualTutorVerificationEntity? verification;
   final bool compact;
   final bool animate;
   final bool reducedMotion;
@@ -5042,6 +5045,7 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
                             actions: _currentBoardPageActions(),
                             variant: variant,
                             finalAnswerLocked: widget.finalAnswerLocked,
+                            verification: widget.verification,
                             compact: widget.compact,
                             useLogicalCanvasScale: widget.useLogicalCanvasScale,
                             activeActionId: _activeActionId,

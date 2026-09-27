@@ -6,6 +6,7 @@ import 'package:flutter_math_fork/flutter_math.dart';
 import '../../domain/entities/visual_tutor_entities.dart';
 import '../live_board_state.dart';
 import '../visual_tutor_design.dart';
+import 'board_verification_chip.dart';
 
 class BoardPaperScaffold extends StatelessWidget {
   const BoardPaperScaffold({
@@ -46,6 +47,7 @@ class BoardElementRenderer extends StatelessWidget {
     this.faded = false,
     this.progress = const AlwaysStoppedAnimation(1),
     this.reducedMotion = false,
+    this.verification,
   });
 
   final VisualTutorBoardActionEntity action;
@@ -53,6 +55,7 @@ class BoardElementRenderer extends StatelessWidget {
   final bool faded;
   final Animation<double> progress;
   final bool reducedMotion;
+  final VisualTutorVerificationEntity? verification;
 
   @override
   Widget build(BuildContext context) {
@@ -266,6 +269,7 @@ class BoardElementRenderer extends StatelessWidget {
         progress: progress,
         scale: scale,
         reducedMotion: reducedMotion,
+        verification: verification,
       ),
       // Physics: free body diagram — box with labeled force arrows
       'draw_free_body_diagram' => Positioned(
@@ -666,6 +670,7 @@ class _PositionedTextAction extends StatelessWidget {
     required this.progress,
     required this.scale,
     required this.reducedMotion,
+    this.verification,
   });
 
   final VisualTutorBoardActionEntity action;
@@ -677,6 +682,7 @@ class _PositionedTextAction extends StatelessWidget {
   final Animation<double> progress;
   final double scale;
   final bool reducedMotion;
+  final VisualTutorVerificationEntity? verification;
 
   @override
   Widget build(BuildContext context) {
@@ -709,7 +715,7 @@ class _PositionedTextAction extends StatelessWidget {
       left: left,
       top: top,
       width: width,
-      height: height,
+      height: verification != null ? null : height,
       child: Semantics(
         container: true,
         excludeSemantics: true,
@@ -798,38 +804,54 @@ class _PositionedTextAction extends StatelessWidget {
                                         : null,
                                   ),
                         );
-                  if (!isEquation) return child;
-                  return AnimatedSwitcher(
-                    key: Key('teaching-board-transform-${action.id}'),
-                    duration: reducedMotion
-                        ? Duration.zero
-                        : const Duration(milliseconds: 220),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    layoutBuilder: (currentChild, previousChildren) => Stack(
-                      alignment: Alignment.centerLeft,
-                      children: [...previousChildren, ?currentChild],
-                    ),
-                    transitionBuilder: (switchChild, animation) =>
-                        FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, .06),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: switchChild,
+                  final resolvedChild = !isEquation
+                      ? child
+                      : AnimatedSwitcher(
+                          key: Key('teaching-board-transform-${action.id}'),
+                          duration: reducedMotion
+                              ? Duration.zero
+                              : const Duration(milliseconds: 220),
+                          switchInCurve: Curves.easeOut,
+                          switchOutCurve: Curves.easeIn,
+                          layoutBuilder: (currentChild, previousChildren) =>
+                              Stack(
+                            alignment: Alignment.centerLeft,
+                            children: [...previousChildren, ?currentChild],
                           ),
+                          transitionBuilder: (switchChild, animation) =>
+                              FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, .06),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: switchChild,
+                            ),
+                          ),
+                          child: KeyedSubtree(
+                            key: ValueKey(
+                              action.type == 'transform_equation'
+                                  ? '$content-${action.id}'
+                                  : action.id,
+                            ),
+                            child: child,
+                          ),
+                        );
+                  if (verification != null) {
+                    return Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 10,
+                      runSpacing: 6,
+                      children: [
+                        resolvedChild,
+                        BoardAnswerVerificationChip(
+                          verification: verification!,
                         ),
-                    child: KeyedSubtree(
-                      key: ValueKey(
-                        action.type == 'transform_equation'
-                            ? '$content-${action.id}'
-                            : action.id,
-                      ),
-                      child: child,
-                    ),
-                  );
+                      ],
+                    );
+                  }
+                  return resolvedChild;
                 },
               ),
             ),

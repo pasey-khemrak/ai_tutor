@@ -236,6 +236,10 @@ class AppLocalizations {
       isKhmer ? 'ត្រូវការបន្ថែមលើជំហាននេះ' : 'More of this step is needed';
   String get mathCheckUnavailable =>
       isKhmer ? 'មិនអាចផ្ទៀងផ្ទាត់គណិតវិទ្យាបានទេ' : 'Math check unavailable';
+  String get verifiedAnswer =>
+      isKhmer ? 'បានផ្ទៀងផ្ទាត់' : 'Verified';
+  String get unverifiedAnswer =>
+      isKhmer ? 'ចម្លើយ AI — មិនបានផ្ទៀងផ្ទាត់ម៉ាស៊ីន' : 'AI answer — not machine-checked';
 
   // ── Dashboard Metrics & Profile Setup ──────────────────────────────────────
   String get completeProfileDesc => isKhmer

@@ -480,7 +480,14 @@ class VisualTutorDecorations {
     );
   }
 
-  static BoxDecoration verifiedChip() {
+  static BoxDecoration verifiedChip({bool verified = true}) {
+    if (!verified) {
+      return BoxDecoration(
+        color: VisualTutorColors.summaryCardBg,
+        borderRadius: BorderRadius.circular(VisualTutorRadius.pill),
+        border: Border.all(color: VisualTutorColors.border.withValues(alpha: .6)),
+      );
+    }
     return BoxDecoration(
       color: VisualTutorColors.verifiedChipBg,
       borderRadius: BorderRadius.circular(VisualTutorRadius.pill),
