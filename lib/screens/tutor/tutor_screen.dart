@@ -17,6 +17,8 @@ import '../../core/localization/app_localizations.dart';
 import '../../core/network/api_client.dart';
 import '../../core/responsive/app_breakpoints.dart';
 import '../../shared/language_switcher_button.dart';
+import '../../features/saved_solutions/saved_solution.dart';
+import '../../features/saved_solutions/saved_solutions_repository.dart';
 import '../../features/visual_tutor/data/datasources/visual_tutor_remote_data_source.dart';
 import '../../features/visual_tutor/data/client_telemetry.dart';
 import '../../features/visual_tutor/data/voice_tutor_repository.dart';
@@ -81,6 +83,8 @@ class _TutorScreenState extends State<TutorScreen> {
   LocalMvpLimitsSession? _localLimitsSession;
   VisualTutorTurnStateEntity _turnState = const VisualTutorTurnStateEntity();
   List<VisualTutorBoardActionEntity> _renderedBoardActions = const [];
+  final SavedSolutionsRepository _savedSolutions = SavedSolutionsRepository();
+  final Set<String> _savedSolutionIds = <String>{};
   int _boardIdentitySerial = 0;
   int _boardVersion = 0;
   int _baseBoardVersion = 0;
@@ -1237,6 +1241,69 @@ class _TutorScreenState extends State<TutorScreen> {
     } else {
       _isListening = false;
     }
+  }
+
+  /// Identity of the solution currently on the board.
+  ///
+  /// Keyed on the problem instance so saving twice replaces one entry instead of
+  /// listing the same problem again.
+  String? get _currentSolutionId {
+    final instance = _stringFromMap(
+      _currentTurn.metadata,
+      'problem_instance_id',
+    );
+    if (instance != null && instance.trim().isNotEmpty) return instance.trim();
+    final problem = _turnState.problemText?.trim();
+    if (problem == null || problem.isEmpty) return null;
+    return 'problem-${problem.hashCode.toUnsigned(32)}';
+  }
+
+  /// A board is worth keeping once the answer is out and something is drawn on
+  /// it. Offering Save on a locked or empty board would save nothing useful.
+  bool get _canSaveCurrentSolution =>
+      !_isLocalCurriculumDemo &&
+      !_currentTurn.finalAnswerLocked &&
+      _renderedBoardActions.any(
+        (action) =>
+            (action.text?.trim().isNotEmpty ?? false) ||
+            (action.latex?.trim().isNotEmpty ?? false),
+      ) &&
+      _currentSolutionId != null;
+
+  Future<void> _saveCurrentSolution() async {
+    final id = _currentSolutionId;
+    if (id == null) return;
+    final l10n = AppLocalizations.of(context);
+    final verification = _currentTurn.verification;
+    final solution = SavedSolution(
+      id: id,
+      problemText:
+          _turnState.problemText?.trim() ??
+          _latestStudentMessage?.trim() ??
+          '',
+      subject: _requestSubject,
+      topic: _requestTopic ?? '',
+      answerSummary: _currentTurn.displayText.trim(),
+      verificationStatus: verification?.status ?? 'cannot_verify',
+      verified: verification?.verified ?? false,
+      savedAt: DateTime.now(),
+      // Exactly what the board is showing, already normalized, so reopening it
+      // never asks the planner or the LLM for anything.
+      boardActions: List<VisualTutorBoardActionEntity>.unmodifiable(
+        _renderedBoardActions,
+      ),
+    );
+    try {
+      await _savedSolutions.save(solution);
+    } catch (_) {
+      // Storage is a convenience here; a failure must not break the lesson.
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _savedSolutionIds.add(id));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.savedSolutionConfirmation)),
+    );
   }
 
   Future<void> _retryLastSubmission() async {
@@ -2597,6 +2664,12 @@ class _TutorScreenState extends State<TutorScreen> {
                           onStudentInteraction: _handleBoardStudentInteraction,
                           onActionCompleted: _onBoardActionCompleted,
                           onJumpToCurrentStep: _jumpToCurrentBoardStep,
+                          onSaveSolution: _canSaveCurrentSolution
+                              ? _saveCurrentSolution
+                              : null,
+                          alreadySaved: _savedSolutionIds.contains(
+                            _currentSolutionId,
+                          ),
                           pageViewportHeight: constraints.maxHeight,
                         ),
                       ),
@@ -4198,6 +4271,8 @@ class TeachingCanvasBoard extends StatefulWidget {
     this.onStudentInteraction,
     this.onActionCompleted,
     this.onJumpToCurrentStep,
+    this.onSaveSolution,
+    this.alreadySaved = false,
     this.pageViewportHeight,
     this.verification,
   });
@@ -4206,6 +4281,10 @@ class TeachingCanvasBoard extends StatefulWidget {
   /// and the next begins. Without it the board is handed the whole scrollable
   /// canvas and believes everything fits.
   final double? pageViewportHeight;
+
+  /// Null while the board holds nothing worth keeping.
+  final VoidCallback? onSaveSolution;
+  final bool alreadySaved;
 
   final String? variant;
   final VisualTutorBoardEntity? board;
@@ -5128,6 +5207,8 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
               onReplay: _replay,
               onTogglePlayback: _togglePlayback,
               onJumpToCurrentStep: widget.onJumpToCurrentStep ?? _resetToFit,
+              onSaveSolution: widget.onSaveSolution,
+              alreadySaved: widget.alreadySaved,
             ),
           ),
           if (widget.actions.any((action) => !isValidBoardAction(action)))
@@ -5184,6 +5265,8 @@ class _BoardPlaybackControls extends StatelessWidget {
     required this.onReplay,
     required this.onTogglePlayback,
     required this.onJumpToCurrentStep,
+    this.onSaveSolution,
+    this.alreadySaved = false,
   });
 
   final bool isPaused;
@@ -5192,6 +5275,10 @@ class _BoardPlaybackControls extends StatelessWidget {
   final VoidCallback onReplay;
   final VoidCallback onTogglePlayback;
   final VoidCallback onJumpToCurrentStep;
+
+  /// Null until the board holds a finished solution worth keeping.
+  final VoidCallback? onSaveSolution;
+  final bool alreadySaved;
 
   @override
   Widget build(BuildContext context) {
@@ -5226,6 +5313,22 @@ class _BoardPlaybackControls extends StatelessWidget {
             constraints: AppBreakpoints.touchTargetConstraints,
             onPressed: onJumpToCurrentStep,
           ),
+          if (onSaveSolution != null)
+            IconButton(
+              key: const Key('visual-tutor-board-save'),
+              tooltip: alreadySaved
+                  ? l10n.savedSolutionAction
+                  : l10n.saveSolutionAction,
+              icon: Icon(
+                alreadySaved
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                size: 18,
+              ),
+              color: VisualTutorColors.cyan,
+              constraints: AppBreakpoints.touchTargetConstraints,
+              onPressed: alreadySaved ? null : onSaveSolution,
+            ),
           Semantics(
             label: playLabel,
             button: true,

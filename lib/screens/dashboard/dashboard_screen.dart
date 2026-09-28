@@ -103,7 +103,9 @@ class _DashboardLoaderState extends State<_DashboardLoader> {
 
   Future<void> _refresh() async {
     final next = widget.repository.loadDashboard();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 

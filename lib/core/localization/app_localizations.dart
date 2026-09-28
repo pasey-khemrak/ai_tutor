@@ -382,6 +382,38 @@ class AppLocalizations {
   String get tutorReconnecting => isKhmer
       ? 'ការតភ្ជាប់ដាច់។ កំពុងបន្តពីកន្លែងដែលក្តារឈប់…'
       : 'Connection dropped. Resuming where the board stopped…';
+  // ── Saved solutions ─────────────────────────────────────────────────────────
+  String get savedSolutionsTitle =>
+      isKhmer ? 'ដំណោះស្រាយដែលបានរក្សាទុក' : 'Saved solutions';
+  String get savedSolutionsSubtitle => isKhmer
+      ? 'ក្តារដែលអ្នកបានរក្សាទុក អាចបើកមើលឡើងវិញបាន ទោះគ្មានអ៊ីនធឺណិត'
+      : 'Boards you kept, ready to reread even with no connection';
+  String get savedEmptyTitle => isKhmer
+      ? 'មិនទាន់មានដំណោះស្រាយដែលរក្សាទុកទេ'
+      : 'Nothing saved yet';
+  String get savedEmptyBody => isKhmer
+      ? 'ពេលដោះស្រាយលំហាត់រួច ចុច «រក្សាទុក» នៅលើក្តារ ដើម្បីត្រឡប់មកមើលឡើងវិញពេលត្រៀមប្រឡង។'
+      : 'When a solution finishes, tap Save on the board to keep it for revision.';
+  String get saveSolutionAction => isKhmer ? 'រក្សាទុក' : 'Save';
+  String get savedSolutionAction => isKhmer ? 'បានរក្សាទុក' : 'Saved';
+  String get savedSolutionConfirmation =>
+      isKhmer ? 'បានរក្សាទុកដំណោះស្រាយនេះ។' : 'Solution saved.';
+  String get removeSavedSolution => isKhmer ? 'លុបចេញ' : 'Remove';
+  String get removeSavedSolutionPrompt => isKhmer
+      ? 'លុបដំណោះស្រាយនេះចេញពីបញ្ជីរក្សាទុក?'
+      : 'Remove this solution from your saved list?';
+  String get copySolutionAction =>
+      isKhmer ? 'ចម្លងអត្ថបទ' : 'Copy as text';
+  String get copySolutionConfirmation => isKhmer
+      ? 'បានចម្លងដំណោះស្រាយ។ អាចបិទភ្ជាប់ក្នុងកំណត់ត្រា ឬផ្ញើទៅមិត្តបាន។'
+      : 'Solution copied. Paste it into your notes or send it to a friend.';
+  String get savedSolutionReadOnly => isKhmer
+      ? 'នេះជាក្តារដែលបានរក្សាទុក។ វាមិនផ្លាស់ប្តូរទេ។'
+      : 'This is a saved board. It does not change.';
+  String get savedSolutionsLoadError => isKhmer
+      ? 'មិនអាចបើកបញ្ជីដំណោះស្រាយដែលរក្សាទុកបានទេ។'
+      : 'Could not open your saved solutions.';
+
   String get seeAllAction => isKhmer ? 'មើលទាំងអស់' : 'See all';
   String get yourLearning => isKhmer ? 'ការសិក្សារបស់អ្នក' : 'Your learning';
   String get progressTitle =>

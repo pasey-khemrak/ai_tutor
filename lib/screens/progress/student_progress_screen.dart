@@ -44,7 +44,10 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
   }
 
   void _reload() {
-    setState(() => _future = _repository.loadDashboard());
+    final next = _repository.loadDashboard();
+    setState(() {
+      _future = next;
+    });
   }
 
   @override

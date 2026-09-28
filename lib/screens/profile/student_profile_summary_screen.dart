@@ -23,6 +23,7 @@ class StudentProfileSummaryScreen extends StatefulWidget {
     this.statsRepository,
     this.onOpenProgress,
     this.onOpenHistory,
+    this.onOpenSaved,
   });
   final VoidCallback onSetup;
   final VoidCallback onLogout;
@@ -32,6 +33,7 @@ class StudentProfileSummaryScreen extends StatefulWidget {
   /// reopened from history, lands on the Tutor tab rather than a nested page.
   final VoidCallback? onOpenProgress;
   final VoidCallback? onOpenHistory;
+  final VoidCallback? onOpenSaved;
 
   /// Streak and practice stats come from the same summary as Home. When they
   /// cannot load, the stats row is simply left out.
@@ -115,6 +117,7 @@ class _StudentProfileSummaryScreenState extends State<StudentProfileSummaryScree
               final learning = _YourLearningCard(
                 onOpenProgress: widget.onOpenProgress,
                 onOpenHistory: widget.onOpenHistory,
+                onOpenSaved: widget.onOpenSaved,
               );
               return SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -635,9 +638,14 @@ class _ProfileSkeleton extends StatelessWidget {
 
 /// Links out to the two screens that explain the student's own history.
 class _YourLearningCard extends StatelessWidget {
-  const _YourLearningCard({this.onOpenProgress, this.onOpenHistory});
+  const _YourLearningCard({
+    this.onOpenProgress,
+    this.onOpenHistory,
+    this.onOpenSaved,
+  });
   final VoidCallback? onOpenProgress;
   final VoidCallback? onOpenHistory;
+  final VoidCallback? onOpenSaved;
 
   @override
   Widget build(BuildContext context) {
@@ -662,6 +670,15 @@ class _YourLearningCard extends StatelessWidget {
           title: l10n.sessionHistoryTitle,
           subtitle: l10n.sessionHistorySubtitle,
           onTap: onOpenHistory,
+        ),
+        const SizedBox(height: 12),
+        _LearningLink(
+          navKey: const Key('profile-open-saved'),
+          icon: Icons.bookmark_border_rounded,
+          color: const Color(0xFF10B981),
+          title: l10n.savedSolutionsTitle,
+          subtitle: l10n.savedSolutionsSubtitle,
+          onTap: onOpenSaved,
         ),
       ],
     );

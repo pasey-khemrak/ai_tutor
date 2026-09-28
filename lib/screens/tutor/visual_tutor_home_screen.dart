@@ -73,7 +73,9 @@ class _VisualTutorHomeScreenState extends State<VisualTutorHomeScreen> {
 
   Future<void> _reload() async {
     final next = _repository.loadLessons();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 

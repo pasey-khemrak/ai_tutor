@@ -9,6 +9,7 @@ import '../screens/dashboard/dashboard_repository.dart';
 import '../screens/history/student_session_history_screen.dart';
 import '../screens/learning_selection/learning_selection_repository.dart';
 import '../screens/progress/student_progress_screen.dart';
+import '../screens/saved/saved_solutions_screen.dart';
 import '../screens/profile/student_profile_summary_screen.dart';
 import '../screens/quizzes/quizzes_screen.dart';
 import '../screens/lessons/student_lessons_screen.dart';
@@ -167,6 +168,19 @@ class _TutorShellState extends State<TutorShell> {
               ),
             );
           },
+          onStartLearning: () {
+            Navigator.of(context).pop();
+            _openTutorHome();
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSavedSolutions() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SavedSolutionsScreen(
           onStartLearning: () {
             Navigator.of(context).pop();
             _openTutorHome();
@@ -400,6 +414,7 @@ class _TutorShellState extends State<TutorShell> {
         onLogout: _logout,
         onOpenProgress: _openProgress,
         onOpenHistory: _openSessionHistory,
+        onOpenSaved: _openSavedSolutions,
       ),
     };
   }
