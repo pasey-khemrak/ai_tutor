@@ -150,12 +150,18 @@ class _TutorScreenState extends State<TutorScreen> {
       unawaited(_createOrRestoreSession());
     } else if (_isLocalCurriculumDemo) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) unawaited(_handleStudentSubmission(
-          widget.initialSubmission ?? const VisualTutorStudentSubmission(
-            message: 'Start local curriculum demo.',
-            intent: 'new_problem', action: 'submit_problem', inputType: 'quick_action',
-          ),
-        ));
+        if (mounted)
+          unawaited(
+            _handleStudentSubmission(
+              widget.initialSubmission ??
+                  const VisualTutorStudentSubmission(
+                    message: 'Start local curriculum demo.',
+                    intent: 'new_problem',
+                    action: 'submit_problem',
+                    inputType: 'quick_action',
+                  ),
+            ),
+          );
       });
       return;
     }
@@ -225,13 +231,11 @@ class _TutorScreenState extends State<TutorScreen> {
 
   bool get _hasCurriculumContext => widget.context?.isCurriculumScoped ?? false;
 
-  String get _requestSubject => _hasCurriculumContext
-      ? widget.context!.subject
-      : 'General';
+  String get _requestSubject =>
+      _hasCurriculumContext ? widget.context!.subject : 'General';
 
-  String? get _requestTopic => _hasCurriculumContext
-      ? widget.context!.topic
-      : null;
+  String? get _requestTopic =>
+      _hasCurriculumContext ? widget.context!.topic : null;
 
   String get _requestLanguageMode =>
       AppLanguageController.isKhmer ? 'khmer' : 'english';
@@ -330,8 +334,11 @@ class _TutorScreenState extends State<TutorScreen> {
 
   Future<void> _createOrRestoreSession() async {
     if (_isLocalCurriculumDemo) {
-      _localLimitsSession = await LocalMvpLimitsSession.open(userId: widget.userId);
-      if (mounted) _applyLocalLimitsTurn(_localLimitsSession!.currentTurn, restored: true);
+      _localLimitsSession = await LocalMvpLimitsSession.open(
+        userId: widget.userId,
+      );
+      if (mounted)
+        _applyLocalLimitsTurn(_localLimitsSession!.currentTurn, restored: true);
       return;
     }
     try {
@@ -383,7 +390,10 @@ class _TutorScreenState extends State<TutorScreen> {
       );
 
       final currentSession = session;
-      await prefs?.setString('active_tutor_session_id', currentSession.sessionId);
+      await prefs?.setString(
+        'active_tutor_session_id',
+        currentSession.sessionId,
+      );
       if (!mounted) return;
       setState(() {
         _session = currentSession;
@@ -469,16 +479,22 @@ class _TutorScreenState extends State<TutorScreen> {
         await _handleLocalLimitsSubmission(effectiveSubmission, turnSerial);
         return;
       }
-      final session = _session ?? await _repository.createSession(
-        VisualTutorSessionCreateRequestEntity(
-          userId: widget.userId, subject: _requestSubject,
-          sessionMode: _isExplicitTutorAction(effectiveSubmission)
-              ? 'draft' : 'confirmed_problem',
-          topic: _requestTopic,
-          problemText: _isExplicitTutorAction(effectiveSubmission) ? null : message,
-          metadata: _contextMetadata(),
-        ),
-      );
+      final session =
+          _session ??
+          await _repository.createSession(
+            VisualTutorSessionCreateRequestEntity(
+              userId: widget.userId,
+              subject: _requestSubject,
+              sessionMode: _isExplicitTutorAction(effectiveSubmission)
+                  ? 'draft'
+                  : 'confirmed_problem',
+              topic: _requestTopic,
+              problemText: _isExplicitTutorAction(effectiveSubmission)
+                  ? null
+                  : message,
+              metadata: _contextMetadata(),
+            ),
+          );
       activeSessionId = session.sessionId;
       final turnRequest = VisualTutorTurnRequestEntity(
         userId: widget.userId,
@@ -504,18 +520,19 @@ class _TutorScreenState extends State<TutorScreen> {
           clientTurnId: clientTurnId,
         ),
       );
-      final response = await _sendTurnWithStreaming(
-        turnRequest,
-        turnSerial: turnSerial,
-        requestBoardVersion: requestBoardVersion,
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => throw const ApiException(
-          message:
-              'The tutor is taking longer than expected. Tap retry to continue.',
-          statusCode: 408,
-        ),
-      );
+      final response =
+          await _sendTurnWithStreaming(
+            turnRequest,
+            turnSerial: turnSerial,
+            requestBoardVersion: requestBoardVersion,
+          ).timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => throw const ApiException(
+              message:
+                  'The tutor is taking longer than expected. Tap retry to continue.',
+              statusCode: 408,
+            ),
+          );
       if (!mounted) return;
       if (!_streamCoordinator.isCurrent(turnSerial)) return;
       final responseLessonState = _mapFromObject(
@@ -646,43 +663,61 @@ class _TutorScreenState extends State<TutorScreen> {
   }
 
   Future<void> _handleLocalLimitsSubmission(
-    VisualTutorStudentSubmission submission, int turnSerial,
+    VisualTutorStudentSubmission submission,
+    int turnSerial,
   ) async {
-    final local = _localLimitsSession ??=
-        await LocalMvpLimitsSession.open(userId: widget.userId);
+    final local = _localLimitsSession ??= await LocalMvpLimitsSession.open(
+      userId: widget.userId,
+    );
     if (!mounted || !_streamCoordinator.isCurrent(turnSerial)) return;
     final opening = _backendActionFor(submission) == 'submit_problem';
     VisualTutorTurnResponseEntity response;
     try {
-      response = opening ? local.currentTurn : await local.turn(
-        VisualTutorTurnRequestEntity(
-          userId: widget.userId, sessionId: local.session.sessionId,
-          subject: _requestSubject, topic: _requestTopic,
-          message: submission.message, action: _backendActionFor(submission),
-          idempotencyKey: submission.clientTurnId,
-          metadata: {'client_board_version': _boardVersion},
-        ),
-      );
+      response = opening
+          ? local.currentTurn
+          : await local.turn(
+              VisualTutorTurnRequestEntity(
+                userId: widget.userId,
+                sessionId: local.session.sessionId,
+                subject: _requestSubject,
+                topic: _requestTopic,
+                message: submission.message,
+                action: _backendActionFor(submission),
+                idempotencyKey: submission.clientTurnId,
+                metadata: {'client_board_version': _boardVersion},
+              ),
+            );
     } on LocalLimitsSessionException catch (error) {
       if (error.code != 'stale_board_version') rethrow;
-      _localLimitsSession = await LocalMvpLimitsSession.open(userId: widget.userId);
+      _localLimitsSession = await LocalMvpLimitsSession.open(
+        userId: widget.userId,
+      );
       if (!mounted || !_streamCoordinator.isCurrent(turnSerial)) return;
       _applyLocalLimitsTurn(_localLimitsSession!.currentTurn, restored: true);
       setState(() {
-        _apiError = 'The lesson was restored. Tap retry to send your answer again.';
+        _apiError =
+            'The lesson was restored. Tap retry to send your answer again.';
         _lastFailedSubmission = submission;
       });
       return;
     }
     if (!mounted || !_streamCoordinator.isCurrent(turnSerial)) return;
-    final previousIds = _renderedBoardActions.map((action) => action.id).toSet();
-    _applyLocalLimitsTurn(response, restored: opening &&
-        (response.metadata['board_version'] as int) > 1);
-    _scrollBoardToNewTeachingBlock(_renderedBoardActions,
-        previousActionIds: previousIds, response: response);
+    final previousIds = _renderedBoardActions
+        .map((action) => action.id)
+        .toSet();
+    _applyLocalLimitsTurn(
+      response,
+      restored: opening && (response.metadata['board_version'] as int) > 1,
+    );
+    _scrollBoardToNewTeachingBlock(
+      _renderedBoardActions,
+      previousActionIds: previousIds,
+      response: response,
+    );
   }
 
-  void _applyLocalLimitsTurn(VisualTutorTurnResponseEntity response, {
+  void _applyLocalLimitsTurn(
+    VisualTutorTurnResponseEntity response, {
     required bool restored,
   }) {
     setState(() {
@@ -926,8 +961,10 @@ class _TutorScreenState extends State<TutorScreen> {
   void _scrollBoardToAction(VisualTutorBoardActionEntity action) {
     final boardStateId = _boardStateId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || boardStateId != _boardStateId ||
-          !_boardVerticalController.hasClients) return;
+      if (!mounted ||
+          boardStateId != _boardStateId ||
+          !_boardVerticalController.hasClients)
+        return;
       if (_manualBoardScrollUntil?.isAfter(DateTime.now()) ?? false) return;
       RenderBox? actionBox;
       void findAction(Element element) {
@@ -938,13 +975,15 @@ class _TutorScreenState extends State<TutorScreen> {
         }
         element.visitChildElements(findAction);
       }
+
       _teachingCanvasKey.currentContext?.visitChildElements(findAction);
       final box = actionBox;
       if (box == null || !box.attached) return;
       final canvas = _teachingCanvasKey.currentContext?.findRenderObject();
       if (canvas is! RenderBox || !canvas.hasSize) return;
       final bounds = MatrixUtils.transformRect(
-        box.getTransformTo(canvas), Offset.zero & box.size,
+        box.getTransformTo(canvas),
+        Offset.zero & box.size,
       );
       final position = _boardVerticalController.position;
       final top = bounds.top;
@@ -953,7 +992,8 @@ class _TutorScreenState extends State<TutorScreen> {
       final visibleBottom = visibleTop + position.viewportDimension;
       // Oversized blocks are already visible when their beginning is visible.
       if (top >= visibleTop &&
-          (bottom <= visibleBottom || top < visibleBottom - 56)) return;
+          (bottom <= visibleBottom || top < visibleBottom - 56))
+        return;
       final target = (top - 24).clamp(0.0, position.maxScrollExtent);
       if ((target - position.pixels).abs() < 1) return;
       if (MediaQuery.disableAnimationsOf(context) ||
@@ -1278,9 +1318,7 @@ class _TutorScreenState extends State<TutorScreen> {
     final solution = SavedSolution(
       id: id,
       problemText:
-          _turnState.problemText?.trim() ??
-          _latestStudentMessage?.trim() ??
-          '',
+          _turnState.problemText?.trim() ?? _latestStudentMessage?.trim() ?? '',
       subject: _requestSubject,
       topic: _requestTopic ?? '',
       answerSummary: _currentTurn.displayText.trim(),
@@ -1301,9 +1339,9 @@ class _TutorScreenState extends State<TutorScreen> {
     }
     if (!mounted) return;
     setState(() => _savedSolutionIds.add(id));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.savedSolutionConfirmation)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.savedSolutionConfirmation)));
   }
 
   Future<void> _retryLastSubmission() async {
@@ -1599,9 +1637,11 @@ class _TutorScreenState extends State<TutorScreen> {
       // Similarly, advancing or updating the interactive student_task prompt
       // between turns does not drop whiteboard mathematical content.
       renderedActionIds: _renderedBoardActions
-          .where((action) =>
-              !isProvisionalBoardAction(action) &&
-              action.type != 'student_task')
+          .where(
+            (action) =>
+                !isProvisionalBoardAction(action) &&
+                action.type != 'student_task',
+          )
           .map((action) => action.id),
       nextActionIds: next.map((action) => action.id),
     )) {
@@ -1629,8 +1669,7 @@ class _TutorScreenState extends State<TutorScreen> {
       return responseActions;
     }
 
-    final boardUpdateMode =
-        response.metadata['board_update_mode']?.toString();
+    final boardUpdateMode = response.metadata['board_update_mode']?.toString();
     if (boardUpdateMode == 'patch' && _renderedBoardActions.isNotEmpty) {
       return applyVisualTutorBoardPatch(_renderedBoardActions, responseActions);
     }
@@ -2021,10 +2060,17 @@ class _TutorScreenState extends State<TutorScreen> {
       ...response.boardActions.map((action) => action.id),
       ...response.canvasActions.map((action) => action.id),
     };
-    final candidates = actions.where((action) =>
-        !action.hidden && isValidBoardAction(action) &&
-        (!previousActionIds.contains(action.id) || responseIds.contains(action.id)))
-        .toList()..sort((a, b) => a.sequenceIndex.compareTo(b.sequenceIndex));
+    final candidates =
+        actions
+            .where(
+              (action) =>
+                  !action.hidden &&
+                  isValidBoardAction(action) &&
+                  (!previousActionIds.contains(action.id) ||
+                      responseIds.contains(action.id)),
+            )
+            .toList()
+          ..sort((a, b) => a.sequenceIndex.compareTo(b.sequenceIndex));
     if (candidates.isEmpty) return;
     // Anchor the first teaching action, never the trailing canvas padding.
     _scrollBoardToAction(candidates.first);
@@ -2372,7 +2418,9 @@ class _TutorScreenState extends State<TutorScreen> {
         return loc.boardConflictFriendly;
       }
       final msg = error.message.trim();
-      if (msg.isNotEmpty && !msg.toLowerCase().contains('backend') && !msg.toLowerCase().contains('exception')) {
+      if (msg.isNotEmpty &&
+          !msg.toLowerCase().contains('backend') &&
+          !msg.toLowerCase().contains('exception')) {
         return msg;
       }
       return loc.connectionErrorFriendly;
@@ -2609,7 +2657,7 @@ class _TutorScreenState extends State<TutorScreen> {
             NotificationListener<ScrollNotification>(
               onNotification: (notification) {
                 if (notification is ScrollStartNotification &&
-                    notification.dragDetails != null ||
+                        notification.dragDetails != null ||
                     notification is UserScrollNotification &&
                         notification.direction != ScrollDirection.idle) {
                   // Respect a learner who intentionally reads earlier work.
@@ -2924,18 +2972,18 @@ class _TutorScreenState extends State<TutorScreen> {
       // above it, costing a third of the panel for nothing. It now appears
       // only when it has something else to say.
       if (_stepPanelAddsSomething) ...[
-      const SizedBox(height: 8),
-      _CompactStepPanel(
-        stepNumber: math.max(1, _turnState.currentStepIndex + 1),
-        explanation: _currentTurn.displayText,
-        task: _currentTurn.studentTask,
-        expanded: _stepPanelExpanded,
-        onToggle: () =>
-            setState(() => _stepPanelExpanded = !_stepPanelExpanded),
-        onJumpToLatest: _jumpToLatestStep,
-        onReviewPrevious: _reviewPreviousStep,
-        onResumeTask: _resumeCurrentTask,
-      ),
+        const SizedBox(height: 8),
+        _CompactStepPanel(
+          stepNumber: math.max(1, _turnState.currentStepIndex + 1),
+          explanation: _currentTurn.displayText,
+          task: _currentTurn.studentTask,
+          expanded: _stepPanelExpanded,
+          onToggle: () =>
+              setState(() => _stepPanelExpanded = !_stepPanelExpanded),
+          onJumpToLatest: _jumpToLatestStep,
+          onReviewPrevious: _reviewPreviousStep,
+          onResumeTask: _resumeCurrentTask,
+        ),
       ],
       const SizedBox(height: 8),
       if (_apiError != null) ...[
@@ -3107,7 +3155,9 @@ class _TutorScreenState extends State<TutorScreen> {
     // With nothing identifiable to jump to, stay where we are: scrolling to
     // the end of the canvas used to park the student on empty paper.
     if (currentActions.isEmpty) return;
-    final targetY = currentActions.map((action) => action.y ?? 0.0).reduce(math.min);
+    final targetY = currentActions
+        .map((action) => action.y ?? 0.0)
+        .reduce(math.min);
     _boardVerticalController.animateTo(
       math.max(
         0,
@@ -3493,7 +3543,9 @@ class TutorPresenceBar extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: compact
-                      ? VisualTutorTypography.presenceTitle.copyWith(fontSize: 13)
+                      ? VisualTutorTypography.presenceTitle.copyWith(
+                          fontSize: 13,
+                        )
                       : VisualTutorTypography.presenceTitle,
                 ),
                 if (!compact) ...[
@@ -3720,10 +3772,7 @@ class TutorPresenceBar extends StatelessWidget {
 /// Shows "✓ Verified Curriculum" (cyan) when grounded in admin curriculum,
 /// or "AI Generated (Unverified)" (amber) when generated dynamically by LLM.
 class _CurriculumStatusBadge extends StatelessWidget {
-  const _CurriculumStatusBadge({
-    required this.metadata,
-    this.compact = false,
-  });
+  const _CurriculumStatusBadge({required this.metadata, this.compact = false});
 
   final Map<String, dynamic> metadata;
   final bool compact;
@@ -3739,10 +3788,14 @@ class _CurriculumStatusBadge extends StatelessWidget {
     if (verified == true) {
       final label = compact
           ? (isKhmer ? '✓ ផ្ទៀងផ្ទាត់' : '✓ Verified')
-          : (isKhmer ? '✓ ផ្ទៀងផ្ទាត់តាមកម្មវិធីសិក្សា' : '✓ Verified Curriculum');
+          : (isKhmer
+                ? '✓ ផ្ទៀងផ្ទាត់តាមកម្មវិធីសិក្សា'
+                : '✓ Verified Curriculum');
       final tooltip = topic != null && topic.trim().isNotEmpty
           ? (isKhmer ? 'ប្រធានបទ៖ $topic' : 'Topic: $topic')
-          : (isKhmer ? 'ផ្ទៀងផ្ទាត់តាមកម្មវិធីសិក្សា' : 'Grounded in Admin Curriculum');
+          : (isKhmer
+                ? 'ផ្ទៀងផ្ទាត់តាមកម្មវិធីសិក្សា'
+                : 'Grounded in Admin Curriculum');
       return Tooltip(
         message: tooltip,
         child: Container(
@@ -3787,7 +3840,9 @@ class _CurriculumStatusBadge extends StatelessWidget {
     } else {
       final label = compact
           ? (isKhmer ? 'AI មិនទាន់ផ្ទៀងផ្ទាត់' : 'AI Unverified')
-          : (isKhmer ? 'ចម្លើយ AI (មិនទាន់ផ្ទៀងផ្ទាត់)' : 'AI Generated (Unverified)');
+          : (isKhmer
+                ? 'ចម្លើយ AI (មិនទាន់ផ្ទៀងផ្ទាត់)'
+                : 'AI Generated (Unverified)');
       final tooltip = isKhmer
           ? 'ចម្លើយបង្កើតដោយ AI LLM។ រូបមន្តមិនទាន់បានបោះពុម្ពក្នុងកម្មវិធីសិក្សា។'
           : 'Solves with AI LLM. Formula not yet published in admin curriculum.';
@@ -3802,9 +3857,7 @@ class _CurriculumStatusBadge extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.amber.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(VisualTutorRadius.pill),
-            border: Border.all(
-              color: Colors.amber.withValues(alpha: 0.4),
-            ),
+            border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -4195,10 +4248,7 @@ class _VerificationFeedbackPanel extends StatelessWidget {
 }
 
 class _TutorLoadingControls extends StatelessWidget {
-  const _TutorLoadingControls({
-    required this.onCancel,
-    this.status,
-  });
+  const _TutorLoadingControls({required this.onCancel, this.status});
 
   final VoidCallback onCancel;
   final String? status;
@@ -4310,6 +4360,19 @@ class TeachingCanvasBoard extends StatefulWidget {
 
   @override
   State<TeachingCanvasBoard> createState() => _TeachingCanvasBoardState();
+}
+
+/// Space the board must leave at the top so its content clears the floating
+/// toolbar.
+///
+/// The toolbar is a `Positioned` overlay above a `Positioned.fill` content
+/// layer, so it does not take part in the layout and content will happily be
+/// laid out underneath it. Most boards open on a step whose text starts lower
+/// down, which is why this went unseen; a board whose first item sits at the
+/// very top — the answer page — put the answer itself behind the buttons.
+double _boardContentTopInset(BuildContext context) {
+  final toolbarTop = AppBreakpoints.isPhone(context) ? 56.0 : 8.0;
+  return toolbarTop + AppBreakpoints.minTouchTarget + 12;
 }
 
 class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
@@ -4452,7 +4515,6 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
     }
   }
 
-
   /// Boards the current teaching is split across, using the height the student
   /// can actually see.
   double _boardWidth = 390;
@@ -4469,9 +4531,11 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
     // The step being written wins, unless the student went back to read an
     // earlier board themselves.
     final active = pageIndexOfAction(pages, _activeActionId);
-    final target = (_studentPickedBoardPage
-        ? _boardPageIndex
-        : (active ?? _boardPageIndex)).clamp(0, pages.length - 1);
+    final target =
+        (_studentPickedBoardPage
+                ? _boardPageIndex
+                : (active ?? _boardPageIndex))
+            .clamp(0, pages.length - 1);
     if (_boardPageIndex != target) {
       _boardPageIndex = target;
     }
@@ -5107,67 +5171,76 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
               builder: (context, constraints) {
                 _boardWidth = constraints.maxWidth;
                 return Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerDown: _onInkPointerDown,
-                onPointerMove: _onInkPointerMove,
-                onPointerUp: _onInkPointerUp,
-                child: InteractiveViewer(
-                  key: const Key('visual-tutor-board-viewport'),
-                  transformationController: _viewportController,
-                  minScale: 1,
-                  maxScale: 3,
-                  boundaryMargin: const EdgeInsets.all(120),
-                  panEnabled: !_drawingMode,
-                  scaleEnabled: !_drawingMode,
-                  constrained: false,
-                  child: SizedBox(
-                    width: constraints.maxWidth,
-                    height: constraints.maxHeight,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: LiveTeachingBoard(
-                            key: ValueKey(
-                              _isReplaying
-                                  ? 'live-teaching-replay-$_generation'
-                                  : 'live-teaching-steady',
+                  behavior: HitTestBehavior.opaque,
+                  onPointerDown: _onInkPointerDown,
+                  onPointerMove: _onInkPointerMove,
+                  onPointerUp: _onInkPointerUp,
+                  child: InteractiveViewer(
+                    key: const Key('visual-tutor-board-viewport'),
+                    transformationController: _viewportController,
+                    minScale: 1,
+                    maxScale: 3,
+                    boundaryMargin: const EdgeInsets.all(120),
+                    panEnabled: !_drawingMode,
+                    scaleEnabled: !_drawingMode,
+                    constrained: false,
+                    child: SizedBox(
+                      width: constraints.maxWidth,
+                      height: constraints.maxHeight,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Padding(
+                              // The toolbar is an overlay, not part of the
+                              // layout, so without this the first item on a
+                              // board is drawn underneath its buttons.
+                              padding: EdgeInsets.only(
+                                top: _boardContentTopInset(context),
+                              ),
+                              child: LiveTeachingBoard(
+                                key: ValueKey(
+                                  _isReplaying
+                                      ? 'live-teaching-replay-$_generation'
+                                      : 'live-teaching-steady',
+                                ),
+                                board: widget.board,
+                                actions: _currentBoardPageActions(),
+                                variant: variant,
+                                finalAnswerLocked: widget.finalAnswerLocked,
+                                verification: widget.verification,
+                                compact: widget.compact,
+                                useLogicalCanvasScale:
+                                    widget.useLogicalCanvasScale,
+                                activeActionId: _activeActionId,
+                                activeProgress: _strokeController,
+                                reducedMotion:
+                                    _effectiveReducedMotion || !widget.animate,
+                                // A resumed lesson is static by default, but an
+                                // explicit replay re-enables calm board motion.
+                                restored: widget.restored && !_isReplaying,
+                                transitionsEnabled: !_isPlaying,
+                                selectedActionId: _selectedActionId,
+                                onStudentInteraction: _handleStudentInteraction,
+                                onActionDiagnostic: widget.onActionDiagnostic,
+                              ),
                             ),
-                            board: widget.board,
-                            actions: _currentBoardPageActions(),
-                            variant: variant,
-                            finalAnswerLocked: widget.finalAnswerLocked,
-                            verification: widget.verification,
-                            compact: widget.compact,
-                            useLogicalCanvasScale: widget.useLogicalCanvasScale,
-                            activeActionId: _activeActionId,
-                            activeProgress: _strokeController,
-                            reducedMotion:
-                                _effectiveReducedMotion || !widget.animate,
-                            // A resumed lesson is static by default, but an
-                            // explicit replay re-enables calm board motion.
-                            restored: widget.restored && !_isReplaying,
-                            transitionsEnabled: !_isPlaying,
-                            selectedActionId: _selectedActionId,
-                            onStudentInteraction: _handleStudentInteraction,
-                            onActionDiagnostic: widget.onActionDiagnostic,
                           ),
-                        ),
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: RepaintBoundary(
-                              child: CustomPaint(
-                                key: const Key('student-ink-canvas'),
-                                painter: _StudentInkPainter(
-                                  List<_StudentInkStroke>.of(_studentInk),
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: RepaintBoundary(
+                                child: CustomPaint(
+                                  key: const Key('student-ink-canvas'),
+                                  painter: _StudentInkPainter(
+                                    List<_StudentInkStroke>.of(_studentInk),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
                 );
               },
             ),
@@ -5213,7 +5286,8 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
           ),
           if (widget.actions.any((action) => !isValidBoardAction(action)))
             Positioned(
-              top: 96, right: 8,
+              top: 96,
+              right: 8,
               child: Semantics(
                 liveRegion: true,
                 child: const Text(
@@ -5428,7 +5502,9 @@ class _StudentBoardControls extends StatelessWidget {
       decoration: BoxDecoration(
         color: VisualTutorColors.panel.withValues(alpha: .9),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: VisualTutorColors.cyan.withValues(alpha: .45)),
+        border: Border.all(
+          color: VisualTutorColors.cyan.withValues(alpha: .45),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -5833,7 +5909,6 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
     if (_isUnsupported) {
@@ -6017,7 +6092,6 @@ class _StudentInteractionPanelState extends State<StudentInteractionPanel> {
         ),
     ];
   }
-
 }
 
 /// A horizontal scrollable row of quick-action chips shown below the text
@@ -6608,7 +6682,9 @@ class _InteractionInput extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: type == 'numeric_input'
                     ? (isKhmer ? 'បញ្ចូលលេខ...' : 'Type your number...')
-                    : (isKhmer ? 'សួរសំណួរបន្ថែមអំពីជំហាន...' : 'Ask a follow-up about any step...'),
+                    : (isKhmer
+                          ? 'សួរសំណួរបន្ថែមអំពីជំហាន...'
+                          : 'Ask a follow-up about any step...'),
                 hintStyle: TextStyle(
                   color: VisualTutorColors.textMuted,
                   fontSize: compact ? 13 : 14,
