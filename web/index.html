@@ -18,21 +18,87 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Rean AI — a Grade 10–12 STEM tutor for Cambodia that works the solution on an animated whiteboard, in Khmer or English.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="ai_tutor">
+  <meta name="apple-mobile-web-app-title" content="Rean AI">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>ai_tutor</title>
+  <title>Rean AI</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    /* The page is blank until Flutter has downloaded its engine and painted,
+       which on a cold load is several seconds. Without this the student stares
+       at white, then at a half-built frame. The splash paints instantly in the
+       app's own colours and is removed on Flutter's first frame. */
+    html, body { margin: 0; padding: 0; height: 100%; background: #0B0F1B; }
+    #rean-splash {
+      position: fixed; inset: 0; z-index: 2147483647;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 18px; background: #0B0F1B;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: opacity .28s ease; opacity: 1;
+    }
+    #rean-splash.rean-splash-done { opacity: 0; pointer-events: none; }
+    #rean-splash .rean-mark {
+      width: 76px; height: 76px; border-radius: 22px;
+      background: radial-gradient(circle at 30% 25%, #12DDF5 0%, #1D4ED8 70%, #111623 100%);
+      box-shadow: 0 10px 40px rgba(18, 221, 245, .22);
+    }
+    #rean-splash .rean-name { color: #E8EEF9; font-size: 19px; font-weight: 700; letter-spacing: .2px; }
+    #rean-splash .rean-sub { color: #7C8AA5; font-size: 13px; }
+    #rean-splash .rean-bar {
+      width: 132px; height: 3px; border-radius: 3px; overflow: hidden; background: rgba(255,255,255,.08);
+    }
+    #rean-splash .rean-bar span {
+      display: block; width: 40%; height: 100%; border-radius: 3px; background: #12DDF5;
+      animation: rean-slide 1.15s ease-in-out infinite;
+    }
+    @keyframes rean-slide {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(330%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #rean-splash .rean-bar span { animation: none; width: 100%; }
+    }
+  </style>
 </head>
 <body>
+  <div id="rean-splash" role="status" aria-live="polite">
+    <div class="rean-mark"></div>
+    <div class="rean-name">Rean AI</div>
+    <div class="rean-sub">Starting your tutor…</div>
+    <div class="rean-bar"><span></span></div>
+  </div>
+  <script>
+    // Flutter fires this once it has painted a real frame, which is also the
+    // point at which the bundled Khmer face is in use -- so the splash covers
+    // the window where text would otherwise appear as empty boxes.
+    (function () {
+      var removed = false;
+      function dismiss() {
+        if (removed) return;
+        removed = true;
+        var el = document.getElementById('rean-splash');
+        if (!el) return;
+        el.classList.add('rean-splash-done');
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 320);
+      }
+      // first-frame fires as soon as Flutter paints anything, which can be a
+      // half-laid-out frame; holding briefly lets the first real layout settle
+      // so the splash never hands over to a visibly broken screen.
+      window.addEventListener('flutter-first-frame', function () {
+        setTimeout(dismiss, 450);
+      });
+      // Never let a failed boot leave the splash covering the app forever.
+      setTimeout(dismiss, 20000);
+    })();
+  </script>
   <!-- Development: a service worker from an earlier build can keep serving its
        own cached copy of the app, so fixes appear to have no effect no matter
        how often the page is reloaded. Unregister any that exist and drop their

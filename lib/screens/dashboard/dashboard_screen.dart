@@ -714,7 +714,13 @@ class _EntryButton extends StatelessWidget {
       child: FilledButton.icon(
         onPressed: onPressed,
         icon: Icon(icon, size: 20),
-        label: Text(label),
+        // Khmer sets wider than Latin, so "និយាយ" overflowed its share of the
+        // row and wrapped mid-word. Scale the label down rather than let it
+        // break a Khmer word across two lines.
+        label: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, maxLines: 1, softWrap: false),
+        ),
         iconAlignment: primary ? IconAlignment.end : IconAlignment.start,
         style: FilledButton.styleFrom(
           backgroundColor: primary ? AppColors.cyan : secondaryFill,

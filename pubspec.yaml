@@ -73,6 +73,22 @@ flutter:
   assets:
     - assets/images/
 
+  # Bundled so Khmer renders on the first frame. Without a Khmer face in the
+  # bundle, CanvasKit paints every Khmer glyph as an empty box and only fixes
+  # itself once it has fetched a fallback font over the network -- a visible
+  # rectangles-then-text flash on every cold load, and permanent boxes offline.
+  # Kantumruy carries no Latin letters (its charset is Khmer plus punctuation),
+  # so it is a FALLBACK only; Latin keeps coming from the default face.
+  fonts:
+    - family: Kantumruy Pro
+      fonts:
+        - asset: assets/fonts/Kantumruy-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Kantumruy-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Kantumruy-Bold.ttf
+          weight: 700
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

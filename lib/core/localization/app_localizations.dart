@@ -31,6 +31,11 @@ class AppLocalizations {
 
   // ── Core & Shared Actions ──────────────────────────────────────────────────
   String get appName => 'Rean AI';
+
+  /// Shown under the app name in the header. It used to read "AI Mathematics
+  /// Tutor", which named one of the three subjects the tutor actually covers,
+  /// and stayed in English even in Khmer.
+  String get appTagline => isKhmer ? 'គ្រូ AI ផ្នែក STEM' : 'AI STEM Tutor';
   String get loading => isKhmer ? 'កំពុងផ្ទុក...' : 'Loading...';
   String get retry => isKhmer ? 'សាកល្បងម្តងទៀត' : 'Retry';
   String get emptyStateTitle => isKhmer ? 'មិនទាន់មានទិន្នន័យ' : 'Nothing here yet';

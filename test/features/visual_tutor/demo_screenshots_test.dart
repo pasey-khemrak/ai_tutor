@@ -16,7 +16,6 @@ import 'dart:ui' as ui;
 import 'package:ai_tutor/core/localization/app_localizations.dart';
 import 'package:ai_tutor/core/theme/app_theme.dart';
 import 'package:ai_tutor/features/visual_tutor/data/models/visual_tutor_models.dart';
-import 'package:ai_tutor/features/visual_tutor/domain/entities/visual_tutor_entities.dart';
 import 'package:ai_tutor/screens/tutor/tutor_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';

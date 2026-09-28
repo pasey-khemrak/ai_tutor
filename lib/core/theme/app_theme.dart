@@ -5,6 +5,13 @@ import '../app_colors.dart';
 class AppTheme {
   const AppTheme._();
 
+  /// Latin comes from the default face; these carry the Khmer glyphs.
+  ///
+  /// Kantumruy Pro is bundled (see pubspec.yaml) so Khmer renders on the first
+  /// frame instead of appearing as empty boxes until a fallback font has been
+  /// fetched. It must not be the primary family: its charset is Khmer plus
+  /// punctuation, with no Latin letters, so making it primary would leave every
+  /// English word to resolve through fallback.
   static const fontFallback = ['Kantumruy Pro', 'Noto Sans Khmer', 'sans-serif'];
 
   static const textTheme = TextTheme(
@@ -30,7 +37,6 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: const Color(0xFFF5F7FB),
-      fontFamily: 'Kantumruy Pro',
       fontFamilyFallback: fontFallback,
       textTheme: textTheme,
       colorScheme: ColorScheme.fromSeed(
@@ -45,7 +51,6 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.background,
-      fontFamily: 'Kantumruy Pro',
       fontFamilyFallback: fontFallback,
       textTheme: textTheme,
       colorScheme: ColorScheme.fromSeed(
