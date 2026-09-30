@@ -1216,15 +1216,30 @@ class _TutorScreenState extends State<TutorScreen> {
     );
   }
 
+  /// Languages this deployment has already refused to speak.
+  ///
+  /// The server has one installed voice. Asking it for a language it does not
+  /// have fails the same way every time, so after the first refusal a lesson
+  /// in that language goes straight to browser speech instead of spending a
+  /// round trip per step rediscovering it.
+  final Set<String> _languagesWithoutServerVoice = <String>{};
+
   Future<void> _speakText(String text, {bool awaitCompletion = false}) async {
     if (_tutorMuted) return;
     final cleaned = text.trim();
     if (cleaned.isEmpty) return;
     _stopTutorSpeech();
+    final language = _currentTurn.speech?.language ?? 'en';
     try {
+      if (_languagesWithoutServerVoice.contains(language)) {
+        throw const ApiException(
+          message: 'No server voice for this language',
+          statusCode: 503,
+        );
+      }
       final audio = await _voiceRepository.synthesize(
         cleaned,
-        language: _currentTurn.speech?.language ?? 'en',
+        language: language,
       );
       if (!mounted) return;
       // Subscribed before playback starts, so a short clip that finishes
@@ -1235,7 +1250,13 @@ class _TutorScreenState extends State<TutorScreen> {
       await _tutorAudioPlayer.play(BytesSource(audio));
       if (mounted) setState(() => _voiceStatus = null);
       if (completion != null) await completion;
-    } catch (_) {
+    } catch (error) {
+      // A 503 from the voice route means this deployment has no voice for
+      // this language, not that the service is down. It answers the same way
+      // for every step, so it is remembered rather than retried.
+      if (error is ApiException && error.statusCode == 503) {
+        _languagesWithoutServerVoice.add(language);
+      }
       // Browser synthesis is an explicitly optional fallback only when the
       // authenticated server-side TTS service cannot respond.
       if (mounted) {
@@ -1252,7 +1273,7 @@ class _TutorScreenState extends State<TutorScreen> {
 
       _voiceRuntime.speak(
         cleaned,
-        languageCode: _currentTurn.speech?.language == 'km' ? 'km-KH' : 'en-US',
+        languageCode: language == 'km' ? 'km-KH' : 'en-US',
         onEnd: finish,
         onError: finish,
       );
