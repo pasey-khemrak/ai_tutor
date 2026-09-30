@@ -31,7 +31,7 @@ class BoardPacing {
   /// Above this the board feels stalled, however much was written. A single
   /// action holding the lesson for longer than this is a planning fault, not
   /// something to render faithfully.
-  static const _maxMs = 4500;
+  static const _maxMs = 8000;
 
   /// The bounds the board applied before pacing existed. Verbatim keeps them
   /// so a timeline test that authors 160ms still measures exactly 160ms.
@@ -46,14 +46,16 @@ class BoardPacing {
   /// rhythm whenever it is available. This rate only governs how the writing
   /// itself looks — and, when the student has muted the tutor or the voice
   /// service is down, how long they wait to read it. A long step lands around
-  /// three seconds, which reads as a deliberate hand rather than a paste.
-  static const _msPerProseChar = 18.0;
+  /// seven seconds, which is deliberately slow: this is a board being written
+  /// for someone who is trying to follow the working, not a page being
+  /// revealed.
+  static const _msPerProseChar = 40.0;
 
   /// Milliseconds per glyph of mathematics.
   ///
   /// Maths is drawn more deliberately than prose, and there are far fewer
   /// glyphs in an equation than characters in the LaTeX that describes it.
-  static const _msPerEquationGlyph = 95.0;
+  static const _msPerEquationGlyph = 175.0;
 
   /// Khmer glyphs stack consonants, vowels and diacritics into one cluster, so
   /// an equal character count is materially more ink than Latin.

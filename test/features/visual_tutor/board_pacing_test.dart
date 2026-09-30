@@ -69,8 +69,8 @@ void main() {
         ),
       );
 
-      expect(step.inMilliseconds, greaterThanOrEqualTo(1200));
-      expect(step.inMilliseconds, lessThanOrEqualTo(3000));
+      expect(step.inMilliseconds, greaterThanOrEqualTo(3000));
+      expect(step.inMilliseconds, lessThanOrEqualTo(6000));
     });
 
     test('an equation is paced by its glyphs, not its LaTeX source', () {
@@ -119,7 +119,7 @@ void main() {
 
     test('pathological input cannot stall the board', () {
       final huge = teacher.resolve(text('x' * 20000));
-      expect(huge.inMilliseconds, lessThanOrEqualTo(4500));
+      expect(huge.inMilliseconds, lessThanOrEqualTo(8000));
     });
 
     test('an empty action still takes a readable beat', () {
