@@ -1,5 +1,6 @@
 import 'package:ai_tutor/core/theme/app_theme.dart';
 import 'package:ai_tutor/features/visual_tutor/domain/entities/visual_tutor_entities.dart';
+import 'package:ai_tutor/features/visual_tutor/presentation/board_pacing.dart';
 import 'package:ai_tutor/screens/tutor/tutor_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +22,12 @@ void main() {
             finalAnswerLocked: true,
             reducedMotion: reducedMotion,
             restored: restored,
+            // These tests pin the timeline's sequencing, gating and replay,
+            // all of which are expressed in the authored `duration_ms`. The
+            // board's own pace is content-derived, which would make every
+            // assertion here depend on how long the sample text happens to
+            // be; BoardPacing has its own tests for that.
+            pacing: const BoardPacing.verbatim(),
           ),
         ),
       ),

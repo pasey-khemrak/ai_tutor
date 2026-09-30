@@ -1,4 +1,5 @@
 import 'package:ai_tutor/core/theme/app_theme.dart';
+import 'package:ai_tutor/features/visual_tutor/presentation/board_pacing.dart';
 import 'package:ai_tutor/features/visual_tutor/domain/entities/visual_tutor_entities.dart';
 import 'package:ai_tutor/features/visual_tutor/domain/repositories/visual_tutor_repository.dart';
 import 'package:ai_tutor/screens/learning_selection/learning_selection_repository.dart';
@@ -770,6 +771,11 @@ class _BoardRebuildHarnessState extends State<_BoardRebuildHarness> {
                 finalAnswerLocked: true,
                 animate: widget.animate,
                 actionInterval: const Duration(milliseconds: 120),
+                // This harness asserts an animation survives a parent
+                // rebuild, timed against the authored `duration_ms`. The
+                // board's own content-derived pace is covered by
+                // BoardPacing's tests.
+                pacing: const BoardPacing.verbatim(),
               ),
             ),
           ],

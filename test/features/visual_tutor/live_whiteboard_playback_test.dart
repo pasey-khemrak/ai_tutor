@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:ai_tutor/core/theme/app_theme.dart';
+import 'package:ai_tutor/features/visual_tutor/presentation/board_pacing.dart';
 import 'package:ai_tutor/features/visual_tutor/domain/entities/visual_tutor_entities.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/widgets/board_element_renderer.dart';
 import 'package:ai_tutor/screens/tutor/tutor_screen.dart';
@@ -27,6 +28,10 @@ void main() {
               actions: actions,
               finalAnswerLocked: true,
               reducedMotion: reducedMotion,
+              // Sequencing test: the authored `duration_ms` is the thing
+              // under test, so the board's content-derived pace is
+              // switched off here. BoardPacing has its own tests.
+              pacing: const BoardPacing.verbatim(),
             ),
           ),
         ),

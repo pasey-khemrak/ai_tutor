@@ -27,6 +27,7 @@ import '../../features/visual_tutor/data/repositories/visual_tutor_repository_im
 import '../../features/quizzes/quiz_repository.dart';
 import '../../features/visual_tutor/domain/entities/visual_tutor_entities.dart';
 import '../../features/visual_tutor/presentation/live_board_state.dart';
+import '../../features/visual_tutor/presentation/board_pacing.dart';
 import '../../features/visual_tutor/presentation/board_pagination.dart';
 import '../../features/visual_tutor/presentation/widgets/board_page_switcher.dart';
 import '../../features/visual_tutor/presentation/semantic_board_layout.dart';
@@ -1123,6 +1124,11 @@ class _TutorScreenState extends State<TutorScreen> {
     final text = (response.speech?.text ?? response.spokenText).trim();
     if (text.isEmpty) return;
     _speechDelayTimer?.cancel();
+    // The board is about to read itself out step by step. Speaking the turn's
+    // summary as well would talk over the first step, which is what made the
+    // tutor sound like it was describing a board someone else was writing.
+    // The summary still reaches the student as chat text.
+    if (_boardNarratesItself(response)) return;
     final actionId = response.speech?.speakAfterActionId?.trim();
     if (actionId != null && actionId.isNotEmpty) {
       // Board playback reports the actual animation completion. This avoids
@@ -1158,7 +1164,59 @@ class _TutorScreenState extends State<TutorScreen> {
     _scrollBoardToAction(current);
   }
 
-  Future<void> _speakText(String text) async {
+  /// Longest any single step's narration may hold the board.
+  static const _narrationCeiling = Duration(seconds: 18);
+
+  /// How long to let a step's narration run before writing on without it.
+  ///
+  /// A fixed ceiling is a poor cap on its own: if the audio layer accepts a
+  /// clip but never reports it finished, every step stalls for the full
+  /// ceiling and the lesson crawls. Speech runs near 14 characters a second,
+  /// so the sentence itself says how long it should reasonably take, and
+  /// anything far past that is a failure rather than a slow talker.
+  static Duration _narrationBudgetFor(String text) {
+    final spokenMs = (text.length / 14.0) * 1000.0;
+    final budgetMs = spokenMs * 1.5 + 2500;
+    return budgetMs >= _narrationCeiling.inMilliseconds
+        ? _narrationCeiling
+        : Duration(milliseconds: budgetMs.round());
+  }
+
+  /// Reads one board action aloud as it is being written.
+  ///
+  /// Every step of a worked solution already carries its own prose on the
+  /// board — "Factor the numerator, then cancel the common factor" — so the
+  /// tutor reads that line while the hand writes it. Equations are not read
+  /// out: the sentence above them has just explained what they do, and
+  /// spelling out LaTeX is not how a teacher talks.
+  Future<void> _narrateBoardAction(VisualTutorBoardActionEntity action) async {
+    if (_tutorMuted || !mounted) return;
+    if (action.type != 'write_text') return;
+    final text = (action.text ?? '').trim();
+    if (text.isEmpty) return;
+    await _speakText(
+      text,
+      awaitCompletion: true,
+    ).timeout(_narrationBudgetFor(text), onTimeout: () {});
+  }
+
+  /// True when this turn's board can narrate itself step by step.
+  ///
+  /// A worked solution writes a sentence of prose above each equation, so the
+  /// steps carry the explanation and the turn's single summary message would
+  /// only talk over them. Plans that put nothing but equations on the board
+  /// still get the summary spoken, as before.
+  bool _boardNarratesItself(VisualTutorTurnResponseEntity response) {
+    final actions = response.boardActions.isEmpty
+        ? response.canvasActions
+        : response.boardActions;
+    return actions.any(
+      (action) =>
+          action.type == 'write_text' && (action.text ?? '').trim().isNotEmpty,
+    );
+  }
+
+  Future<void> _speakText(String text, {bool awaitCompletion = false}) async {
     if (_tutorMuted) return;
     final cleaned = text.trim();
     if (cleaned.isEmpty) return;
@@ -1169,8 +1227,14 @@ class _TutorScreenState extends State<TutorScreen> {
         language: _currentTurn.speech?.language ?? 'en',
       );
       if (!mounted) return;
+      // Subscribed before playback starts, so a short clip that finishes
+      // immediately cannot be missed and leave the board waiting on it.
+      final completion = awaitCompletion
+          ? _tutorAudioPlayer.onPlayerComplete.first
+          : null;
       await _tutorAudioPlayer.play(BytesSource(audio));
       if (mounted) setState(() => _voiceStatus = null);
+      if (completion != null) await completion;
     } catch (_) {
       // Browser synthesis is an explicitly optional fallback only when the
       // authenticated server-side TTS service cannot respond.
@@ -1181,10 +1245,18 @@ class _TutorScreenState extends State<TutorScreen> {
         });
       }
       if (!mounted) return;
+      final spoken = Completer<void>();
+      void finish() {
+        if (!spoken.isCompleted) spoken.complete();
+      }
+
       _voiceRuntime.speak(
         cleaned,
         languageCode: _currentTurn.speech?.language == 'km' ? 'km-KH' : 'en-US',
+        onEnd: finish,
+        onError: finish,
       );
+      if (awaitCompletion) await spoken.future;
     }
   }
 
@@ -2711,6 +2783,7 @@ class _TutorScreenState extends State<TutorScreen> {
                           onActionDiagnostic: _recordBoardActionDiagnostic,
                           onStudentInteraction: _handleBoardStudentInteraction,
                           onActionCompleted: _onBoardActionCompleted,
+                          onNarrate: _narrateBoardAction,
                           onJumpToCurrentStep: _jumpToCurrentBoardStep,
                           onSaveSolution: _canSaveCurrentSolution
                               ? _saveCurrentSolution
@@ -4325,6 +4398,8 @@ class TeachingCanvasBoard extends StatefulWidget {
     this.alreadySaved = false,
     this.pageViewportHeight,
     this.verification,
+    this.pacing = const BoardPacing.teacher(),
+    this.onNarrate,
   });
 
   /// Height the student can actually see, used to decide where one board ends
@@ -4346,6 +4421,18 @@ class TeachingCanvasBoard extends StatefulWidget {
   final bool reducedMotion;
   final bool restored;
   final Duration actionInterval;
+
+  /// How long each action takes to write. The default paces the board by how
+  /// much is actually being written, so long working takes longer than a
+  /// single term; [BoardPacing.verbatim] replays the authored `duration_ms`
+  /// exactly, for tests that pin the timeline's sequencing.
+  final BoardPacing pacing;
+
+  /// Narration for one action, awaited alongside its animation so the voice
+  /// and the hand stay on the same step. Returning immediately keeps the
+  /// board's original behaviour, and the board never blocks on it beyond the
+  /// caller's own timeout.
+  final Future<void> Function(VisualTutorBoardActionEntity action)? onNarrate;
   final bool useLogicalCanvasScale;
   final String? sessionId;
   final String? boardStateId;
@@ -4885,10 +4972,22 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
       });
       _notifySnapshot();
       final duration = _animationDurationFor(action);
+      // A teacher talks while writing, not afterwards, so narration starts
+      // with the stroke and the next action waits for both to finish. A
+      // narrator that fails is not allowed to stall the lesson, so its error
+      // is swallowed here and its timeout is the caller's responsibility.
+      final narrate = widget.onNarrate;
+      final narration = narrate == null
+          ? null
+          : narrate(action).catchError((Object _) {});
       final completed = _drawsProgressively(action)
           ? await _runController(_strokeController, duration, generation)
           : await _waitForDuration(duration, generation);
       if (!completed || !mounted || generation != _generation) return;
+      if (narration != null) {
+        await narration;
+        if (!mounted || generation != _generation) return;
+      }
       setState(() => _activeActionId = null);
       widget.onActionCompleted?.call(action.id);
       _notifySnapshot();
@@ -5057,17 +5156,7 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
   }
 
   Duration _animationDurationFor(VisualTutorBoardActionEntity action) {
-    const min = 160;
-    const max = 1800;
-    final fallback = switch (action.type) {
-      'write_text' => 360,
-      'write_equation' => 520,
-      'draw_line' || 'draw_arrow' => 420,
-      'circle' || 'cross_out' => 560,
-      _ => 420,
-    };
-    final requested = action.durationMs > 0 ? action.durationMs : fallback;
-    return Duration(milliseconds: requested.clamp(min, max).toInt());
+    return widget.pacing.resolve(action);
   }
 
   void _handleStudentInteraction(BoardStudentInteraction interaction) {
