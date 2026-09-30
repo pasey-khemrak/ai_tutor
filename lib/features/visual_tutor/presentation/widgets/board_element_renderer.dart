@@ -30,9 +30,10 @@ class BoardPaperScaffold extends StatelessWidget {
       decoration: VisualTutorDecorations.boardPaper(),
       clipBehavior: Clip.antiAlias,
       child: Stack(
+        fit: StackFit.expand,
         children: [
           if (showLines) const Positioned.fill(child: _PaperLines()),
-          Padding(padding: padding, child: child),
+          Positioned.fill(child: Padding(padding: padding, child: child)),
         ],
       ),
     );
@@ -140,6 +141,7 @@ class BoardElementRenderer extends StatelessWidget {
               // Stable key for the board-level axes primitive; the positioned
               // parent remains action-specific for multiple graph regions.
               child: CustomPaint(
+                size: Size(width, height),
                 key: const Key('teaching-board-axes'),
                 painter: _AxesPainter(),
               ),
@@ -164,10 +166,14 @@ class BoardElementRenderer extends StatelessWidget {
         child: _ProgressiveVisualReveal(
           progress: progress,
           reducedMotion: reducedMotion,
-          child: _TableView(
-            action: action,
-            progress: progress,
-            reducedMotion: reducedMotion,
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: _TableView(
+              action: action,
+              progress: progress,
+              reducedMotion: reducedMotion,
+            ),
           ),
         ),
       ),
@@ -209,6 +215,7 @@ class BoardElementRenderer extends StatelessWidget {
               ),
               child: RepaintBoundary(
                 child: CustomPaint(
+                  size: Size(width, height),
                   painter: _StructuredGraphPainter(action.graph!),
                 ),
               ),
@@ -230,6 +237,7 @@ class BoardElementRenderer extends StatelessWidget {
             label: _visualSemanticLabel(action),
             child: RepaintBoundary(
               child: CustomPaint(
+                size: Size(width, height),
                 painter: _StructuredGraphPainter(action.graph!),
               ),
             ),
@@ -247,6 +255,7 @@ class BoardElementRenderer extends StatelessWidget {
           label: _visualSemanticLabel(action),
           child: RepaintBoundary(
             child: CustomPaint(
+              size: Size(width, height),
               painter: _DynamicNumberLinePainter(action: action),
             ),
           ),
@@ -288,6 +297,7 @@ class BoardElementRenderer extends StatelessWidget {
             reducedMotion: reducedMotion,
             child: RepaintBoundary(
               child: CustomPaint(
+                size: Size(width, height),
                 painter: _FreeBodyDiagramPainter(action: action),
               ),
             ),
@@ -310,7 +320,7 @@ class BoardElementRenderer extends StatelessWidget {
             progress: progress,
             reducedMotion: reducedMotion,
             child: RepaintBoundary(
-              child: CustomPaint(painter: _MoleculePainter(action: action)),
+              child: CustomPaint(size: Size(width, height), painter: _MoleculePainter(action: action)),
             ),
           ),
         ),
@@ -329,7 +339,7 @@ class BoardElementRenderer extends StatelessWidget {
             progress: progress,
             reducedMotion: reducedMotion,
             child: RepaintBoundary(
-              child: CustomPaint(painter: _WavePainter(action: action)),
+              child: CustomPaint(size: Size(width, height), painter: _WavePainter(action: action)),
             ),
           ),
         ),
