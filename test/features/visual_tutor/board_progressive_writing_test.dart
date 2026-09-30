@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:ai_tutor/core/theme/app_theme.dart';
 import 'package:ai_tutor/features/visual_tutor/domain/entities/visual_tutor_entities.dart';
+import 'package:ai_tutor/features/visual_tutor/presentation/board_pacing.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/widgets/board_element_renderer.dart';
 import 'package:ai_tutor/screens/tutor/tutor_screen.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,13 @@ void main() {
             actionInterval: Duration.zero,
             reducedMotion: reducedMotion,
             restored: restored,
+            // This test is about the reveal being progressive -- partial
+            // text first, the whole sentence only at the end -- and times
+            // that against the authored `duration_ms`. The board's own pace
+            // is derived from content, so it would move every boundary here
+            // whenever the sample sentence changed length. BoardPacing has
+            // its own tests for how long writing should take.
+            pacing: const BoardPacing.verbatim(),
           ),
         ),
       ),
