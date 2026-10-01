@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'app/ai_tutor_app.dart';
+import 'core/auth/auth_service.dart';
 import 'core/config/app_config.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeFirebaseIfConfigured();
+  await _restoreSessionIfConfigured();
   runApp(const AiTutorApp());
 }
 
@@ -31,5 +33,16 @@ Future<void> _initializeFirebaseIfConfigured() async {
         'Firebase is not configured for this ${AppConfig.current.environment.name} build: $error',
       );
     }
+  }
+}
+
+Future<void> _restoreSessionIfConfigured() async {
+  if (AppConfig.current.shouldUseDemoData) {
+    return;
+  }
+  try {
+    await appAuthService.restoreSession();
+  } catch (_) {
+    // Keep app responsive even if auth session restore encounters an issue
   }
 }
