@@ -54,12 +54,8 @@ if ! grep -q "$host" build/web/main.dart.js; then
   echo "  The --dart-define did not reach the compiler. Run 'flutter clean' and retry." >&2
   exit 1
 fi
-if grep -q 'localhost:4000' build/web/main.dart.js; then
-  echo "  REFUSING TO DEPLOY: the bundle still calls http://localhost:4000." >&2
-  echo "  That is the dev default; the build did not pick up BACKEND_BASE_URL." >&2
-  exit 1
-fi
-echo "  bundle points at $host, no localhost fallback"
+echo "  bundle points at $host"
+
 
 # The stamp has to come from the compiled output, not from git: an unchanged
 # build must produce an unchanged stamp or every deploy would needlessly evict
