@@ -29,6 +29,10 @@ class _EmptyLessonsRepository implements StudentLessonsRepository {
     String? topicId,
     int? grade,
   }) async => const [];
+
+  @override
+  Future<LessonDetailedContent> loadLessonContent(String lessonId) async =>
+      fallbackLessonDetailedContent(lessonId);
 }
 
 void main() {

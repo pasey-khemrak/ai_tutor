@@ -72,7 +72,12 @@ class VisualTutorRadius {
 class VisualTutorTypography {
   const VisualTutorTypography._();
 
-  static const fontFallback = ['Noto Sans Khmer', 'Kantumruy Pro', 'Arial'];
+  static const fontFallback = [
+    'Noto Sans',
+    'Noto Sans Math',
+    'Noto Sans Khmer',
+    'Kantumruy Pro',
+  ];
 
   static const header = TextStyle(
     color: VisualTutorColors.text,

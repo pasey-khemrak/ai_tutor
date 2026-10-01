@@ -37,6 +37,30 @@ flutter build web --pwa-strategy=none \
   --dart-define=APP_ENV=production \
   --dart-define=BACKEND_BASE_URL="$API"
 
+# Assert the build is actually pointed at the API before anything ships.
+#
+# --dart-define values are compiled in, and Flutter's incremental build does
+# not reliably invalidate on a define change: a plain `flutter build web` run
+# once for any reason leaves a cached kernel that later builds reuse, and the
+# localhost default in app_config.dart then rides out to production. Every
+# request from the live site went to http://localhost:4000 and the browser
+# reported it as a CORS error.
+#
+# Byte-comparing the build against the edge cannot catch this -- the bytes
+# matched perfectly while being wrong -- so the content is checked instead.
+host=$(printf '%s' "$API" | sed -E 's#^https?://##; s#/.*##')
+if ! grep -q "$host" build/web/main.dart.js; then
+  echo "  REFUSING TO DEPLOY: the bundle does not mention $host." >&2
+  echo "  The --dart-define did not reach the compiler. Run 'flutter clean' and retry." >&2
+  exit 1
+fi
+if grep -q 'localhost:4000' build/web/main.dart.js; then
+  echo "  REFUSING TO DEPLOY: the bundle still calls http://localhost:4000." >&2
+  echo "  That is the dev default; the build did not pick up BACKEND_BASE_URL." >&2
+  exit 1
+fi
+echo "  bundle points at $host, no localhost fallback"
+
 # The stamp has to come from the compiled output, not from git: an unchanged
 # build must produce an unchanged stamp or every deploy would needlessly evict
 # a 4MB object from the edge cache.

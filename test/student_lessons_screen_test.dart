@@ -51,6 +51,11 @@ class _LessonsRepository implements StudentLessonsRepository {
         )
         .toList();
   }
+
+  @override
+  Future<LessonDetailedContent> loadLessonContent(String lessonId) async {
+    return fallbackLessonDetailedContent(lessonId);
+  }
 }
 
 Widget _wrap(Widget child) => MaterialApp(

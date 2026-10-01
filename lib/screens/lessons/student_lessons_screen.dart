@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/language_switcher_button.dart';
 import '../../shared/state_widgets/app_error_state.dart';
 import '../../shared/student_design_system.dart';
+import 'student_lesson_detail_screen.dart';
 import 'student_lessons_repository.dart';
 
 /// The Lessons tab: the published lesson library with a detail page for each
@@ -16,11 +17,14 @@ class StudentLessonsScreen extends StatefulWidget {
     super.key,
     required this.onOpenLesson,
     required this.onPractice,
+    this.onWatchDemonstration,
     this.repository,
     this.onAskTutor,
   });
   final ValueChanged<StudentLesson> onOpenLesson;
   final ValueChanged<StudentLesson> onPractice;
+  final void Function(StudentLesson lesson, String? exampleProblem)?
+  onWatchDemonstration;
   final StudentLessonsRepository? repository;
   final ValueChanged<String?>? onAskTutor;
   @override
@@ -80,11 +84,21 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen> {
   Widget build(BuildContext context) {
     final selected = _selected;
     if (selected != null) {
-      return _LessonDetail(
+      return StudentLessonDetailScreen(
         lesson: selected,
         onBack: () => setState(() => _selected = null),
-        onStart: () => widget.onOpenLesson(selected),
-        onPractice: () => widget.onPractice(selected),
+        onWatchOnWhiteboard: (problem) {
+          if (widget.onWatchDemonstration != null) {
+            widget.onWatchDemonstration!(selected, problem);
+          } else {
+            final updated = problem != null && problem.isNotEmpty
+                ? selected.copyWith(starterProblem: problem)
+                : selected;
+            widget.onOpenLesson(updated);
+          }
+        },
+        onPractice: widget.onPractice,
+        repository: _repository,
         onAskTutor: widget.onAskTutor,
       );
     }
@@ -592,12 +606,16 @@ class _NoPublishedLessons extends StatelessWidget {
 
 /* ─── Detail ────────────────────────────────────────────────────────────── */
 
+// Retained temporarily while the extracted detail screen settles; keeping the
+// implementation here makes the in-flight migration recoverable.
+// ignore: unused_element
 class _LessonDetail extends StatelessWidget {
   const _LessonDetail({
     required this.lesson,
     required this.onBack,
     required this.onStart,
     required this.onPractice,
+    // ignore: unused_element_parameter
     this.onAskTutor,
   });
   final StudentLesson lesson;

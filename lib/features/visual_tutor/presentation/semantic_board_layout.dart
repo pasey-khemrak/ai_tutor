@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import '../domain/entities/visual_tutor_entities.dart';
+import 'visual_tutor_design.dart';
 
 const semanticBoardLayoutZones = <String>{
   'problem',
@@ -190,7 +191,11 @@ class SemanticBoardLayout {
     final painter = TextPainter(
       text: TextSpan(
         text: text,
-        style: const TextStyle(fontSize: 19, height: 1.35),
+        style: const TextStyle(
+          fontSize: 19,
+          height: 1.35,
+          fontFamilyFallback: VisualTutorTypography.fontFallback,
+        ),
       ),
       textDirection: textDirection,
       textScaler: textScaler,

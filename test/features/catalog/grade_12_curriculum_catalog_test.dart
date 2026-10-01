@@ -38,6 +38,10 @@ class _TestCatalogRepository implements StudentLessonsRepository {
         )
         .toList(growable: false);
   }
+
+  @override
+  Future<LessonDetailedContent> loadLessonContent(String lessonId) async =>
+      fallbackLessonDetailedContent(lessonId);
 }
 
 void main() {

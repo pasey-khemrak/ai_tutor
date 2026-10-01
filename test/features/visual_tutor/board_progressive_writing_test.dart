@@ -62,7 +62,7 @@ void main() {
     expect(
       find.byWidgetPredicate(
         (widget) =>
-            widget is Text &&
+            widget is SelectableText &&
             (widget.data ?? '').isNotEmpty &&
             widget.data != 'Live writing',
       ),

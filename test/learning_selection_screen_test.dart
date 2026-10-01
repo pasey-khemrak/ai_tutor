@@ -65,12 +65,6 @@ void main() {
     await tester.tap(find.text('Tutor'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('visual-tutor-home-screen')), findsOneWidget);
-
-    final askOwn = find.byKey(const Key('curriculum-ask-own-button'));
-    await tester.ensureVisible(askOwn);
-    await tester.tap(askOwn);
-    await tester.pumpAndSettle();
-
     expect(find.byKey(const Key('visual-tutor-canvas-board')), findsOneWidget);
     expect(find.byKey(const Key('tutor-presence-bar')), findsOneWidget);
     expect(find.text('Rean AI Tutor'), findsOneWidget);

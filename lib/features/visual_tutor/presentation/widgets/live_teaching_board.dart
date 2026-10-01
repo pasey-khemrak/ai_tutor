@@ -374,6 +374,7 @@ class _ActionBoard extends StatelessWidget {
             (action) => action.id == activeActionId,
           );
           return Stack(
+            fit: StackFit.expand,
             children: [
               for (var i = 0; i < visibleActions.length; i++)
                 Positioned.fill(
@@ -705,7 +706,9 @@ class _StudentActionOverlay extends StatelessWidget {
         ),
       );
     }
-    if (!_isSelectable) return const SizedBox.shrink();
+    if (!_isSelectable) {
+      return const Positioned(width: 0, height: 0, child: SizedBox.shrink());
+    }
     final content = (action.text ?? action.latex ?? 'teaching step')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();

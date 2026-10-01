@@ -7,6 +7,7 @@ import '../../domain/entities/visual_tutor_entities.dart';
 import '../live_board_state.dart';
 import '../visual_tutor_design.dart';
 import 'board_verification_chip.dart';
+import 'inline_math_text.dart';
 
 class BoardPaperScaffold extends StatelessWidget {
   const BoardPaperScaffold({
@@ -33,7 +34,9 @@ class BoardPaperScaffold extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (showLines) const Positioned.fill(child: _PaperLines()),
-          Positioned.fill(child: Padding(padding: padding, child: child)),
+          Positioned.fill(
+            child: Padding(padding: padding, child: child),
+          ),
         ],
       ),
     );
@@ -320,7 +323,10 @@ class BoardElementRenderer extends StatelessWidget {
             progress: progress,
             reducedMotion: reducedMotion,
             child: RepaintBoundary(
-              child: CustomPaint(size: Size(width, height), painter: _MoleculePainter(action: action)),
+              child: CustomPaint(
+                size: Size(width, height),
+                painter: _MoleculePainter(action: action),
+              ),
             ),
           ),
         ),
@@ -339,7 +345,10 @@ class BoardElementRenderer extends StatelessWidget {
             progress: progress,
             reducedMotion: reducedMotion,
             child: RepaintBoundary(
-              child: CustomPaint(size: Size(width, height), painter: _WavePainter(action: action)),
+              child: CustomPaint(
+                size: Size(width, height),
+                painter: _WavePainter(action: action),
+              ),
             ),
           ),
         ),
@@ -713,7 +722,11 @@ class _PositionedTextAction extends StatelessWidget {
     // Keep the full spoken content as the accessible label. This preserves
     // Khmer word order for screen readers; the concise role is supplied as a
     // hint rather than being prepended to the learner-facing text.
-    final semanticLabel = action.latex ?? action.text ?? 'Teaching board text';
+    final rawSemanticLabel =
+        action.latex ?? action.text ?? 'Teaching board text';
+    final semanticLabel = action.type == 'write_text'
+        ? inlineMathSemanticLabel(rawSemanticLabel)
+        : rawSemanticLabel;
     final semanticHint = switch (action.type) {
       'write_equation' ||
       'transform_equation' => 'Equation on the teaching board',
@@ -778,7 +791,13 @@ class _PositionedTextAction extends StatelessWidget {
               child: AnimatedBuilder(
                 animation: progress,
                 builder: (context, _) {
-                  final content = _visibleTextFor(action, progress.value);
+                  final rawText = action.text ?? '';
+                  final hasInlineMath =
+                      action.type == 'write_text' &&
+                      containsInlineMath(rawText);
+                  final content = hasInlineMath
+                      ? normalizeBoardText(rawText)
+                      : _visibleTextFor(action, progress.value);
                   final useLatex =
                       isEquation && (action.latex ?? '').trim().isNotEmpty;
                   final child = useLatex
@@ -795,11 +814,28 @@ class _PositionedTextAction extends StatelessWidget {
                             ),
                           ),
                         )
-                      : Text(
+                      : hasInlineMath
+                      ? ClipRect(
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            widthFactor: reducedMotion
+                                ? 1.0
+                                : progress.value.clamp(0.02, 1.0),
+                            child: InlineMathText(
+                              text: content,
+                              textDirection: Directionality.of(context),
+                              style: VisualTutorTypography.boardHandwriting
+                                  .copyWith(
+                                    color: ink,
+                                    fontSize: fontSize,
+                                    height: 1.3,
+                                  ),
+                            ),
+                          ),
+                        )
+                      : SelectableText(
                           content,
-                          softWrap: true,
                           maxLines: null,
-                          overflow: TextOverflow.visible,
                           textDirection: Directionality.of(context),
                           style:
                               (isEquation
@@ -825,20 +861,20 @@ class _PositionedTextAction extends StatelessWidget {
                           switchOutCurve: Curves.easeIn,
                           layoutBuilder: (currentChild, previousChildren) =>
                               Stack(
-                            alignment: Alignment.centerLeft,
-                            children: [...previousChildren, ?currentChild],
-                          ),
+                                alignment: Alignment.centerLeft,
+                                children: [...previousChildren, ?currentChild],
+                              ),
                           transitionBuilder: (switchChild, animation) =>
                               FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, .06),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: switchChild,
-                            ),
-                          ),
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, .06),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: switchChild,
+                                ),
+                              ),
                           child: KeyedSubtree(
                             key: ValueKey(
                               action.type == 'transform_equation'

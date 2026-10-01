@@ -12,7 +12,12 @@ class AppTheme {
   /// fetched. It must not be the primary family: its charset is Khmer plus
   /// punctuation, with no Latin letters, so making it primary would leave every
   /// English word to resolve through fallback.
-  static const fontFallback = ['Kantumruy Pro', 'Noto Sans Khmer', 'sans-serif'];
+  static const fontFallback = [
+    'Noto Sans',
+    'Noto Sans Math',
+    'Noto Sans Khmer',
+    'Kantumruy Pro',
+  ];
 
   static const textTheme = TextTheme(
     displayLarge: TextStyle(height: 1.45, fontFamilyFallback: fontFallback),

@@ -161,26 +161,30 @@ void main() {
   });
 
   group('VisualTutorHomeScreen localization', () {
-    testWidgets('renders the Khmer curriculum without hardcoded English', (tester) async {
+    testWidgets('renders the Khmer fresh board prompt without hardcoded English', (tester) async {
       await tester.pumpWidget(
         _wrapWithLocalization(
-          VisualTutorHomeScreen(
-            repository: const LocalDemoStudentLessonsRepository(),
-            onOpenLesson: (_) {},
-            onAskQuestion: (_) {},
-          ),
+          const VisualTutorHomeScreen(),
           locale: const Locale('km'),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('កម្មវិធីសិក្សា'), findsOneWidget);
-      expect(find.text('សួរលំហាត់ផ្ទាល់ខ្លួន'), findsOneWidget);
+      expect(
+        find.text(
+          'សួរសំណួរ ឬលំហាត់គណិតវិទ្យា រូបវិទ្យា ឬគីមីវិទ្យា។ សូមវាយអត្ថបទ ឬនិយាយដើម្បីចាប់ផ្តើម។',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('លីមីត'), findsOneWidget);
+      expect(find.textContaining('ចំនួនកុំផ្លិច'), findsOneWidget);
 
-      expect(find.text('Curriculum'), findsNothing);
-      expect(find.text('Continue Learning'), findsNothing);
-      expect(find.text('See All'), findsNothing);
-      expect(find.text('Ask your own problem'), findsNothing);
+      expect(
+        find.text(
+          'Ask any math, physics, or chemistry problem. Type or speak below to begin.',
+        ),
+        findsNothing,
+      );
     });
   });
 
@@ -433,4 +437,8 @@ class _EmptyStudentLessonsRepository implements StudentLessonsRepository {
   }) async {
     return const [];
   }
+
+  @override
+  Future<LessonDetailedContent> loadLessonContent(String lessonId) async =>
+      fallbackLessonDetailedContent(lessonId);
 }

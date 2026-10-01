@@ -26,7 +26,14 @@ class BoardPageSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     final current = pages[currentIndex.clamp(0, pages.length - 1)];
-    final pageLabel = localizations.boardPageOf(current.index + 1, pages.length);
+    final pageLabel = localizations.boardPageOf(
+      current.index + 1,
+      pages.length,
+    );
+    final compact = MediaQuery.sizeOf(context).width < 400;
+    final visiblePageLabel = compact
+        ? '${current.index + 1} / ${pages.length}'
+        : pageLabel;
 
     return Semantics(
       container: true,
@@ -36,7 +43,9 @@ class BoardPageSwitcher extends StatelessWidget {
         decoration: BoxDecoration(
           color: VisualTutorColors.shell.withValues(alpha: .82),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: VisualTutorColors.cyan.withValues(alpha: .5)),
+          border: Border.all(
+            color: VisualTutorColors.cyan.withValues(alpha: .5),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -45,18 +54,22 @@ class BoardPageSwitcher extends StatelessWidget {
               keyValue: 'visual-tutor-board-previous',
               icon: Icons.chevron_left_rounded,
               tooltip: localizations.previousBoard,
-              onTap: currentIndex > 0 ? () => onSelected(currentIndex - 1) : null,
+              onTap: currentIndex > 0
+                  ? () => onSelected(currentIndex - 1)
+                  : null,
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                pageLabel,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  height: 1.40,
-                  fontWeight: FontWeight.w600,
-                  color: VisualTutorColors.cyan,
-                  fontFamilyFallback: VisualTutorTypography.fontFallback,
+              child: ExcludeSemantics(
+                child: Text(
+                  visiblePageLabel,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    height: 1.40,
+                    fontWeight: FontWeight.w600,
+                    color: VisualTutorColors.cyan,
+                    fontFamilyFallback: VisualTutorTypography.fontFallback,
+                  ),
                 ),
               ),
             ),
@@ -92,23 +105,25 @@ class BoardArrowButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onTap != null;
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      label: tooltip,
-      child: IconButton(
-        key: Key(keyValue),
-        onPressed: onTap,
-        tooltip: tooltip,
-        iconSize: 20,
-        padding: const EdgeInsets.all(6),
-        constraints: AppBreakpoints.touchTargetConstraints,
-        icon: Icon(
-          icon,
-          color: enabled
-              ? VisualTutorColors.cyan
-              : VisualTutorColors.textMuted.withValues(alpha: .35),
-        ),
+    return IconButton(
+      key: Key(keyValue),
+      onPressed: onTap,
+      tooltip: tooltip,
+      iconSize: 20,
+      padding: EdgeInsets.zero,
+      visualDensity: VisualDensity.standard,
+      style: IconButton.styleFrom(
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      constraints: const BoxConstraints.tightFor(
+        width: AppBreakpoints.minTouchTarget,
+        height: AppBreakpoints.minTouchTarget,
+      ),
+      icon: Icon(
+        icon,
+        color: enabled
+            ? VisualTutorColors.cyan
+            : VisualTutorColors.textMuted.withValues(alpha: .35),
       ),
     );
   }

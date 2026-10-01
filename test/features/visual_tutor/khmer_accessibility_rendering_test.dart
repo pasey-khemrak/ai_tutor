@@ -47,15 +47,26 @@ void main() {
     (tester) async {
       await tester.pumpWidget(board(textScale: 1));
       await tester.pumpAndSettle();
+      final prose = find.descendant(
+        of: find.byKey(const Key('teaching-board-action-khmer-long-text')),
+        matching: find.byType(SelectableText),
+      );
+      expect(prose, findsOneWidget);
       final normalFontSize = tester
-          .widget<Text>(find.text(longKhmerInstruction))
+          .widget<SelectableText>(prose)
           .style!
           .fontSize!;
 
       await tester.pumpWidget(board(textScale: 1.7));
       await tester.pumpAndSettle();
-      final scaledText = find.text(longKhmerInstruction);
-      final scaledFontSize = tester.widget<Text>(scaledText).style!.fontSize!;
+      final scaledText = find.descendant(
+        of: find.byKey(const Key('teaching-board-action-khmer-long-text')),
+        matching: find.byType(SelectableText),
+      );
+      final scaledFontSize = tester
+          .widget<SelectableText>(scaledText)
+          .style!
+          .fontSize!;
       final boardRect = tester.getRect(
         find.byKey(const Key('live-teaching-board-paper')),
       );

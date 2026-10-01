@@ -33,10 +33,12 @@ class _TutorShellState extends State<TutorShell> {
   int _selectedIndex = 0;
   LearningContext? _learningContext;
   VisualTutorStudentSubmission? _initialTutorSubmission;
+  String? _initialTutorPrefill;
   String? _initialTutorSessionId;
   bool _tutorVoiceMode = false;
   TargetedPracticeContext? _targetedPractice;
   int _dashboardRefreshSerial = 0;
+  int _tutorSessionSerial = 0;
 
   static const _askQuestionContext = LearningContext.askQuestion();
 
@@ -93,17 +95,23 @@ class _TutorShellState extends State<TutorShell> {
     }());
   }
 
-
-  void _openTutor() {
+  void _openTutorTab() {
+    _rememberLocalLimitsView(false);
     setState(() {
+      _learningContext ??= _askQuestionContext;
       _tutorVoiceMode = false;
       _selectedIndex = 1;
     });
   }
 
+  void _openTutor() {
+    _openTutorTab();
+  }
+
   void _resumeLearning(StudentDashboardData data) {
     final canResumeSession = data.resumeSessionId != null;
     setState(() {
+      _tutorSessionSerial++;
       // Session restoration is authoritative. A profile missing its grade must
       // not turn a valid resume action into the empty Tutor home.
       _learningContext = canResumeSession
@@ -116,8 +124,9 @@ class _TutorShellState extends State<TutorShell> {
                   ? 'General tutoring'
                   : data.resumeTopic,
             )
-          : null;
+          : _askQuestionContext;
       _initialTutorSubmission = null;
+      _initialTutorPrefill = null;
       _initialTutorSessionId = canResumeSession ? data.resumeSessionId : null;
       _tutorVoiceMode = false;
       _selectedIndex = 1;
@@ -125,24 +134,20 @@ class _TutorShellState extends State<TutorShell> {
   }
 
   void _openTutorHome() {
-    _rememberLocalLimitsView(false);
-    setState(() {
-      _learningContext = null;
-      _initialTutorSubmission = null;
-      _initialTutorSessionId = null;
-      _tutorVoiceMode = false;
-      _selectedIndex = 1;
-    });
+    _openTutorTab();
   }
 
   void _openLiveTutor({
     LearningContext context = _askQuestionContext,
     VisualTutorStudentSubmission? initialSubmission,
+    String? initialPrefill,
     bool voiceMode = false,
   }) {
     setState(() {
+      _tutorSessionSerial++;
       _learningContext = context;
       _initialTutorSubmission = initialSubmission;
+      _initialTutorPrefill = initialPrefill;
       _initialTutorSessionId = null;
       _tutorVoiceMode = voiceMode;
       _selectedIndex = 1;
@@ -211,8 +216,10 @@ class _TutorShellState extends State<TutorShell> {
   /// authoritative, so the saved session id drives it rather than a fresh turn.
   void _reopenSession(DashboardActivity session) {
     setState(() {
+      _tutorSessionSerial++;
       _learningContext = null;
       _initialTutorSubmission = null;
+      _initialTutorPrefill = null;
       _initialTutorSessionId = session.tutorSessionId;
       _tutorVoiceMode = false;
       _selectedIndex = 1;
@@ -231,8 +238,8 @@ class _TutorShellState extends State<TutorShell> {
     _rememberLocalLimitsView(isLocalCurriculumDemo);
     _openLiveTutor(
       context: learningContextForLesson(lesson),
-      // Local demo starts its evaluator moment. Published lessons with a verified
-      // starter problem immediately launch the solver on the whiteboard.
+      // The local demo is the one lesson that starts itself: it exists to
+      // show the evaluator a finished board without anyone typing.
       initialSubmission: isLocalCurriculumDemo
           ? const VisualTutorStudentSubmission(
               message: 'Start local curriculum demo.',
@@ -241,23 +248,27 @@ class _TutorShellState extends State<TutorShell> {
               inputType: 'quick_action',
               metadata: {'entry_point': 'local_curriculum_demo'},
             )
-          : (lesson.starterProblem != null &&
-                  lesson.starterProblem!.trim().isNotEmpty)
-              ? VisualTutorStudentSubmission(
-                  message: lesson.starterProblem!.trim(),
-                  intent: 'new_problem',
-                  action: 'submit_problem',
-                  inputType: 'quick_action',
-                  metadata: {
-                    'entry_point': 'published_lesson',
-                    'lesson_id': lesson.lessonId,
-                    'curriculum_version_id': lesson.curriculumVersionId,
-                    'topic_id': lesson.topicId,
-                    'subject_id': lesson.subjectId,
-                    'grade_level_id': lesson.gradeLevelId,
-                  },
-                )
-              : null,
+          : null,
+      // A published lesson's starter problem is an offer, not a question the
+      // student asked. Submitting it on open put a finished board with the
+      // answer on it in front of someone who had typed nothing, which is the
+      // opposite of how this tutor is meant to teach. It waits in the input
+      // box instead, one tap from being asked.
+      initialPrefill: isLocalCurriculumDemo
+          ? null
+          : lesson.starterProblem?.trim(),
+    );
+  }
+
+  void onWatchDemonstration(StudentLesson lesson, String? exampleProblem) {
+    final isLocalCurriculumDemo = lesson.isLocalCurriculumDemo;
+    _rememberLocalLimitsView(isLocalCurriculumDemo);
+    _openLiveTutor(
+      context: learningContextForLesson(lesson),
+      initialSubmission: demonstrationSubmissionForLesson(
+        lesson,
+        exampleProblem,
+      ),
     );
   }
 
@@ -347,75 +358,12 @@ class _TutorShellState extends State<TutorShell> {
     ).pushNamedAndRemoveUntil(AppRoutes.signIn, (route) => false);
   }
 
-  Widget _buildScreen() {
-    return switch (_selectedIndex) {
-      0 => DashboardScreen(
-        key: ValueKey('dashboard-$_dashboardRefreshSerial'),
-        onResumeLearning: _openTutor,
-        onResumeLearningWithData: _resumeLearning,
-        onAskQuestion: (question) => _openLiveTutor(
-          initialSubmission: VisualTutorStudentSubmission(
-            message: question,
-            intent: 'new_problem',
-            action: 'submit_problem',
-            inputType: 'text',
-            metadata: const {'entry_point': 'dashboard_ask_anything'},
-          ),
-        ),
-        onVoiceQuestion: _openVoiceTutor,
-        onStartDailyPractice: _startDashboardDailyPractice,
-        onCompleteProfile: _completeLearningProfile,
-        onBrowseCurriculum: _openTutorHome,
-        onViewProgress: _openProgress,
-      ),
-      1 =>
-        _learningContext == null
-            ? VisualTutorHomeScreen(
-                onOpenLesson: _openLesson,
-                onAskQuestion: (problem) => _openLiveTutor(
-                  initialSubmission: (problem != null && problem.isNotEmpty)
-                      ? VisualTutorStudentSubmission(
-                          message: problem,
-                          intent: 'new_problem',
-                          action: 'submit_problem',
-                          inputType: 'text',
-                          metadata: const {'entry_point': 'tutor_curriculum'},
-                        )
-                      : null,
-                ),
-              )
-            : TutorScreen(
-                context: _learningContext,
-                initialSessionId: _initialTutorSessionId,
-                initialSubmission: _initialTutorSubmission,
-                voiceMode: _tutorVoiceMode,
-                onOpenTargetedPractice: _openTargetedPractice,
-              ),
-      3 =>
-        _targetedPractice != null
-            ? QuizzesScreen(targetedPractice: _targetedPractice)
-            : StudentLessonsScreen(
-                onOpenLesson: _openLesson,
-                onPractice: _practiceLesson,
-                onAskTutor: (problem) => _openLiveTutor(
-                  initialSubmission: (problem != null && problem.isNotEmpty)
-                      ? VisualTutorStudentSubmission(
-                          message: problem,
-                          intent: 'new_problem',
-                          action: 'submit_problem',
-                          inputType: 'text',
-                          metadata: const {'entry_point': 'empty_catalog'},
-                        )
-                      : null,
-                ),
-              ),
-      _ => StudentProfileSummaryScreen(
-        onSetup: _completeLearningProfile,
-        onLogout: _logout,
-        onOpenProgress: _openProgress,
-        onOpenHistory: _openSessionHistory,
-        onOpenSaved: _openSavedSolutions,
-      ),
+  int _stackIndexFor(int selectedIndex) {
+    return switch (selectedIndex) {
+      0 => 0,
+      1 => 1,
+      3 => 2,
+      _ => 3,
     };
   }
 
@@ -427,12 +375,68 @@ class _TutorShellState extends State<TutorShell> {
           children: [
             if (_selectedIndex != 4 && _selectedIndex != 1) const AppHeader(),
             Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                child: KeyedSubtree(
-                  key: ValueKey(_selectedIndex),
-                  child: _buildScreen(),
-                ),
+              child: IndexedStack(
+                index: _stackIndexFor(_selectedIndex),
+                children: [
+                  DashboardScreen(
+                    key: ValueKey('dashboard-$_dashboardRefreshSerial'),
+                    onResumeLearning: _openTutor,
+                    onResumeLearningWithData: _resumeLearning,
+                    onAskQuestion: (question) => _openLiveTutor(
+                      initialSubmission: VisualTutorStudentSubmission(
+                        message: question,
+                        intent: 'new_problem',
+                        action: 'submit_problem',
+                        inputType: 'text',
+                        metadata: const {'entry_point': 'dashboard_ask_anything'},
+                      ),
+                    ),
+                    onVoiceQuestion: _openVoiceTutor,
+                    onStartDailyPractice: _startDashboardDailyPractice,
+                    onCompleteProfile: _completeLearningProfile,
+                    onBrowseCurriculum: () {
+                      setState(() {
+                        _targetedPractice = null;
+                        _selectedIndex = 3;
+                      });
+                    },
+                    onViewProgress: _openProgress,
+                  ),
+                  VisualTutorHomeScreen(
+                    key: ValueKey('tutor-session-$_tutorSessionSerial'),
+                    context: _learningContext ?? _askQuestionContext,
+                    initialSessionId: _initialTutorSessionId,
+                    initialSubmission: _initialTutorSubmission,
+                    initialPrefill: _initialTutorPrefill,
+                    voiceMode: _tutorVoiceMode,
+                    onOpenTargetedPractice: _openTargetedPractice,
+                  ),
+                  _targetedPractice != null
+                      ? QuizzesScreen(targetedPractice: _targetedPractice)
+                      : StudentLessonsScreen(
+                          onOpenLesson: _openLesson,
+                          onWatchDemonstration: onWatchDemonstration,
+                          onPractice: _practiceLesson,
+                          onAskTutor: (problem) => _openLiveTutor(
+                            initialSubmission: (problem != null && problem.isNotEmpty)
+                                ? VisualTutorStudentSubmission(
+                                    message: problem,
+                                    intent: 'new_problem',
+                                    action: 'submit_problem',
+                                    inputType: 'text',
+                                    metadata: const {'entry_point': 'empty_catalog'},
+                                  )
+                                : null,
+                          ),
+                        ),
+                  StudentProfileSummaryScreen(
+                    onSetup: _completeLearningProfile,
+                    onLogout: _logout,
+                    onOpenProgress: _openProgress,
+                    onOpenHistory: _openSessionHistory,
+                    onOpenSaved: _openSavedSolutions,
+                  ),
+                ],
               ),
             ),
             AppBottomNavigation(
@@ -440,7 +444,7 @@ class _TutorShellState extends State<TutorShell> {
               onSelected: (index) {
                 _rememberLocalLimitsView(false);
                 if (index == 1) {
-                  _openTutorHome();
+                  _openTutorTab();
                 } else {
                   if (index == 3) _targetedPractice = null;
                   setState(() => _selectedIndex = index);
@@ -469,6 +473,30 @@ LearningContext learningContextForLesson(StudentLesson lesson) =>
       teachingMomentId: lesson.teachingMomentId,
       languageMode: lesson.languageMode,
     );
+
+/// Builds the auto-starting demonstration submission when a student clicks
+/// "Watch on Whiteboard" from a lesson's example walkthrough.
+VisualTutorStudentSubmission demonstrationSubmissionForLesson(
+  StudentLesson lesson,
+  String? exampleProblem,
+) {
+  final problem = (exampleProblem != null && exampleProblem.trim().isNotEmpty)
+      ? exampleProblem.trim()
+      : (lesson.starterProblem != null &&
+                lesson.starterProblem!.trim().isNotEmpty)
+          ? lesson.starterProblem!.trim()
+          : lesson.title;
+  return VisualTutorStudentSubmission(
+    message: problem,
+    action: 'submit_problem',
+    intent: 'new_problem',
+    inputType: 'quick_action',
+    metadata: const {
+      'entry_point': 'lesson_demonstration',
+      'auto_start': true,
+    },
+  );
+}
 
 extension _FirstStudentLessonOrNull on Iterable<StudentLesson> {
   StudentLesson? get firstOrNull => isEmpty ? null : first;

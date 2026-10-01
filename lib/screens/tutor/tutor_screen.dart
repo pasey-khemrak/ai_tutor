@@ -50,6 +50,7 @@ class TutorScreen extends StatefulWidget {
     this.repository,
     this.initialSessionId,
     this.initialSubmission,
+    this.initialPrefill,
     this.userId = '',
     this.voiceMode = false,
     this.onOpenTargetedPractice,
@@ -59,6 +60,15 @@ class TutorScreen extends StatefulWidget {
   final VisualTutorRepository? repository;
   final String? initialSessionId;
   final VisualTutorStudentSubmission? initialSubmission;
+
+  /// A problem to offer the student without asking it on their behalf.
+  ///
+  /// Opening a lesson used to submit its starter problem straight away, so a
+  /// student who had typed nothing arrived at a finished board with the answer
+  /// already on it. The starter problem now waits in the input box: the topic
+  /// still says what it is about, and starting it is the student's move.
+  final String? initialPrefill;
+
   final String userId;
 
   /// Selects the microphone-first dock. It does not create a different lesson.
@@ -165,6 +175,10 @@ class _TutorScreenState extends State<TutorScreen> {
           );
       });
       return;
+    }
+    final prefill = widget.initialPrefill?.trim();
+    if (prefill != null && prefill.isNotEmpty) {
+      _messageController.text = prefill;
     }
     final initialSubmission = widget.initialSubmission;
     if (initialSubmission != null) {
@@ -521,7 +535,7 @@ class _TutorScreenState extends State<TutorScreen> {
           clientTurnId: clientTurnId,
         ),
       );
-      final response =
+      final rawResponse =
           await _sendTurnWithStreaming(
             turnRequest,
             turnSerial: turnSerial,
@@ -536,6 +550,10 @@ class _TutorScreenState extends State<TutorScreen> {
           );
       if (!mounted) return;
       if (!_streamCoordinator.isCurrent(turnSerial)) return;
+      final response = _normalizeDemonstrationResponse(
+        rawResponse,
+        effectiveSubmission,
+      );
       final responseLessonState = _mapFromObject(
         response.metadata['authoritative_lesson_state'],
       );
@@ -703,6 +721,7 @@ class _TutorScreenState extends State<TutorScreen> {
       return;
     }
     if (!mounted || !_streamCoordinator.isCurrent(turnSerial)) return;
+    response = _normalizeDemonstrationResponse(response, submission);
     final previousIds = _renderedBoardActions
         .map((action) => action.id)
         .toSet();
@@ -714,6 +733,77 @@ class _TutorScreenState extends State<TutorScreen> {
       _renderedBoardActions,
       previousActionIds: previousIds,
       response: response,
+    );
+  }
+
+  bool _isLessonDemonstration(VisualTutorStudentSubmission submission) {
+    return submission.metadata['entry_point'] == 'lesson_demonstration' ||
+        submission.metadata['auto_start'] == true;
+  }
+
+  String get _demonstrationInvitationPrompt {
+    final isKhmer =
+        _requestLanguageMode == 'khmer' ||
+        widget.context?.languageMode == 'khmer';
+    return isKhmer
+        ? 'តើអ្នកមានសំណួរអ្វីខ្លះអំពីជំហាននេះ ឬចង់សាកល្បងដោយខ្លួនឯង?'
+        : 'Do you have any questions about this step, or would you like to try one yourself?';
+  }
+
+  VisualTutorTurnResponseEntity _normalizeDemonstrationResponse(
+    VisualTutorTurnResponseEntity response,
+    VisualTutorStudentSubmission submission,
+  ) {
+    if (!_isLessonDemonstration(submission)) return response;
+    final invitation = _demonstrationInvitationPrompt;
+    final updatedBoardActions = response.boardActions
+        .map(
+          (a) => a.type == 'student_task' ? a.copyWith(text: invitation) : a,
+        )
+        .toList();
+    final updatedCanvasActions = response.canvasActions
+        .map(
+          (a) => a.type == 'student_task' ? a.copyWith(text: invitation) : a,
+        )
+        .toList();
+    return VisualTutorTurnResponseEntity(
+      sessionId: response.sessionId,
+      turnId: response.turnId,
+      spokenText: invitation,
+      displayText: invitation,
+      teachingMode: response.teachingMode,
+      finalAnswerLocked: response.finalAnswerLocked,
+      studentTask: invitation,
+      board: response.board,
+      screenState: response.screenState,
+      tutorStatus: response.tutorStatus,
+      studentIntent: response.studentIntent,
+      speech: response.speech != null
+          ? VisualTutorSpeechEntity(
+              text: invitation,
+              language: response.speech!.language,
+              voiceId: response.speech!.voiceId,
+              ttsStatus: response.speech!.ttsStatus,
+              speakAfterActionId: response.speech!.speakAfterActionId,
+              pauseAfterMs: response.speech!.pauseAfterMs,
+              metadata: response.speech!.metadata,
+            )
+          : null,
+      teachingStage: response.teachingStage,
+      canvas: response.canvas,
+      canvasActions: updatedCanvasActions,
+      boardActions: updatedBoardActions,
+      teachingBoard: response.teachingBoard,
+      interaction: response.interaction,
+      allowedActions: response.allowedActions,
+      quickActions: response.quickActions,
+      visualFocus: response.visualFocus,
+      nextStudentAction: response.nextStudentAction,
+      tutorBehavior: response.tutorBehavior,
+      masterySignal: response.masterySignal,
+      curriculumMetadata: response.curriculumMetadata,
+      verification: response.verification,
+      metadata: response.metadata,
     );
   }
 
@@ -867,7 +957,15 @@ class _TutorScreenState extends State<TutorScreen> {
                   if (!_renderedBoardActions.any(
                     (existing) => existing.id == action.id,
                   )) {
-                    _adoptBoardActions([..._renderedBoardActions, action]);
+                    final baseActions = isProvisionalBoardAction(action)
+                        ? _renderedBoardActions
+                        : _renderedBoardActions
+                              .where(
+                                (existing) =>
+                                    !isProvisionalBoardAction(existing),
+                              )
+                              .toList();
+                    _adoptBoardActions([...baseActions, action]);
                     _voiceStatus = '✏️ Writing…';
                     _recordBoardActionDiagnostic(
                       BoardActionDiagnostic(
@@ -1191,7 +1289,7 @@ class _TutorScreenState extends State<TutorScreen> {
   /// spelling out LaTeX is not how a teacher talks.
   Future<void> _narrateBoardAction(VisualTutorBoardActionEntity action) async {
     if (_tutorMuted || !mounted) return;
-    if (action.type != 'write_text') return;
+    if (action.type != 'write_text' && action.type != 'student_task') return;
     final text = (action.text ?? '').trim();
     if (text.isEmpty) return;
     await _speakText(
@@ -1767,11 +1865,12 @@ class _TutorScreenState extends State<TutorScreen> {
       return applyVisualTutorBoardPatch(_renderedBoardActions, responseActions);
     }
 
-    // Append / merge turn actions: remove superseded student task prompt so only
-    // the newest turn's task prompt is active, while preserving all math content.
+    // Append / merge turn actions: remove superseded student task prompt and
+    // any provisional streaming preview line so only authoritative math content remains.
     final byId = <String, VisualTutorBoardActionEntity>{
       for (final action in _renderedBoardActions)
-        if (action.type != 'student_task') action.id: action,
+        if (action.type != 'student_task' && !isProvisionalBoardAction(action))
+          action.id: action,
     };
     for (final action in responseActions) {
       byId[action.id] = action;
@@ -2820,6 +2919,29 @@ class _TutorScreenState extends State<TutorScreen> {
                 ),
               ),
             ),
+            if (boardActions.isEmpty && !_isLoading && !_isLocalCurriculumDemo)
+              Positioned.fill(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 24,
+                    ),
+                    child: _FreshBoardPrompt(
+                      compact: compact,
+                      onSelectTopic: (sampleProblem) {
+                        setState(() {
+                          _messageController.text = sampleProblem;
+                          _messageController.selection =
+                              TextSelection.collapsed(
+                            offset: sampleProblem.length,
+                          );
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ),
             if (_isLoading)
               const Positioned(
                 top: 0,
@@ -4478,8 +4600,9 @@ class TeachingCanvasBoard extends StatefulWidget {
 /// laid out underneath it. Most boards open on a step whose text starts lower
 /// down, which is why this went unseen; a board whose first item sits at the
 /// very top — the answer page — put the answer itself behind the buttons.
-double _boardContentTopInset(BuildContext context) {
-  final toolbarTop = AppBreakpoints.isPhone(context) ? 56.0 : 8.0;
+double _boardContentTopInset([double? width]) {
+  final isPhone = width != null ? width < 600 : true;
+  final toolbarTop = isPhone ? 56.0 : 8.0;
   return toolbarTop + AppBreakpoints.minTouchTarget + 12;
 }
 
@@ -4508,6 +4631,7 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
   Timer? _viewportSnapshotTimer;
   bool _lastEffectiveReducedMotion = false;
   bool _systemReducedMotion = false;
+  bool _didInitialDependencySync = false;
   String? _waitingForStudentActionId;
   int _pauseVersion = 0;
 
@@ -4530,8 +4654,6 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
     _waitController = AnimationController(vsync: this)..value = 1;
     _viewportController = TransformationController();
     _viewportController.addListener(_onViewportChanged);
-    _syncActions(initial: true);
-    _restoreSnapshot();
   }
 
   @override
@@ -4541,6 +4663,13 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
     _systemReducedMotion =
         (mediaQuery?.disableAnimations ?? false) ||
         (mediaQuery?.accessibleNavigation ?? false);
+    if (!_didInitialDependencySync) {
+      _didInitialDependencySync = true;
+      _lastEffectiveReducedMotion = _effectiveReducedMotion;
+      _syncActions(initial: true);
+      _restoreSnapshot();
+      return;
+    }
     final changed = _lastEffectiveReducedMotion != _effectiveReducedMotion;
     _lastEffectiveReducedMotion = _effectiveReducedMotion;
     if (changed && _lastActionSignature != 0) {
@@ -4561,6 +4690,7 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
         oldWidget.pageViewportHeight != widget.pageViewportHeight) {
       _syncActions();
       _restoreSnapshot();
+      _lastEffectiveReducedMotion = _effectiveReducedMotion;
     }
   }
 
@@ -4865,6 +4995,9 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
     _cancelTimeline();
     _activeActionId = null;
     _lastActionSignature = _signatureFor(widget.actions);
+    final previouslyVisibleActionIds = _visibleActions
+        .map((action) => action.id)
+        .toSet();
     for (final action in widget.actions) {
       if (!_isTimelinePlayableAction(action)) {
         _emitActionDiagnostic(
@@ -4876,11 +5009,15 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
     }
     final sortedActions = _sortedRenderableActions();
     final sortedActionIds = sortedActions.map((action) => action.id).toSet();
+    final sortedPlayableActions = _sortedPlayableActions();
+    final playableActionIds = sortedPlayableActions
+        .map((action) => action.id)
+        .toSet();
     _visibleActions = _visibleActions
         .where((action) => sortedActionIds.contains(action.id))
         .toList();
     _playedActionIds = _playedActionIds
-        .where((actionId) => sortedActionIds.contains(actionId))
+        .where((actionId) => playableActionIds.contains(actionId))
         .toList();
     if (_renderImmediately || initial && widget.actions.isEmpty) {
       setState(() {
@@ -4891,12 +5028,14 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
         _isPaused = false;
       });
       for (final action in sortedActions) {
-        _emitActionDiagnostic(action.id, BoardActionLifecycle.visible);
+        if (!previouslyVisibleActionIds.contains(action.id)) {
+          _emitActionDiagnostic(action.id, BoardActionLifecycle.visible);
+        }
       }
       return;
     }
 
-    final newActions = _sortedPlayableActions()
+    final newActions = sortedPlayableActions
         .where((action) => !_playedActionIds.contains(action.id))
         .toList();
     for (final action in newActions) {
@@ -5305,7 +5444,7 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
                               // layout, so without this the first item on a
                               // board is drawn underneath its buttons.
                               padding: EdgeInsets.only(
-                                top: _boardContentTopInset(context),
+                                top: _boardContentTopInset(_boardWidth),
                               ),
                               child: LiveTeachingBoard(
                                 key: ValueKey(
@@ -5409,16 +5548,22 @@ class _TeachingCanvasBoardState extends State<TeachingCanvasBoard>
             ),
           if (boardPages.length > 1)
             Positioned(
-              top: 6,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: BoardPageSwitcher(
-                  pages: boardPages,
-                  currentIndex: _visibleBoardPageIndex(boardPages),
-                  onSelected: _selectBoardPage,
-                ),
-              ),
+              top: AppBreakpoints.isPhone(context) ? 8 : 6,
+              left: AppBreakpoints.isPhone(context) ? 8 : 0,
+              right: AppBreakpoints.isPhone(context) ? null : 0,
+              child: AppBreakpoints.isPhone(context)
+                  ? BoardPageSwitcher(
+                      pages: boardPages,
+                      currentIndex: _visibleBoardPageIndex(boardPages),
+                      onSelected: _selectBoardPage,
+                    )
+                  : Center(
+                      child: BoardPageSwitcher(
+                        pages: boardPages,
+                        currentIndex: _visibleBoardPageIndex(boardPages),
+                        onSelected: _selectBoardPage,
+                      ),
+                    ),
             ),
         ],
       ),
@@ -5486,7 +5631,12 @@ class _BoardPlaybackControls extends StatelessWidget {
             tooltip: l10n.replayBoard,
             icon: const Icon(Icons.replay_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            constraints: AppBreakpoints.touchTargetConstraints,
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.standard,
+            constraints: const BoxConstraints.tightFor(
+              width: AppBreakpoints.minTouchTarget,
+              height: AppBreakpoints.minTouchTarget,
+            ),
             onPressed: reducedMotion ? null : onReplay,
           ),
           IconButton(
@@ -5494,7 +5644,12 @@ class _BoardPlaybackControls extends StatelessWidget {
             tooltip: l10n.jumpToCurrentStep,
             icon: const Icon(Icons.my_location_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            constraints: AppBreakpoints.touchTargetConstraints,
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.standard,
+            constraints: const BoxConstraints.tightFor(
+              width: AppBreakpoints.minTouchTarget,
+              height: AppBreakpoints.minTouchTarget,
+            ),
             onPressed: onJumpToCurrentStep,
           ),
           if (onSaveSolution != null)
@@ -5510,12 +5665,18 @@ class _BoardPlaybackControls extends StatelessWidget {
                 size: 18,
               ),
               color: VisualTutorColors.cyan,
-              constraints: AppBreakpoints.touchTargetConstraints,
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.standard,
+              constraints: const BoxConstraints.tightFor(
+                width: AppBreakpoints.minTouchTarget,
+                height: AppBreakpoints.minTouchTarget,
+              ),
               onPressed: alreadySaved ? null : onSaveSolution,
             ),
           Semantics(
             label: playLabel,
             button: true,
+            enabled: !reducedMotion,
             child: ExcludeSemantics(
               child: IconButton(
                 key: const Key('visual-tutor-board-play-pause'),
@@ -5525,7 +5686,12 @@ class _BoardPlaybackControls extends StatelessWidget {
                   size: 18,
                 ),
                 color: VisualTutorColors.cyan,
-                constraints: AppBreakpoints.touchTargetConstraints,
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.standard,
+                constraints: const BoxConstraints.tightFor(
+                  width: AppBreakpoints.minTouchTarget,
+                  height: AppBreakpoints.minTouchTarget,
+                ),
                 onPressed: reducedMotion ? null : onTogglePlayback,
               ),
             ),
@@ -5624,7 +5790,12 @@ class _StudentBoardControls extends StatelessWidget {
             tooltip: l10n.resetBoardView,
             icon: const Icon(Icons.fit_screen_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            constraints: AppBreakpoints.touchTargetConstraints,
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.standard,
+            constraints: const BoxConstraints.tightFor(
+              width: AppBreakpoints.minTouchTarget,
+              height: AppBreakpoints.minTouchTarget,
+            ),
             onPressed: onResetToFit,
           ),
           IconButton(
@@ -5636,7 +5807,12 @@ class _StudentBoardControls extends StatelessWidget {
               color: drawingMode ? VisualTutorColors.cyan : null,
             ),
             color: VisualTutorColors.cyan,
-            constraints: AppBreakpoints.touchTargetConstraints,
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.standard,
+            constraints: const BoxConstraints.tightFor(
+              width: AppBreakpoints.minTouchTarget,
+              height: AppBreakpoints.minTouchTarget,
+            ),
             onPressed: onToggleDrawing,
           ),
           IconButton(
@@ -5648,7 +5824,12 @@ class _StudentBoardControls extends StatelessWidget {
               color: erasing ? VisualTutorColors.cyan : null,
             ),
             color: VisualTutorColors.cyan,
-            constraints: AppBreakpoints.touchTargetConstraints,
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.standard,
+            constraints: const BoxConstraints.tightFor(
+              width: AppBreakpoints.minTouchTarget,
+              height: AppBreakpoints.minTouchTarget,
+            ),
             onPressed: onToggleErase,
           ),
           IconButton(
@@ -5656,7 +5837,12 @@ class _StudentBoardControls extends StatelessWidget {
             tooltip: l10n.undoInk,
             icon: const Icon(Icons.undo_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            constraints: AppBreakpoints.touchTargetConstraints,
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.standard,
+            constraints: const BoxConstraints.tightFor(
+              width: AppBreakpoints.minTouchTarget,
+              height: AppBreakpoints.minTouchTarget,
+            ),
             onPressed: canUndo ? onUndo : null,
           ),
           IconButton(
@@ -5664,7 +5850,12 @@ class _StudentBoardControls extends StatelessWidget {
             tooltip: l10n.redoInk,
             icon: const Icon(Icons.redo_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            constraints: AppBreakpoints.touchTargetConstraints,
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.standard,
+            constraints: const BoxConstraints.tightFor(
+              width: AppBreakpoints.minTouchTarget,
+              height: AppBreakpoints.minTouchTarget,
+            ),
             onPressed: canRedo ? onRedo : null,
           ),
           IconButton(
@@ -5672,7 +5863,12 @@ class _StudentBoardControls extends StatelessWidget {
             tooltip: l10n.clearInk,
             icon: const Icon(Icons.delete_outline_rounded, size: 18),
             color: VisualTutorColors.cyan,
-            constraints: AppBreakpoints.touchTargetConstraints,
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.standard,
+            constraints: const BoxConstraints.tightFor(
+              width: AppBreakpoints.minTouchTarget,
+              height: AppBreakpoints.minTouchTarget,
+            ),
             onPressed: canUndo ? onClear : null,
           ),
         ],
@@ -8434,4 +8630,170 @@ class PracticeIllustrationPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _FreshBoardPrompt extends StatelessWidget {
+  const _FreshBoardPrompt({
+    required this.compact,
+    required this.onSelectTopic,
+  });
+
+  final bool compact;
+  final ValueChanged<String> onSelectTopic;
+
+  @override
+  Widget build(BuildContext context) {
+    final isKhmer = AppLocalizations.of(context).isKhmer;
+    final promptText = isKhmer
+        ? 'សួរសំណួរ ឬលំហាត់គណិតវិទ្យា រូបវិទ្យា ឬគីមីវិទ្យា។ សូមវាយអត្ថបទ ឬនិយាយដើម្បីចាប់ផ្តើម។'
+        : 'Ask any math, physics, or chemistry problem. Type or speak below to begin.';
+
+    final topics = [
+      _TopicSuggestion(
+        id: 'limits',
+        keyName: 'fresh-board-topic-limits',
+        label: isKhmer ? 'លីមីត (Limits)' : 'Limits',
+        icon: Icons.functions_rounded,
+        sampleProblem: 'Find the limit of (x^2 - 4)/(x - 2) as x approaches 2',
+      ),
+      _TopicSuggestion(
+        id: 'complex-numbers',
+        keyName: 'fresh-board-topic-complex-numbers',
+        label: isKhmer ? 'ចំនួនកុំផ្លិច (Complex Numbers)' : 'Complex Numbers',
+        icon: Icons.calculate_outlined,
+        sampleProblem: r'z = 1 + i\sqrt{3}, \text{ find } |z|, \arg(z), \text{ and } z^6',
+      ),
+      _TopicSuggestion(
+        id: 'kinematics',
+        keyName: 'fresh-board-topic-kinematics',
+        label: isKhmer ? 'ស៊ីនេម៉ាទិច (Kinematics)' : 'Kinematics',
+        icon: Icons.speed_outlined,
+        sampleProblem: 'A car accelerates uniformly from rest to 20 m/s in 5 s. Find its acceleration.',
+      ),
+      _TopicSuggestion(
+        id: 'stoichiometry',
+        keyName: 'fresh-board-topic-stoichiometry',
+        label: isKhmer ? 'ស្តូស្យូមេទ្រី (Stoichiometry)' : 'Stoichiometry',
+        icon: Icons.science_outlined,
+        sampleProblem: 'Calculate the mass of CO2 produced by complete combustion of 16 g of CH4.',
+      ),
+    ];
+
+    return Container(
+      key: const Key('fresh-board-prompt'),
+      constraints: const BoxConstraints(maxWidth: 580),
+      margin: EdgeInsets.all(compact ? 16 : 24),
+      padding: EdgeInsets.all(compact ? 18 : 26),
+      decoration: BoxDecoration(
+        color: VisualTutorColors.shell.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: VisualTutorColors.cyan.withValues(alpha: 0.22),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: compact ? 48 : 56,
+            height: compact ? 48 : 56,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: VisualTutorColors.cyan.withValues(alpha: 0.12),
+              border: Border.all(
+                color: VisualTutorColors.cyan.withValues(alpha: 0.35),
+                width: 1.5,
+              ),
+            ),
+            child: Icon(
+              Icons.auto_awesome_rounded,
+              color: VisualTutorColors.cyan,
+              size: compact ? 26 : 30,
+            ),
+          ),
+          SizedBox(height: compact ? 12 : 16),
+          Text(
+            promptText,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: compact ? 15 : 17,
+              fontWeight: FontWeight.w600,
+              color: VisualTutorColors.text,
+              height: 1.45,
+            ),
+          ),
+          SizedBox(height: compact ? 16 : 20),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              isKhmer ? 'ប្រធានបទណែនាំ៖' : 'Suggested topics:',
+              style: TextStyle(
+                fontSize: compact ? 12 : 13,
+                fontWeight: FontWeight.w500,
+                color: VisualTutorColors.textMuted,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.start,
+            children: [
+              for (final topic in topics)
+                ActionChip(
+                  key: Key(topic.keyName),
+                  avatar: Icon(
+                    topic.icon,
+                    size: 16,
+                    color: VisualTutorColors.cyan,
+                  ),
+                  label: Text(
+                    topic.label,
+                    style: TextStyle(
+                      fontSize: compact ? 12 : 13,
+                      fontWeight: FontWeight.w500,
+                      color: VisualTutorColors.text,
+                    ),
+                  ),
+                  backgroundColor: VisualTutorColors.panelRaised,
+                  side: BorderSide(
+                    color: VisualTutorColors.cyan.withValues(alpha: 0.25),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  onPressed: () => onSelectTopic(topic.sampleProblem),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TopicSuggestion {
+  const _TopicSuggestion({
+    required this.id,
+    required this.keyName,
+    required this.label,
+    required this.icon,
+    required this.sampleProblem,
+  });
+
+  final String id;
+  final String keyName;
+  final String label;
+  final IconData icon;
+  final String sampleProblem;
 }

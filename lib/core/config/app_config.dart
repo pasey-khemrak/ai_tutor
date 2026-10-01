@@ -22,15 +22,32 @@ class AppConfig {
     this.hasExplicitAppEnvironment = true,
   });
 
+  static String resolveDefaultBackendUrl([Uri? pageUri]) {
+    final base = pageUri ?? Uri.base;
+    final scheme = base.scheme.toLowerCase();
+    final host = base.host.toLowerCase();
+    if ((scheme == 'http' || scheme == 'https') &&
+        (host == 'localhost' || host == '127.0.0.1')) {
+      return 'http://localhost:4000/api/v1';
+    }
+    if ((scheme == 'http' || scheme == 'https') && host.isNotEmpty) {
+      return '${base.origin}/api/v1';
+    }
+    return 'https://aitutor.mekhla.digital/api/v1';
+  }
+
   factory AppConfig.fromEnvironment() {
     const envName = String.fromEnvironment(
       'APP_ENV',
       defaultValue: '',
     );
-    const backendUrl = String.fromEnvironment(
+    const configuredBackendUrl = String.fromEnvironment(
       'BACKEND_BASE_URL',
-      defaultValue: 'http://localhost:4000/api/v1',
+      defaultValue: '',
     );
+    final backendUrl = configuredBackendUrl.trim().isNotEmpty
+        ? configuredBackendUrl.trim()
+        : resolveDefaultBackendUrl();
     const aiServiceUrl = String.fromEnvironment(
       'AI_SERVICE_BASE_URL',
       defaultValue: 'http://localhost:8001/api/v1',

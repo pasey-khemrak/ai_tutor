@@ -35,9 +35,8 @@ void main() {
   /// The drawing toolbar's left-most button stands in for the toolbar band:
   /// the controls are a private widget, but this button is keyed and sits
   /// inside them, so its rect is within the area content must keep clear of.
-  Rect toolbarRect(WidgetTester tester) => tester.getRect(
-    find.byKey(const Key('visual-tutor-board-reset-fit')),
-  );
+  Rect toolbarRect(WidgetTester tester) =>
+      tester.getRect(find.byKey(const Key('visual-tutor-board-reset-fit')));
 
   Future<void> pumpBoard(WidgetTester tester, Size size) async {
     tester.view.physicalSize = size;
@@ -82,6 +81,15 @@ void main() {
       final topLeft = renderBox.localToGlobal(Offset.zero);
       rects.add(topLeft & renderBox.size);
     }
+    for (final element in find.byType(SelectableText).evaluate()) {
+      final selectable = element.widget as SelectableText;
+      final value = selectable.data ?? selectable.textSpan?.toPlainText() ?? '';
+      if (value.isEmpty) continue;
+      final renderBox = element.renderObject as RenderBox?;
+      if (renderBox == null || !renderBox.hasSize) continue;
+      final topLeft = renderBox.localToGlobal(Offset.zero);
+      rects.add(topLeft & renderBox.size);
+    }
     return rects;
   }
 
@@ -98,8 +106,7 @@ void main() {
     expect(
       overlapping,
       isEmpty,
-      reason:
-          'board text is drawn under the toolbar at $toolbar: $overlapping',
+      reason: 'board text is drawn under the toolbar at $toolbar: $overlapping',
     );
   });
 
@@ -116,8 +123,7 @@ void main() {
     expect(
       overlapping,
       isEmpty,
-      reason:
-          'board text is drawn under the toolbar at $toolbar: $overlapping',
+      reason: 'board text is drawn under the toolbar at $toolbar: $overlapping',
     );
   });
 }

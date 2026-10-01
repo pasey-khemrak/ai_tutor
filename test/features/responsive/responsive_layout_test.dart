@@ -244,23 +244,20 @@ void main() {
 
         await tester.pumpWidget(
           _wrap(
-            VisualTutorHomeScreen(
-              repository: const LocalDemoStudentLessonsRepository(),
-              onOpenLesson: (_) {},
-              onAskQuestion: (_) {},
-            ),
+            const VisualTutorHomeScreen(),
           ),
         );
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        final search = find.byKey(const Key('curriculum-search-field'));
-        expect(search, findsOneWidget);
+        final prompt = find.byKey(const Key('fresh-board-prompt'));
+        expect(prompt, findsOneWidget);
 
         if (name == 'desktop') {
-          // On desktop (1440 wide), content is horizontally centered.
-          final center = tester.getRect(search).center.dx;
-          expect((center - size.width / 2).abs(), lessThan(10.0));
+          // On desktop (1440 wide with 400px side dock), content is centered in board area.
+          final center = tester.getRect(prompt).center.dx;
+          final boardCenter = (size.width - 400.0) / 2;
+          expect((center - boardCenter).abs(), lessThan(10.0));
         }
       });
     }
