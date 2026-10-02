@@ -158,7 +158,12 @@ void main() {
 
       final events = await _remote(client).streamTurn(_request()).toList();
 
-      expect(events.map((event) => event.eventId), [
+      // The client raises its own reconnecting status between attempts so the
+      // student is not left watching a still board; ignore it here.
+      final serverEvents = events.where(
+        (event) => event.data['state'] != reconnectingStreamState,
+      );
+      expect(serverEvents.map((event) => event.eventId), [
         'stream-1:0',
         'stream-1:1',
       ]);
@@ -210,7 +215,7 @@ void main() {
             'type': 'write_text',
             'sequence_index': 1,
             'text': 'This action must not reach the renderer.',
-            'widget_code': 'Text(\"unsafe\")',
+            'widget_code': 'Text("unsafe")',
           },
         ];
         teachingPlan['active_student_task'] = {
@@ -236,7 +241,7 @@ void main() {
         final event = (await _remote(
           client,
         ).streamTurn(_request()).toList()).single;
-        final actions = event.response!.boardActions!;
+        final actions = event.response!.boardActions;
 
         expect(actions.map((action) => action.id), contains('equation'));
         expect(actions.map((action) => action.type), contains('show_feedback'));
@@ -254,17 +259,22 @@ void main() {
     );
 
     test('falls through as an ApiException when opening SSE fails', () async {
+      // 503 is a dropped link, not a refusal, so it is retried. The failure
+      // still has to surface once the attempts are spent, so the caller can
+      // fall back to the non-streaming POST.
       final client = _StreamClient([
-        http.StreamedResponse(
-          http.ByteStream.fromBytes(utf8.encode('{"message":"offline"}')),
-          503,
-        ),
+        for (var i = 0; i < 3; i++)
+          http.StreamedResponse(
+            http.ByteStream.fromBytes(utf8.encode('{"message":"offline"}')),
+            503,
+          ),
       ]);
 
-      expect(
+      await expectLater(
         _remote(client).streamTurn(_request()).toList(),
         throwsA(isA<ApiException>()),
       );
+      expect(client.requests, hasLength(3));
     });
   });
 }

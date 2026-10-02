@@ -1,5 +1,6 @@
 /// The panel under the board must not repeat itself or report a check it
 /// never made — both crowd out the board the student is trying to read.
+library;
 import 'dart:convert';
 import 'dart:io';
 

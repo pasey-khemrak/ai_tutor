@@ -1,4 +1,5 @@
 import 'package:ai_tutor/core/theme/app_theme.dart';
+import 'package:ai_tutor/features/visual_tutor/presentation/board_pacing.dart';
 import 'package:ai_tutor/features/visual_tutor/domain/entities/visual_tutor_entities.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/semantic_board_layout.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/widgets/live_teaching_board.dart';
@@ -296,13 +297,17 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.dark(),
-        home: const Scaffold(
+        home: Scaffold(
           body: SizedBox(
             width: 390,
             height: 1000,
             child: TeachingCanvasBoard(
               actions: limitsActions,
               finalAnswerLocked: true,
+              // Sequencing test: the authored `duration_ms` is the thing
+              // under test, so the board's content-derived pace is
+              // switched off here. BoardPacing has its own tests.
+              pacing: const BoardPacing.verbatim(),
             ),
           ),
         ),

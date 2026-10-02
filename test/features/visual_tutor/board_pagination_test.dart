@@ -1,5 +1,6 @@
 /// Board 1, Board 2, Board 3 — a long solution continues onto the next board
 /// instead of running off the bottom, and earlier boards stay reachable.
+library;
 import 'package:ai_tutor/core/theme/app_theme.dart';
 import 'package:ai_tutor/features/visual_tutor/domain/entities/visual_tutor_entities.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/board_pagination.dart';

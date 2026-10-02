@@ -6,6 +6,8 @@ import 'package:flutter_math_fork/flutter_math.dart';
 import '../../domain/entities/visual_tutor_entities.dart';
 import '../live_board_state.dart';
 import '../visual_tutor_design.dart';
+import 'board_verification_chip.dart';
+import 'inline_math_text.dart';
 
 class BoardPaperScaffold extends StatelessWidget {
   const BoardPaperScaffold({
@@ -29,9 +31,12 @@ class BoardPaperScaffold extends StatelessWidget {
       decoration: VisualTutorDecorations.boardPaper(),
       clipBehavior: Clip.antiAlias,
       child: Stack(
+        fit: StackFit.expand,
         children: [
           if (showLines) const Positioned.fill(child: _PaperLines()),
-          Padding(padding: padding, child: child),
+          Positioned.fill(
+            child: Padding(padding: padding, child: child),
+          ),
         ],
       ),
     );
@@ -46,6 +51,7 @@ class BoardElementRenderer extends StatelessWidget {
     this.faded = false,
     this.progress = const AlwaysStoppedAnimation(1),
     this.reducedMotion = false,
+    this.verification,
   });
 
   final VisualTutorBoardActionEntity action;
@@ -53,6 +59,7 @@ class BoardElementRenderer extends StatelessWidget {
   final bool faded;
   final Animation<double> progress;
   final bool reducedMotion;
+  final VisualTutorVerificationEntity? verification;
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +144,7 @@ class BoardElementRenderer extends StatelessWidget {
               // Stable key for the board-level axes primitive; the positioned
               // parent remains action-specific for multiple graph regions.
               child: CustomPaint(
+                size: Size(width, height),
                 key: const Key('teaching-board-axes'),
                 painter: _AxesPainter(),
               ),
@@ -161,10 +169,14 @@ class BoardElementRenderer extends StatelessWidget {
         child: _ProgressiveVisualReveal(
           progress: progress,
           reducedMotion: reducedMotion,
-          child: _TableView(
-            action: action,
-            progress: progress,
-            reducedMotion: reducedMotion,
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: _TableView(
+              action: action,
+              progress: progress,
+              reducedMotion: reducedMotion,
+            ),
           ),
         ),
       ),
@@ -206,6 +218,7 @@ class BoardElementRenderer extends StatelessWidget {
               ),
               child: RepaintBoundary(
                 child: CustomPaint(
+                  size: Size(width, height),
                   painter: _StructuredGraphPainter(action.graph!),
                 ),
               ),
@@ -227,6 +240,7 @@ class BoardElementRenderer extends StatelessWidget {
             label: _visualSemanticLabel(action),
             child: RepaintBoundary(
               child: CustomPaint(
+                size: Size(width, height),
                 painter: _StructuredGraphPainter(action.graph!),
               ),
             ),
@@ -244,6 +258,7 @@ class BoardElementRenderer extends StatelessWidget {
           label: _visualSemanticLabel(action),
           child: RepaintBoundary(
             child: CustomPaint(
+              size: Size(width, height),
               painter: _DynamicNumberLinePainter(action: action),
             ),
           ),
@@ -266,6 +281,7 @@ class BoardElementRenderer extends StatelessWidget {
         progress: progress,
         scale: scale,
         reducedMotion: reducedMotion,
+        verification: verification,
       ),
       // Physics: free body diagram — box with labeled force arrows
       'draw_free_body_diagram' => Positioned(
@@ -284,6 +300,7 @@ class BoardElementRenderer extends StatelessWidget {
             reducedMotion: reducedMotion,
             child: RepaintBoundary(
               child: CustomPaint(
+                size: Size(width, height),
                 painter: _FreeBodyDiagramPainter(action: action),
               ),
             ),
@@ -306,7 +323,10 @@ class BoardElementRenderer extends StatelessWidget {
             progress: progress,
             reducedMotion: reducedMotion,
             child: RepaintBoundary(
-              child: CustomPaint(painter: _MoleculePainter(action: action)),
+              child: CustomPaint(
+                size: Size(width, height),
+                painter: _MoleculePainter(action: action),
+              ),
             ),
           ),
         ),
@@ -325,7 +345,10 @@ class BoardElementRenderer extends StatelessWidget {
             progress: progress,
             reducedMotion: reducedMotion,
             child: RepaintBoundary(
-              child: CustomPaint(painter: _WavePainter(action: action)),
+              child: CustomPaint(
+                size: Size(width, height),
+                painter: _WavePainter(action: action),
+              ),
             ),
           ),
         ),
@@ -666,6 +689,7 @@ class _PositionedTextAction extends StatelessWidget {
     required this.progress,
     required this.scale,
     required this.reducedMotion,
+    this.verification,
   });
 
   final VisualTutorBoardActionEntity action;
@@ -677,6 +701,7 @@ class _PositionedTextAction extends StatelessWidget {
   final Animation<double> progress;
   final double scale;
   final bool reducedMotion;
+  final VisualTutorVerificationEntity? verification;
 
   @override
   Widget build(BuildContext context) {
@@ -697,7 +722,11 @@ class _PositionedTextAction extends StatelessWidget {
     // Keep the full spoken content as the accessible label. This preserves
     // Khmer word order for screen readers; the concise role is supplied as a
     // hint rather than being prepended to the learner-facing text.
-    final semanticLabel = action.latex ?? action.text ?? 'Teaching board text';
+    final rawSemanticLabel =
+        action.latex ?? action.text ?? 'Teaching board text';
+    final semanticLabel = action.type == 'write_text'
+        ? inlineMathSemanticLabel(rawSemanticLabel)
+        : rawSemanticLabel;
     final semanticHint = switch (action.type) {
       'write_equation' ||
       'transform_equation' => 'Equation on the teaching board',
@@ -709,7 +738,7 @@ class _PositionedTextAction extends StatelessWidget {
       left: left,
       top: top,
       width: width,
-      height: height,
+      height: verification != null ? null : height,
       child: Semantics(
         container: true,
         excludeSemantics: true,
@@ -762,7 +791,13 @@ class _PositionedTextAction extends StatelessWidget {
               child: AnimatedBuilder(
                 animation: progress,
                 builder: (context, _) {
-                  final content = _visibleTextFor(action, progress.value);
+                  final rawText = action.text ?? '';
+                  final hasInlineMath =
+                      action.type == 'write_text' &&
+                      containsInlineMath(rawText);
+                  final content = hasInlineMath
+                      ? normalizeBoardText(rawText)
+                      : _visibleTextFor(action, progress.value);
                   final useLatex =
                       isEquation && (action.latex ?? '').trim().isNotEmpty;
                   final child = useLatex
@@ -779,11 +814,28 @@ class _PositionedTextAction extends StatelessWidget {
                             ),
                           ),
                         )
-                      : Text(
+                      : hasInlineMath
+                      ? ClipRect(
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            widthFactor: reducedMotion
+                                ? 1.0
+                                : progress.value.clamp(0.02, 1.0),
+                            child: InlineMathText(
+                              text: content,
+                              textDirection: Directionality.of(context),
+                              style: VisualTutorTypography.boardHandwriting
+                                  .copyWith(
+                                    color: ink,
+                                    fontSize: fontSize,
+                                    height: 1.3,
+                                  ),
+                            ),
+                          ),
+                        )
+                      : SelectableText(
                           content,
-                          softWrap: true,
                           maxLines: null,
-                          overflow: TextOverflow.visible,
                           textDirection: Directionality.of(context),
                           style:
                               (isEquation
@@ -798,38 +850,54 @@ class _PositionedTextAction extends StatelessWidget {
                                         : null,
                                   ),
                         );
-                  if (!isEquation) return child;
-                  return AnimatedSwitcher(
-                    key: Key('teaching-board-transform-${action.id}'),
-                    duration: reducedMotion
-                        ? Duration.zero
-                        : const Duration(milliseconds: 220),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    layoutBuilder: (currentChild, previousChildren) => Stack(
-                      alignment: Alignment.centerLeft,
-                      children: [...previousChildren, ?currentChild],
-                    ),
-                    transitionBuilder: (switchChild, animation) =>
-                        FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, .06),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: switchChild,
+                  final resolvedChild = !isEquation
+                      ? child
+                      : AnimatedSwitcher(
+                          key: Key('teaching-board-transform-${action.id}'),
+                          duration: reducedMotion
+                              ? Duration.zero
+                              : const Duration(milliseconds: 220),
+                          switchInCurve: Curves.easeOut,
+                          switchOutCurve: Curves.easeIn,
+                          layoutBuilder: (currentChild, previousChildren) =>
+                              Stack(
+                                alignment: Alignment.centerLeft,
+                                children: [...previousChildren, ?currentChild],
+                              ),
+                          transitionBuilder: (switchChild, animation) =>
+                              FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, .06),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: switchChild,
+                                ),
+                              ),
+                          child: KeyedSubtree(
+                            key: ValueKey(
+                              action.type == 'transform_equation'
+                                  ? '$content-${action.id}'
+                                  : action.id,
+                            ),
+                            child: child,
                           ),
+                        );
+                  if (verification != null) {
+                    return Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 10,
+                      runSpacing: 6,
+                      children: [
+                        resolvedChild,
+                        BoardAnswerVerificationChip(
+                          verification: verification!,
                         ),
-                    child: KeyedSubtree(
-                      key: ValueKey(
-                        action.type == 'transform_equation'
-                            ? '$content-${action.id}'
-                            : action.id,
-                      ),
-                      child: child,
-                    ),
-                  );
+                      ],
+                    );
+                  }
+                  return resolvedChild;
                 },
               ),
             ),
@@ -865,6 +933,46 @@ class _PositionedTextAction extends StatelessWidget {
   }
 }
 
+/// Preprocesses raw LaTeX equation strings to ensure clean rendering:
+/// 1. Strips accidental outer delimiters: $$, $, \[, \], \(, \).
+/// 2. Converts chemical reaction arrows: <=> and <-> to \rightleftharpoons, --> and -> to \rightarrow.
+/// 3. Normalizes physics vectors and unit vectors: \vec v -> \vec{v}, \hat i -> \hat{i}.
+String preprocessLatexEquation(String raw) {
+  var s = raw.trim();
+
+  // 1. Clean outer delimiters
+  if (s.startsWith(r'$$') && s.endsWith(r'$$') && s.length >= 4) {
+    s = s.substring(2, s.length - 2).trim();
+  } else if (s.startsWith(r'$') && s.endsWith(r'$') && s.length >= 2) {
+    s = s.substring(1, s.length - 1).trim();
+  } else if (s.startsWith(r'\[') && s.endsWith(r'\]') && s.length >= 4) {
+    s = s.substring(2, s.length - 2).trim();
+  } else if (s.startsWith(r'\(') && s.endsWith(r'\)') && s.length >= 4) {
+    s = s.substring(2, s.length - 2).trim();
+  }
+
+  // 2. Chemical reaction arrows
+  s = s.replaceAll('<=>', r'\rightleftharpoons');
+  s = s.replaceAll('<->', r'\rightleftharpoons');
+  s = s.replaceAll('-->', r'\rightarrow');
+  s = s.replaceAllMapped(
+    RegExp(r'(?<!\\(?:right|left|long))-(?:-)?>(?![a-zA-Z])'),
+    (_) => r'\rightarrow ',
+  );
+
+  // 3. Physics vectors and unit vectors
+  s = s.replaceAllMapped(
+    RegExp(r'\\vec\s+([a-zA-Z0-9])'),
+    (m) => '\\vec{${m[1]}}',
+  );
+  s = s.replaceAllMapped(
+    RegExp(r'\\hat\s+([a-zA-Z0-9])'),
+    (m) => '\\hat{${m[1]}}',
+  );
+
+  return s;
+}
+
 class _LatexEquation extends StatelessWidget {
   const _LatexEquation({
     required this.latex,
@@ -878,19 +986,20 @@ class _LatexEquation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cleanLatex = preprocessLatexEquation(latex);
     // Attempt to render as proper LaTeX; fall back to plain text on parse failure.
     // flutter_math_fork's Math.tex() is the entry point. The onErrorFallback
     // receives a FlutterMathException and returns a fallback widget.
     try {
       final equation = Math.tex(
-        latex,
+        cleanLatex,
         textStyle: TextStyle(
           color: color,
           fontSize: fontSize,
           fontWeight: FontWeight.w900,
         ),
         onErrorFallback: (_) => Text(
-          latex,
+          cleanLatex,
           style: TextStyle(
             color: color,
             fontSize: fontSize,
@@ -911,7 +1020,7 @@ class _LatexEquation extends StatelessWidget {
       );
     } catch (_) {
       return Text(
-        latex,
+        cleanLatex,
         style: TextStyle(
           color: color,
           fontSize: fontSize,

@@ -3,6 +3,7 @@
 ///
 /// Half of "\quad" is not valid LaTeX, so character-by-character reveal made
 /// the renderer fall back to printing the raw command on the board mid-write.
+library;
 import 'package:ai_tutor/core/theme/app_theme.dart';
 import 'package:ai_tutor/features/visual_tutor/domain/entities/visual_tutor_entities.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/widgets/board_element_renderer.dart';

@@ -3,7 +3,6 @@ import 'package:ai_tutor/features/visual_tutor/domain/entities/visual_tutor_enti
 import 'package:ai_tutor/features/visual_tutor/presentation/semantic_board_layout.dart';
 import 'package:ai_tutor/features/visual_tutor/presentation/widgets/board_element_renderer.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,96 +1,110 @@
+import 'package:ai_tutor/core/localization/app_localizations.dart';
 import 'package:ai_tutor/core/theme/app_theme.dart';
-import 'package:ai_tutor/screens/learning_selection/learning_selection_repository.dart';
 import 'package:ai_tutor/screens/tutor/visual_tutor_home_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   Widget buildScreen({
-    VoidCallback? onTypeQuestion,
-    VoidCallback? onVoiceInput,
-    VoidCallback? onStuck,
-    VoidCallback? onScanProblem,
-    VoidCallback? onOpenLessons,
+    Locale? locale,
   }) {
     return MaterialApp(
       theme: AppTheme.dark(),
-      home: Scaffold(
-        body: VisualTutorHomeScreen(
-          onBack: () {},
-          onTypeQuestion: onTypeQuestion ?? () {},
-          onVoiceInput: onVoiceInput ?? () {},
-          onStuck: onStuck ?? () {},
-          onScanProblem: onScanProblem ?? () {},
-          onContinueLearning: (_) {},
-          onOpenLessons: onOpenLessons ?? () {},
-        ),
+      locale: locale,
+      localizationsDelegates: const [
+        AppLocalizationsDelegate(),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const Scaffold(
+        body: VisualTutorHomeScreen(),
       ),
     );
   }
 
-  testWidgets('all Visual Tutor home cards render', (tester) async {
+  testWidgets(
+      'renders whiteboard in ask_question mode with fresh board prompt in English',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(buildScreen());
+    await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('visual-tutor-home-screen')), findsOneWidget);
-    expect(find.text('Rean AI Visual Tutor'), findsOneWidget);
-    expect(find.text('រៀនជាមួយគ្រូ AI'), findsOneWidget);
-    expect(find.byKey(const Key('visual-tutor-welcome-panel')), findsOneWidget);
-    expect(find.text('How can I help you\ntoday?'), findsOneWidget);
-    expect(find.byKey(const Key('scan-problem-card')), findsOneWidget);
-    expect(find.byKey(const Key('type-question-card')), findsOneWidget);
-    expect(find.byKey(const Key('voice-input-card')), findsOneWidget);
-    expect(find.byKey(const Key('visual-tutor-stuck-card')), findsOneWidget);
-    expect(find.text('Continue Learning'), findsOneWidget);
-    expect(find.text('Browse published lessons'), findsOneWidget);
+    expect(find.byKey(const Key('fresh-board-prompt')), findsOneWidget);
+    expect(
+      find.text(
+          'Ask any math, physics, or chemistry problem. Type or speak below to begin.'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('fresh-board-topic-limits')), findsOneWidget);
+    expect(
+        find.byKey(const Key('fresh-board-topic-complex-numbers')), findsOneWidget);
+    expect(find.byKey(const Key('fresh-board-topic-kinematics')), findsOneWidget);
+    expect(
+        find.byKey(const Key('fresh-board-topic-stoichiometry')), findsOneWidget);
   });
 
-  testWidgets('action cards call navigation callbacks', (tester) async {
-    var typed = false;
-    var voice = false;
-    var stuck = false;
-    var scanned = false;
-    var openedLessons = false;
+  testWidgets('renders fresh board prompt in Khmer under km locale',
+      (tester) async {
+    await tester.pumpWidget(buildScreen(locale: const Locale('km')));
+    await tester.pumpAndSettle();
 
-    await tester.pumpWidget(
-      buildScreen(
-        onTypeQuestion: () => typed = true,
-        onVoiceInput: () => voice = true,
-        onStuck: () => stuck = true,
-        onScanProblem: () => scanned = true,
-        onOpenLessons: () => openedLessons = true,
-      ),
+    expect(
+      find.text(
+          'សួរសំណួរ ឬលំហាត់គណិតវិទ្យា រូបវិទ្យា ឬគីមីវិទ្យា។ សូមវាយអត្ថបទ ឬនិយាយដើម្បីចាប់ផ្តើម។'),
+      findsOneWidget,
     );
-
-    await tester.ensureVisible(find.byKey(const Key('type-question-card')));
-    await tester.tap(find.byKey(const Key('type-question-card')));
-    await tester.ensureVisible(find.byKey(const Key('voice-input-card')));
-    await tester.tap(find.byKey(const Key('voice-input-card')));
-    await tester.ensureVisible(find.byKey(const Key('scan-problem-card')));
-    await tester.tap(find.byKey(const Key('scan-problem-card')));
-    await tester.ensureVisible(find.byKey(const Key('start-live-help-button')));
-    await tester.tap(find.byKey(const Key('start-live-help-button')));
-    await tester.ensureVisible(
-      find.byKey(const Key('tutor-open-lessons-prompt')),
-    );
-    await tester.tap(find.byKey(const Key('tutor-open-lessons-prompt')));
-
-    expect(typed, isTrue);
-    expect(voice, isTrue);
-    expect(scanned, isTrue);
-    expect(stuck, isTrue);
-    expect(openedLessons, isTrue);
+    expect(find.textContaining('លីមីត'), findsOneWidget);
+    expect(find.textContaining('ចំនួនកុំផ្លិច'), findsOneWidget);
+    expect(find.textContaining('ស៊ីនេម៉ាទិច'), findsOneWidget);
+    expect(find.textContaining('ស្តូស្យូមេទ្រី'), findsOneWidget);
   });
 
-  testWidgets('Visual Tutor home has no mobile overflow', (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
+  testWidgets('tapping a suggested topic chip prefills problem into the input bar',
+      (tester) async {
+    await tester.pumpWidget(buildScreen());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('fresh-board-topic-limits')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('limit of (x^2 - 4)/(x - 2)'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'tapping complex numbers chip prefills complex numbers problem',
+      (tester) async {
+    await tester.pumpWidget(buildScreen());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('fresh-board-topic-complex-numbers')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('z^6'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('visual tutor home renders on phone without overflow',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 780);
     tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.reset);
 
     await tester.pumpWidget(buildScreen());
+    await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const Key('visual-tutor-home-screen')), findsOneWidget);
-    expect(find.byKey(const Key('visual-tutor-stuck-card')), findsOneWidget);
+    expect(find.byKey(const Key('fresh-board-prompt')), findsOneWidget);
   });
 }

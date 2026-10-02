@@ -4,53 +4,61 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets(
-    'Voice tab opens the real Visual Tutor in microphone-first mode',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light(), home: const TutorShell()),
-      );
+  testWidgets('bottom navigation has no Voice tab', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(theme: AppTheme.light(), home: const TutorShell()),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Voice'));
-      await tester.pumpAndSettle();
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Tutor'), findsOneWidget);
+    expect(find.text('Lessons'), findsOneWidget);
+    expect(find.text('Voice'), findsNothing);
+  });
 
-      expect(
-        find.byKey(const Key('visual-tutor-board-vertical-scroll')),
-        findsOneWidget,
-      );
-      expect(find.byKey(const Key('voice-response-button')), findsOneWidget);
-      expect(find.byKey(const Key('voice-open-keyboard')), findsOneWidget);
-      expect(find.text('What is the integral of e^x?'), findsNothing);
+  testWidgets('Tutor navigation is authoritative and opens tutor home', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(theme: AppTheme.light(), home: const TutorShell()),
+    );
 
-      await tester.tap(find.byKey(const Key('voice-open-keyboard')));
-      await tester.pump();
+    await tester.tap(find.text('Lessons'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tutor'));
+    await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('tutor-message-field')), findsOneWidget);
-      expect(find.byKey(const Key('voice-close-keyboard')), findsOneWidget);
-      expect(find.byKey(const Key('voice-response-button')), findsOneWidget);
-    },
-  );
+    expect(find.byKey(const Key('visual-tutor-home-screen')), findsOneWidget);
+    expect(find.byKey(const Key('fresh-board-prompt')), findsOneWidget);
+  });
 
-  testWidgets(
-    'Tutor navigation is authoritative and replaces a voice tutor route with tutor home',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light(), home: const TutorShell()),
-      );
+  testWidgets('switching between Tutor and Lessons tabs preserves whiteboard', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(theme: AppTheme.light(), home: const TutorShell()),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Voice'));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('voice-response-button')), findsOneWidget);
+    // Open Tutor tab
+    await tester.tap(find.text('Tutor'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('fresh-board-prompt')), findsOneWidget);
 
-      await tester.tap(find.text('Tutor'));
-      await tester.pumpAndSettle();
+    // Tap a topic chip to populate problem
+    await tester.tap(find.byKey(const Key('fresh-board-topic-limits')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('limit of (x^2 - 4)/(x - 2)'), findsOneWidget);
 
-      expect(find.byKey(const Key('visual-tutor-home-screen')), findsOneWidget);
-      expect(find.byKey(const Key('voice-response-button')), findsNothing);
-      expect(
-        find.byKey(const Key('visual-tutor-board-vertical-scroll')),
-        findsNothing,
-      );
-    },
-  );
+    // Switch to Lessons tab
+    await tester.tap(find.text('Lessons'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('fresh-board-prompt')), findsNothing);
+
+    // Switch back to Tutor tab - whiteboard state and entered text must be preserved
+    await tester.tap(find.text('Tutor'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('fresh-board-prompt')), findsOneWidget);
+    expect(find.textContaining('limit of (x^2 - 4)/(x - 2)'), findsOneWidget);
+  });
 }

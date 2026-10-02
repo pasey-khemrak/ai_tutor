@@ -54,4 +54,25 @@ void main() {
     expect(config.shouldUseDemoData, isFalse);
     expect(config.shouldUseDemoTutorData, isFalse);
   });
+
+  test('resolveDefaultBackendUrl uses same-origin /api/v1 on non-localhost web domains', () {
+    expect(
+      AppConfig.resolveDefaultBackendUrl(
+        Uri.parse('https://aitutor.mekhla.digital/#/dashboard'),
+      ),
+      'https://aitutor.mekhla.digital/api/v1',
+    );
+    expect(
+      AppConfig.resolveDefaultBackendUrl(
+        Uri.parse('http://localhost:53123/#/dashboard'),
+      ),
+      'http://localhost:4000/api/v1',
+    );
+    expect(
+      AppConfig.resolveDefaultBackendUrl(
+        Uri.parse('http://127.0.0.1:53124/#/dashboard'),
+      ),
+      'http://localhost:4000/api/v1',
+    );
+  });
 }

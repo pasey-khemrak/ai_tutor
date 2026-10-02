@@ -4,6 +4,7 @@
 /// delivers the very same actions again. Reported symptom: the board wrote the
 /// whole solution from board 1 to board 3, then started over from board 1 and
 /// wrote all of it a second time -- after which board 2 was blank.
+library;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';

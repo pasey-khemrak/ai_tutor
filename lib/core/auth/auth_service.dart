@@ -26,12 +26,22 @@ class AuthService {
       config.isDevelopment && !config.requiresProductionServices;
   FirebaseAuth get _auth => _firebaseAuth ?? FirebaseAuth.instance;
 
-  Future<bool> restoreSession() async {
+  Future<bool> restoreSession({
+    Duration timeout = const Duration(seconds: 4),
+  }) async {
     if (_hasFirebase) {
-      final user = await _auth.authStateChanges().first;
-      if (user != null) {
-        session.markSignedIn();
-        return true;
+      try {
+        if (_auth.currentUser != null) {
+          session.markSignedIn();
+          return true;
+        }
+        final user = await _auth.authStateChanges().first.timeout(timeout);
+        if (user != null) {
+          session.markSignedIn();
+          return true;
+        }
+      } catch (_) {
+        // Fall back gracefully on timeout or persistence error
       }
     }
     if (config.shouldUseDemoData && session.isAuthenticated) {

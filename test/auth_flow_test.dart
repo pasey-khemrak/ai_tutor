@@ -95,4 +95,23 @@ void main() {
     expect(session.isAuthenticated, isTrue);
     expect(await service.getAccessToken(), 'demo-token');
   });
+
+  test('restored session maintains protected dashboard route without redirecting', () async {
+    final session = AuthSession(isAuthenticated: true);
+    final guard = AuthRouteGuard(
+      config: const AppConfig(
+        environment: AppEnvironment.production,
+        backendBaseUrl: 'https://aitutor.mekhla.digital/api/v1',
+        aiServiceBaseUrl: 'https://aitutor-ai.mekhla.digital/api/v1',
+        useDemoAuth: false,
+        useDemoTutorData: false,
+      ),
+      session: session,
+    );
+
+    // On browser refresh, dashboard route stays on dashboard
+    expect(guard.resolveProtectedRoute(AppRoutes.dashboard), AppRoutes.dashboard);
+    // Initial route resolves straight to dashboard without needing auth check splash
+    expect(guard.resolveInitialRoute(), AppRoutes.dashboard);
+  });
 }

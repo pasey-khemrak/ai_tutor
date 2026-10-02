@@ -105,6 +105,7 @@ class StudentProfileRepository {
       preferredLanguage:
           (user['preferred_language'] as String?)?.trim() ?? 'en',
       subjects: subjects,
+      email: (user['email'] as String?)?.trim() ?? '',
     );
   }
 
@@ -133,8 +134,10 @@ class StudentProfileView {
     required this.gradeLevelId,
     required this.preferredLanguage,
     required this.subjects,
+    this.email = '',
   });
   final String displayName;
+  final String email;
   final String gradeLevelId;
   final String preferredLanguage;
   final List<String> subjects;

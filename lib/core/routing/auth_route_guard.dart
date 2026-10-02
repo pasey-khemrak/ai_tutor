@@ -21,7 +21,7 @@ class AuthRouteGuard {
   final AuthSession session;
 
   String resolveInitialRoute() {
-    if (config.shouldUseDemoData) {
+    if (config.shouldUseDemoData || session.isAuthenticated) {
       session.markSignedIn();
       return AppRoutes.dashboard;
     }

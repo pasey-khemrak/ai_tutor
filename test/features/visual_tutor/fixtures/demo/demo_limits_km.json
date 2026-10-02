@@ -1,0 +1,316 @@
+{
+  "schema_version": 2,
+  "session_id": "94740655-219b-4a89-87f3-0f987c2d9220",
+  "turn_id": "4eff06b8-183c-454e-94f2-0502a46120cb",
+  "board_version": 1,
+  "base_board_version": 0,
+  "board_update_mode": "replace",
+  "lesson_state": {
+    "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+    "lesson_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b",
+    "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+    "current_step_index": 0,
+    "expected_student_action_id": "ws-next-14",
+    "teaching_stage": null,
+    "lesson_state": null,
+    "final_answer_locked": false,
+    "board_version": 1,
+    "base_board_version": 0
+  },
+  "tutor_status": "Waiting for you",
+  "teaching_plan": {
+    "schema_version": 1,
+    "representation": "worked_example",
+    "learning_objective": "យល់គ្រប់ជំហានក្នុងការរកដែនកំណត់នេះ",
+    "teaching_message": "នេះជាដំណោះស្រាយលម្អិតមួយជំហានម្តងៗ។ លីមីតគឺ 4។ អ្នកអាចសួរអំពីជំហានណាមួយដែលចង់ឱ្យពន្យល់បន្ថែមបាន។",
+    "visible_board_actions": [
+      {
+        "id": "ws-step-read-0",
+        "type": "write_text",
+        "sequence_index": 0,
+        "duration_ms": 450,
+        "section_id": "step-read",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "ជំហានទី ១ · យល់អំពីសំណួរ. យើងចង់ដឹងថាតើតម្លៃ f(x) ខិតទៅជិតតម្លៃណា នៅពេល x ខិតទៅជិត 2។ x មិនចាំបាច់ស្មើ 2 នោះទេ — យើងពិនិត្យមើលតម្លៃដែលនៅក្បែរវា។",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-read-0"
+      },
+      {
+        "id": "ws-step-read-1",
+        "type": "write_equation",
+        "sequence_index": 1,
+        "duration_ms": 550,
+        "section_id": "step-read",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\lim_{x \\to 2} \\frac{x^{2} - 4}{x - 2}",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-read-1"
+      },
+      {
+        "id": "ws-step-try-2",
+        "type": "write_text",
+        "sequence_index": 2,
+        "duration_ms": 450,
+        "section_id": "step-try",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "ជំហានទី ២ · សាកល្បងជំនួសជាមុនសិន. ការជំនួស x = 2 នាំឱ្យទទួលបាន 0/0។ នេះហៅថារាងមិនកំណត់។ វាមិនមានន័យថាចម្លើយស្មើ 0 នោះទេ — វាប្រាប់យើងឱ្យសម្រួលកន្សោមជាមុនសិន មុននឹងជំនួស។",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-try-2"
+      },
+      {
+        "id": "ws-step-try-3",
+        "type": "write_equation",
+        "sequence_index": 3,
+        "duration_ms": 550,
+        "section_id": "step-try",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\frac{2^{2} - 4}{2 - 2} = \\frac{0}{0}",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-try-3"
+      },
+      {
+        "id": "ws-step-factor-4",
+        "type": "write_text",
+        "sequence_index": 4,
+        "duration_ms": 450,
+        "section_id": "step-factor",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "ជំហានទី ៣ · ដាក់ភាគយក និងភាគបែងជាផលគុណកត្តា. x² − 4 គឺជារាងផលដកការេ៖ a² − b² = (a − b)(a + b)។ ផ្នែកទាំងពីរមានកត្តារួម (x − 2) ដែលជាកត្តាធ្វើឱ្យកើតមាន 0/0។",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-factor-4"
+      },
+      {
+        "id": "ws-step-factor-5",
+        "type": "write_equation",
+        "sequence_index": 5,
+        "duration_ms": 550,
+        "section_id": "step-factor",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\frac{x^{2} - 4}{x - 2} = \\frac{\\left(x - 2\\right) \\left(x + 2\\right)}{x - 2}",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-factor-5"
+      },
+      {
+        "id": "ws-step-cancel-6",
+        "type": "write_text",
+        "sequence_index": 6,
+        "duration_ms": 450,
+        "section_id": "step-cancel",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "ជំហានទី ៤ · សម្រួលកត្តារួមចោល. យើងអាចសម្រួល (x − 2) បាន ពីព្រោះ x គ្រាន់តែខិតទៅជិត 2 ហើយមិនដែលស្មើវាឡើយ ដូច្នេះ (x − 2) មិនដែលស្មើនឹងសូន្យទេ។",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-cancel-6"
+      },
+      {
+        "id": "ws-step-cancel-7",
+        "type": "write_equation",
+        "sequence_index": 7,
+        "duration_ms": 550,
+        "section_id": "step-cancel",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\frac{x^{2} - 4}{x - 2} = x + 2, \\quad x \\neq 2",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-cancel-7"
+      },
+      {
+        "id": "ws-step-substitute-8",
+        "type": "write_text",
+        "sequence_index": 8,
+        "duration_ms": 450,
+        "section_id": "step-substitute",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "ជំហានទី ៥ · ជំនួសទៅក្នុងកន្សោមសម្រួលរួច. កន្សោមដែលសម្រួលរួចមិនមានបញ្ហាត្រង់ x = 2 ទេ ដូច្នេះឥឡូវនេះយើងអាចជំនួសបាន។",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-substitute-8"
+      },
+      {
+        "id": "ws-step-substitute-9",
+        "type": "write_equation",
+        "sequence_index": 9,
+        "duration_ms": 550,
+        "section_id": "step-substitute",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\lim_{x \\to 2} \\left(x + 2\\right) = 2 + 2 = 4",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-substitute-9"
+      },
+      {
+        "id": "ws-step-check-10",
+        "type": "write_text",
+        "sequence_index": 10,
+        "duration_ms": 450,
+        "section_id": "step-check",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "ជំហានទី ៦ · ផ្ទៀងផ្ទាត់ជាមួយតារាងតម្លៃ. ទាំងពីខាងឆ្វេង និងពីខាងស្តាំនៃ x = 2 f(x) ខិតទៅជិត 4 — ទាំងសងខាងមានតម្លៃដូចគ្នា។",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-check-10"
+      },
+      {
+        "id": "ws-step-check-11",
+        "type": "show_table",
+        "sequence_index": 11,
+        "duration_ms": 700,
+        "section_id": "step-check",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "table": {
+          "columns": [
+            "x",
+            "f(x)"
+          ],
+          "rows": [
+            [
+              "1.9",
+              "3.9"
+            ],
+            [
+              "1.99",
+              "3.99"
+            ],
+            [
+              "1.999",
+              "3.999"
+            ],
+            [
+              "2",
+              "undefined"
+            ],
+            [
+              "2.001",
+              "4.001"
+            ],
+            [
+              "2.01",
+              "4.01"
+            ],
+            [
+              "2.1",
+              "4.1"
+            ]
+          ]
+        },
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-step-check-11"
+      },
+      {
+        "id": "ws-answer-12",
+        "type": "write_text",
+        "sequence_index": 12,
+        "duration_ms": 450,
+        "section_id": "answer",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "ចម្លើយ · លីមីតគឺ 4។",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-answer-12"
+      },
+      {
+        "id": "ws-answer-13",
+        "type": "write_equation",
+        "sequence_index": 13,
+        "duration_ms": 600,
+        "section_id": "answer",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "\\lim_{x \\to 2} \\frac{x^{2} - 4}{x - 2} = 4",
+        "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+        "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-answer-13"
+      }
+    ],
+    "active_student_task": {
+      "id": "ws-next-14",
+      "type": "student_task",
+      "sequence_index": 14,
+      "section_id": "next",
+      "layout_zone": "student_task",
+      "layout_flow": "vertical",
+      "text": "សួរខ្ញុំអំពីជំហានណាមួយ ឬសាកល្បងលីមីតផ្សេងទៀត។",
+      "requires_student_response": true,
+      "task_type": "conceptual_operation",
+      "problem_instance_id": "problem-0ce6426b0901418f9692120f0d377b7b",
+      "active_step_id": "lesson-problem-0ce6426b0901418f9692120f0d377b7b:step-0:ws-next-14",
+      "board_version": 1,
+      "base_board_version": 0,
+      "action_id": "ws-next-14"
+    },
+    "allowed_student_actions": [
+      "submit_answer",
+      "explain_differently",
+      "request_hint"
+    ],
+    "hidden_answer_policy": {
+      "mode": "reveal_allowed",
+      "deterministic_policy_permits_final_reveal": true
+    },
+    "next_state_policy": {
+      "correct": "continue",
+      "invalid": "reteach",
+      "incomplete": "ask_for_work",
+      "stuck": "reteach",
+      "hint": "continue",
+      "explain_differently": "reteach"
+    }
+  },
+  "verification": {
+    "status": "correct",
+    "verified": true,
+    "concise_evidence": "Verified",
+    "student_facing_feedback": "Checked two ways: the algebra and a table of values agree."
+  },
+  "recovery": {
+    "state": "ready"
+  }
+}

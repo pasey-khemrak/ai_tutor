@@ -3,6 +3,7 @@
 /// Mirrors how the tutor screen embeds the board: TeachingCanvasBoard inside a
 /// canvas that can be taller than the screen, with the visible height passed in
 /// separately.
+library;
 import 'dart:convert';
 import 'dart:io';
 

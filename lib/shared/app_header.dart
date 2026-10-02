@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/adaptive_colors.dart';
+import '../core/localization/app_localizations.dart';
 import '../core/app_colors.dart';
 import 'rean_avatar.dart';
 
@@ -11,6 +12,7 @@ class AppHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isLight = AdaptiveColors.isLight(context) && !forceDark;
     final panelColor = isLight
         ? Colors.white.withValues(alpha: .92)
@@ -50,7 +52,7 @@ class AppHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'AI Mathematics Tutor',
+                  l10n.appTagline,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/visual_tutor_entities.dart';
 import '../live_board_state.dart';
 import '../semantic_board_layout.dart';
@@ -36,12 +37,14 @@ class LiveTeachingBoard extends StatefulWidget {
     this.selectedActionId,
     this.onStudentInteraction,
     this.onActionDiagnostic,
+    this.verification,
   });
 
   final VisualTutorBoardEntity? board;
   final List<VisualTutorBoardActionEntity> actions;
   final String? variant;
   final bool finalAnswerLocked;
+  final VisualTutorVerificationEntity? verification;
   final bool compact;
 
   /// Keeps legacy callers that already provide logical canvas coordinates from
@@ -270,6 +273,7 @@ class _LiveTeachingBoardState extends State<LiveTeachingBoard> {
       enteringActionIds: _enteringActionIds,
       reducedMotion: _renderImmediately || !widget.transitionsEnabled,
       finalAnswerLocked: widget.finalAnswerLocked,
+      verification: widget.verification,
       compact: widget.compact,
       useLogicalCanvasScale: widget.useLogicalCanvasScale,
       activeActionId: widget.activeActionId,
@@ -320,6 +324,7 @@ class _ActionBoard extends StatelessWidget {
     required this.selectedActionId,
     required this.onStudentInteraction,
     required this.finalAnswerLocked,
+    this.verification,
     required this.compact,
     required this.useLogicalCanvasScale,
     required this.hasUnsupportedActions,
@@ -335,6 +340,7 @@ class _ActionBoard extends StatelessWidget {
   final String? selectedActionId;
   final ValueChanged<BoardStudentInteraction>? onStudentInteraction;
   final bool finalAnswerLocked;
+  final VisualTutorVerificationEntity? verification;
   final bool compact;
   final bool useLogicalCanvasScale;
   final bool hasUnsupportedActions;
@@ -363,10 +369,12 @@ class _ActionBoard extends StatelessWidget {
           final exitingActions = _withFallbackLayout(
             this.exitingActions.values.toList(),
           );
+          final targetAnswerActionId = _findAnswerActionId(visibleActions);
           final activeIndex = visibleActions.indexWhere(
             (action) => action.id == activeActionId,
           );
           return Stack(
+            fit: StackFit.expand,
             children: [
               for (var i = 0; i < visibleActions.length; i++)
                 Positioned.fill(
@@ -399,6 +407,11 @@ class _ActionBoard extends StatelessWidget {
                                 ? activeProgress
                                 : const AlwaysStoppedAnimation(1),
                             reducedMotion: reducedMotion,
+                            verification: (!finalAnswerLocked &&
+                                    visibleActions[i].id ==
+                                        targetAnswerActionId)
+                                ? verification
+                                : null,
                           ),
                         ],
                       ),
@@ -451,6 +464,44 @@ class _ActionBoard extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String? _findAnswerActionId(List<VisualTutorBoardActionEntity> actions) {
+    final reveal =
+        actions.where((a) => a.type == 'final_answer_reveal').firstOrNull;
+    if (reveal != null) return reveal.id;
+
+    final answerText = actions.where((a) =>
+        (a.sectionId == 'answer' ||
+            a.sectionId == 'final_answer' ||
+            a.id.startsWith('ws-answer-')) &&
+        a.type == 'write_text' &&
+        ((a.text ?? '').contains('Answer') ||
+            (a.text ?? '').contains('ចម្លើយ'))).firstOrNull;
+    if (answerText != null) return answerText.id;
+
+    final anyAnswerSection = actions.where((a) =>
+        a.sectionId == 'answer' ||
+        a.sectionId == 'final_answer' ||
+        a.id.startsWith('ws-answer-')).firstOrNull;
+    if (anyAnswerSection != null) return anyAnswerSection.id;
+
+    for (final a in actions) {
+      final t = a.text ?? '';
+      if (t.startsWith('Answer ·') ||
+          t.startsWith('ចម្លើយ ·') ||
+          t.startsWith('Answer:') ||
+          t.startsWith('ចម្លើយ៖')) {
+        return a.id;
+      }
+    }
+
+    final nonTask = actions.where((a) => a.type != 'student_task').toList();
+    if (nonTask.isNotEmpty) {
+      return nonTask.last.id;
+    }
+
+    return null;
   }
 
   List<VisualTutorBoardActionEntity> _withFallbackLayout(
@@ -655,7 +706,9 @@ class _StudentActionOverlay extends StatelessWidget {
         ),
       );
     }
-    if (!_isSelectable) return const SizedBox.shrink();
+    if (!_isSelectable) {
+      return const Positioned(width: 0, height: 0, child: SizedBox.shrink());
+    }
     final content = (action.text ?? action.latex ?? 'teaching step')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
@@ -695,7 +748,7 @@ class _StudentActionOverlay extends StatelessWidget {
                           ),
                         ),
                         icon: const Icon(Icons.lightbulb_outline, size: 15),
-                        label: const Text('Explain'),
+                        label: Text(AppLocalizations.of(context).explain),
                       ),
                     ),
                   )

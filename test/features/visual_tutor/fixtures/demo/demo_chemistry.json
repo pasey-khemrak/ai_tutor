@@ -1,0 +1,246 @@
+{
+  "schema_version": 2,
+  "session_id": "57b24e3c-92e9-449c-a0b5-18286a846919",
+  "turn_id": "367c755b-767f-4df6-adac-773e0621c129",
+  "board_version": 1,
+  "base_board_version": 0,
+  "board_update_mode": "replace",
+  "lesson_state": {
+    "problem_instance_id": "problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+    "lesson_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+    "active_step_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828:step-0:ws-chem-next-9",
+    "current_step_index": 0,
+    "expected_student_action_id": "ws-chem-next-9",
+    "teaching_stage": null,
+    "lesson_state": null,
+    "final_answer_locked": false,
+    "board_version": 1,
+    "base_board_version": 0
+  },
+  "tutor_status": "Waiting for you",
+  "teaching_plan": {
+    "schema_version": 1,
+    "representation": "worked_example",
+    "learning_objective": "Understand reaction stoichiometry and mole calculations.",
+    "teaching_message": "Here is the full worked solution, step by step. The calculated amount of H2O is 35.75 g. Ask me about any step you want me to explain.",
+    "visible_board_actions": [
+      {
+        "id": "ws-chem-step-reaction-0",
+        "type": "write_text",
+        "sequence_index": 0,
+        "duration_ms": 450,
+        "section_id": "step-reaction",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "Step 1 · Balanced Chemical Reaction. Verify the balanced chemical equation and stoichiometric coefficients:",
+        "problem_instance_id": "problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+        "active_step_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828:step-0:ws-chem-next-9",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-chem-step-reaction-0"
+      },
+      {
+        "id": "ws-chem-step-reaction-1",
+        "type": "show_reaction_layout",
+        "sequence_index": 1,
+        "duration_ms": 650,
+        "section_id": "step-reaction",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "reaction_layout": {
+          "reactants": [
+            "H2",
+            "O2"
+          ],
+          "products": [
+            "H2O"
+          ],
+          "coefficients": [
+            2,
+            1,
+            2
+          ]
+        },
+        "problem_instance_id": "problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+        "active_step_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828:step-0:ws-chem-next-9",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-chem-step-reaction-1"
+      },
+      {
+        "id": "ws-chem-step-reaction-2",
+        "type": "write_equation",
+        "sequence_index": 2,
+        "duration_ms": 550,
+        "section_id": "step-reaction",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "2H2 + O2 \\to 2H2O",
+        "problem_instance_id": "problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+        "active_step_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828:step-0:ws-chem-next-9",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-chem-step-reaction-2"
+      },
+      {
+        "id": "ws-chem-step-molar-3",
+        "type": "write_text",
+        "sequence_index": 3,
+        "duration_ms": 450,
+        "section_id": "step-molar",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "Step 2 · Molar Masses & Quantities. Using standard atomic weights (H = 1.008 g/mol, O = 16 g/mol), determine molar masses and identify initial quantities:",
+        "problem_instance_id": "problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+        "active_step_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828:step-0:ws-chem-next-9",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-chem-step-molar-3"
+      },
+      {
+        "id": "ws-chem-step-molar-4",
+        "type": "show_table",
+        "sequence_index": 4,
+        "duration_ms": 600,
+        "section_id": "step-molar",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "table": {
+          "columns": [
+            "Substance",
+            "Role",
+            "Molar Mass",
+            "Quantity"
+          ],
+          "rows": [
+            [
+              "H2",
+              "Reactant",
+              "2.016 g/mol",
+              "Given: 4 g"
+            ],
+            [
+              "O2",
+              "Reactant",
+              "32.00 g/mol",
+              "Excess"
+            ],
+            [
+              "H2O",
+              "Product",
+              "18.016 g/mol",
+              "Target: ? g"
+            ]
+          ]
+        },
+        "problem_instance_id": "problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+        "active_step_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828:step-0:ws-chem-next-9",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-chem-step-molar-4"
+      },
+      {
+        "id": "ws-chem-step-calc-5",
+        "type": "write_text",
+        "sequence_index": 5,
+        "duration_ms": 450,
+        "section_id": "step-calc",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "Step 3 · Mole Ratio & Conversions. Convert given mass to moles, then apply the stoichiometric mole ratio (2:2):",
+        "problem_instance_id": "problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+        "active_step_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828:step-0:ws-chem-next-9",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-chem-step-calc-5"
+      },
+      {
+        "id": "ws-chem-step-calc-6",
+        "type": "write_equation",
+        "sequence_index": 6,
+        "duration_ms": 550,
+        "section_id": "step-calc",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "n(H2) = \\frac{4\\text{ g}}{2.02\\text{ g/mol}} = 1.9841\\text{ mol} \\implies n(H2O) = 1.9841 \\times \\frac{2}{2} = 1.9841\\text{ mol}",
+        "problem_instance_id": "problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+        "active_step_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828:step-0:ws-chem-next-9",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-chem-step-calc-6"
+      },
+      {
+        "id": "ws-chem-answer-7",
+        "type": "write_text",
+        "sequence_index": 7,
+        "duration_ms": 450,
+        "section_id": "answer",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "text": "Answer · The calculated amount of H2O is 35.75 g.",
+        "problem_instance_id": "problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+        "active_step_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828:step-0:ws-chem-next-9",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-chem-answer-7"
+      },
+      {
+        "id": "ws-chem-answer-8",
+        "type": "write_equation",
+        "sequence_index": 8,
+        "duration_ms": 600,
+        "section_id": "answer",
+        "layout_zone": "working",
+        "layout_flow": "vertical",
+        "latex": "35.75\\text{ g of H2O}",
+        "problem_instance_id": "problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+        "active_step_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828:step-0:ws-chem-next-9",
+        "board_version": 1,
+        "base_board_version": 0,
+        "action_id": "ws-chem-answer-8"
+      }
+    ],
+    "active_student_task": {
+      "id": "ws-chem-next-9",
+      "type": "student_task",
+      "sequence_index": 9,
+      "section_id": "next",
+      "layout_zone": "student_task",
+      "layout_flow": "vertical",
+      "text": "Ask me about any step you'd like explained, or try another chemistry problem.",
+      "requires_student_response": true,
+      "task_type": "conceptual_operation",
+      "problem_instance_id": "problem-5ecda69bbb5a4ff6bdcdb196286f6828",
+      "active_step_id": "lesson-problem-5ecda69bbb5a4ff6bdcdb196286f6828:step-0:ws-chem-next-9",
+      "board_version": 1,
+      "base_board_version": 0,
+      "action_id": "ws-chem-next-9"
+    },
+    "allowed_student_actions": [
+      "submit_answer",
+      "explain_differently",
+      "request_hint"
+    ],
+    "hidden_answer_policy": {
+      "mode": "reveal_allowed",
+      "deterministic_policy_permits_final_reveal": true
+    },
+    "next_state_policy": {
+      "correct": "continue",
+      "invalid": "reteach",
+      "incomplete": "ask_for_work",
+      "stuck": "reteach",
+      "hint": "continue",
+      "explain_differently": "reteach"
+    }
+  },
+  "verification": {
+    "status": "correct",
+    "verified": true,
+    "concise_evidence": "Verified",
+    "student_facing_feedback": "Programmatically verified using stoichiometric ratios and IUPAC standard atomic weights."
+  },
+  "recovery": {
+    "state": "ready"
+  }
+}

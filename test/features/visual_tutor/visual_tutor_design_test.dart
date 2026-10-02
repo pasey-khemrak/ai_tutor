@@ -11,7 +11,6 @@ void main() {
     expect(VisualTutorColors.blueInk, const Color(0xFF2E74FF));
     expect(VisualTutorColors.redInk, const Color(0xFFFF4A5F));
     expect(VisualTutorColors.yellowHighlight, const Color(0xFFFFE88A));
-    expect(VisualTutorColors.scanIconBackground, const Color(0xFF063B45));
     expect(VisualTutorColors.typeIconBackground, const Color(0xFF2E1D52));
     expect(VisualTutorColors.voiceIconBackground, const Color(0xFF06372F));
     expect(VisualTutorTypography.fontFallback, contains('Noto Sans Khmer'));
